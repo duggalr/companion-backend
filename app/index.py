@@ -28,6 +28,7 @@ app.add_middleware(
 
 # Initialize Celery
 if 'PRODUCTION' in os.environ:
+    print(f"CONNECTED")
     celery = Celery(
         __name__,
         backend = f"redis://{os.environ['REDIS_USERNAME']}:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
