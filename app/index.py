@@ -28,17 +28,65 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# import logging
 
-fp = '/opt/elasticbeanstalk/deployment/env'
-li = open(fp).readlines()
-for line in li:
-    k, v = line.split('=')[0], line.split('=')[1]
-    os.environ[k] = v
+# # Configure logging
+# logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-for val in os.environ:
-    print(val)
+# # Log available environment variables
+# logging.info("Available Environment Variables:")
+# for key in os.environ:
+#     logging.info(f"{key}: {os.environ[key]}")
 
-print(os.environ['REDIS_URL'])
+# # Access your specific variable
+# redis_url = os.getenv('REDIS_URL')
+# if redis_url:
+#     logging.info(f"Redis URL: {redis_url}")
+# else:
+#     logging.error("REDIS_URL is not set.")
+
+
+import os
+import logging
+
+# Create a logger
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# Create a file handler
+file_handler = logging.FileHandler('app.log')
+file_handler.setLevel(logging.INFO)
+
+# Create a formatter and set it for the handler
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+
+# Add the file handler to the logger
+logger.addHandler(file_handler)
+
+# Log available environment variables
+logger.info("Available Environment Variables:")
+for key in os.environ:
+    logger.info(f"{key}: {os.environ[key]}")
+
+# Access your specific variable
+redis_url = os.getenv('REDIS_URL')
+if redis_url:
+    logger.info(f"Redis URL: {redis_url}")
+else:
+    logger.error("REDIS_URL is not set.")
+
+
+# fp = '/opt/elasticbeanstalk/deployment/env'
+# li = open(fp).readlines()
+# for line in li:
+#     k, v = line.split('=')[0], line.split('=')[1]
+#     os.environ[k] = v
+
+# for val in os.environ:
+#     print(val)
+
+# print(os.environ['REDIS_URL'])
 
 # Initialize Celery
 celery = Celery(
