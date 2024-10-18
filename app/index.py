@@ -28,13 +28,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Initialize Celery
 celery = Celery(
     __name__,
-    backend = f"redis://{os.environ['REDIS_USERNAME']}:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
-    broker = f"redis://{os.environ['REDIS_USERNAME']}:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
+    backend = f"redis://default:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
+    broker = f"redis://default:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
 )
 
-# # Initialize Celery
 # if 'PRODUCTION' in os.environ:
 #     print(f"CONNECTED")
 #     celery = Celery(
@@ -52,7 +52,7 @@ celery = Celery(
 # Initialize Docker client
 client = docker.from_env()
 
-print(f"PRODUCTION TEST: {os.environ['PRODUCTION']}")
+print(f"PRODUCTION TEST: {os.environ['PRODUCTION']} | test")
 
 
 ## Celery Tasks ##
