@@ -28,83 +28,41 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Hacky Solution to get environment variables as environment properties on the AWS EB Console do not appear to be "pre-rendering"
+# when celery is launched.
+    # Thanks to: https://stackoverflow.com/questions/64523533/environment-properties-are-not-passed-to-application-in-elastic-beanstalk 
+if 'REDIS_URL' not in os.environ:
+    from pathlib import Path
+    import os
+    import subprocess
+    import ast
 
-# import os
-# import logging
+    def get_environ_vars():
+        completed_process = subprocess.run(
+            ['/opt/elasticbeanstalk/bin/get-config', 'environment'],
+            stdout=subprocess.PIPE,
+            text=True,
+            check=True
+        )
 
-# # Create a logger
-# logger = logging.getLogger()
-# logger.setLevel(logging.INFO)
+        return ast.literal_eval(completed_process.stdout)
 
-# # Create a file handler
-# file_handler = logging.FileHandler('app.log')
-# file_handler.setLevel(logging.INFO)
+    env_vars = get_environ_vars()
 
-# # Create a formatter and set it for the handler
-# formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-# file_handler.setFormatter(formatter)
-
-# # Add the file handler to the logger
-# logger.addHandler(file_handler)
-
-# # Log available environment variables
-# logger.info("Available Environment Variables:")
-# for key in os.environ:
-#     logger.info(f"{key}: {os.environ[key]}")
-
-# # Access your specific variable
-# redis_url = os.getenv('REDIS_URL')
-# if redis_url:
-#     logger.info(f"Redis URL: {redis_url}")
-# else:
-#     logger.error("REDIS_URL is not set.")
-
-from pathlib import Path
-import os
-import subprocess
-import ast
-
-def get_environ_vars():
-    completed_process = subprocess.run(
-        ['/opt/elasticbeanstalk/bin/get-config', 'environment'],
-        stdout=subprocess.PIPE,
-        text=True,
-        check=True
+    # Initialize Celery
+    celery = Celery(
+        __name__,
+        backend = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
+        broker = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
     )
 
-    return ast.literal_eval(completed_process.stdout)
+else: # local development
+    celery = Celery(
+        __name__,
+        backend = "redis://127.0.0.1",
+        broker = "redis://127.0.0.1:6379/0",
+    )
 
-env_vars = get_environ_vars()
-
-# Initialize Celery
-celery = Celery(
-    __name__,
-    backend = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
-    broker = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
-)
-print(F"CELERY: {celery}")
-
-
-# # Initialize Celery
-# celery = Celery(
-#     __name__,
-#     backend = f"redis://default:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
-#     broker = f"redis://default:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
-# )
-
-# if 'PRODUCTION' in os.environ:
-#     print(f"CONNECTED")
-#     celery = Celery(
-#         __name__,
-#         backend = f"redis://{os.environ['REDIS_USERNAME']}:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
-#         broker = f"redis://{os.environ['REDIS_USERNAME']}:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
-#     )
-# else:
-#     celery = Celery(
-#         __name__,
-#         backend = "redis://127.0.0.1",
-#         broker = "redis://127.0.0.1:6379/0",
-#     )
 
 # Initialize Docker client
 client = docker.from_env()
