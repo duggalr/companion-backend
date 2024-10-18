@@ -106,7 +106,6 @@ def execute_code_in_container(language: str, code: str):
 
 
 ## Util Functions for Views ##
-
 def _prepate_tutor_prompt(user_question, student_code, student_chat_history):
     prompt = """##Instructions:
 You will be assisting a student who is learning Python, by being their upbeat, encouraging tutor. 
@@ -158,7 +157,6 @@ You are on the right track. Pay close attention to the operation you are perform
     # prompt = """Generate a short, 100-word funny children story."""
     # return prompt
 
-
 async def generate_async_response_stream(user_question, user_code, past_user_messages_str):
     client = AsyncOpenAI(
         api_key=os.environ['OPENAI_KEY']
@@ -191,7 +189,6 @@ async def generate_async_response_stream(user_question, user_code, past_user_mes
             content = chunk.choices[0].delta.content
             if content:
                 yield content
-
 
 
 ## Views ##
