@@ -1,4 +1,4 @@
-# This script will create the systemd service for Celery
+#!/bin/bash
 
 cat <<EOF | sudo tee /etc/systemd/system/celery.service
 [Unit]
