@@ -28,6 +28,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+print("ENV VARS:", os.environ)
+
 celery = Celery(
     __name__,
     backend = f"redis://{os.environ['REDIS_USERNAME']}:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
