@@ -28,40 +28,69 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Hacky Solution to get environment variables as environment properties on the AWS EB Console do not appear to be "pre-rendering"
-# when celery is launched.
-    # Thanks to: https://stackoverflow.com/questions/64523533/environment-properties-are-not-passed-to-application-in-elastic-beanstalk 
-if 'REDIS_URL' not in os.environ:
-    from pathlib import Path
-    import os
-    import subprocess
-    import ast
+# # Hacky Solution to get environment variables as environment properties on the AWS EB Console do not appear to be "pre-rendering"
+# # when celery is launched.
+#     # Thanks to: https://stackoverflow.com/questions/64523533/environment-properties-are-not-passed-to-application-in-elastic-beanstalk 
+# if 'REDIS_URL' not in os.environ:
+#     from pathlib import Path
+#     import os
+#     import subprocess
+#     import ast
 
-    def get_environ_vars():
-        completed_process = subprocess.run(
-            ['/opt/elasticbeanstalk/bin/get-config', 'environment'],
-            stdout=subprocess.PIPE,
-            text=True,
-            check=True
-        )
+#     def get_environ_vars():
+#         completed_process = subprocess.run(
+#             ['/opt/elasticbeanstalk/bin/get-config', 'environment'],
+#             stdout=subprocess.PIPE,
+#             text=True,
+#             check=True
+#         )
 
-        return ast.literal_eval(completed_process.stdout)
+#         return ast.literal_eval(completed_process.stdout)
 
-    env_vars = get_environ_vars()
+#     env_vars = get_environ_vars()
 
-    # Initialize Celery
-    celery = Celery(
-        __name__,
-        backend = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
-        broker = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
+#     # Initialize Celery
+#     celery = Celery(
+#         __name__,
+#         backend = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
+#         broker = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
+#     )
+
+# else: # local development
+#     celery = Celery(
+#         __name__,
+#         backend = "redis://127.0.0.1",
+#         broker = "redis://127.0.0.1:6379/0",
+#     )
+
+
+## TODO: test ##
+
+from pathlib import Path
+import os
+import subprocess
+import ast
+
+def get_environ_vars():
+    completed_process = subprocess.run(
+        ['/opt/elasticbeanstalk/bin/get-config', 'environment'],
+        stdout=subprocess.PIPE,
+        text=True,
+        check=True
     )
 
-else: # local development
-    celery = Celery(
-        __name__,
-        backend = "redis://127.0.0.1",
-        broker = "redis://127.0.0.1:6379/0",
-    )
+    return ast.literal_eval(completed_process.stdout)
+
+env_vars = get_environ_vars()
+
+# Initialize Celery
+celery = Celery(
+    __name__,
+    backend = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
+    broker = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
+)
+
+
 
 
 # Initialize Docker client
