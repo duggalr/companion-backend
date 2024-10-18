@@ -52,6 +52,9 @@ celery = Celery(
 # Initialize Docker client
 client = docker.from_env()
 
+print(f"PRODUCTION TEST: {os.environ['PRODUCTION']}")
+
+
 ## Celery Tasks ##
 @celery.task
 def execute_code_in_container(language: str, code: str):
