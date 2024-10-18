@@ -6,6 +6,7 @@ sudo amazon-linux-extras enable docker
 sudo yum install -y docker
 sudo service docker start
 sudo usermod -a -G docker ec2-user
+sudo usermod -a -G docker webapp
 
 # Optional: enable Docker to start on boot
 sudo systemctl enable docker
