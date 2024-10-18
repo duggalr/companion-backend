@@ -9,7 +9,7 @@ After=network.target
 Type=simple
 User=ec2-user
 WorkingDirectory=/var/app/current
-ExecStart=/opt/python/run/venv/bin/celery -A app.index.celery worker --loglevel=info --concurrency=2
+ExecStart=/var/app/venv/staging-LQM1lest/bin/celery -A app.index.celery worker --loglevel=info --concurrency=2
 Restart=always
 
 [Install]
