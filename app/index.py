@@ -1,7 +1,9 @@
 import os
 from dotenv import load_dotenv, find_dotenv
-ENV_FILE = find_dotenv()
-load_dotenv(ENV_FILE)
+if 'PRODUCTION' not in os.environ:
+    ENV_FILE = find_dotenv()
+    load_dotenv(ENV_FILE)
+
 from pydantic import BaseModel
 from openai import AsyncOpenAI
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
@@ -26,20 +28,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Celery
-if 'PRODUCTION' in os.environ:
-    print(f"CONNECTED")
-    celery = Celery(
-        __name__,
-        backend = f"redis://{os.environ['REDIS_USERNAME']}:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
-        broker = f"redis://{os.environ['REDIS_USERNAME']}:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
-    )
-else:
-    celery = Celery(
-        __name__,
-        backend = "redis://127.0.0.1",
-        broker = "redis://127.0.0.1:6379/0",
-    )
+celery = Celery(
+    __name__,
+    backend = f"redis://{os.environ['REDIS_USERNAME']}:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
+    broker = f"redis://{os.environ['REDIS_USERNAME']}:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
+)
+
+# # Initialize Celery
+# if 'PRODUCTION' in os.environ:
+#     print(f"CONNECTED")
+#     celery = Celery(
+#         __name__,
+#         backend = f"redis://{os.environ['REDIS_USERNAME']}:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
+#         broker = f"redis://{os.environ['REDIS_USERNAME']}:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
+#     )
+# else:
+#     celery = Celery(
+#         __name__,
+#         backend = "redis://127.0.0.1",
+#         broker = "redis://127.0.0.1:6379/0",
+#     )
 
 # Initialize Docker client
 client = docker.from_env()
