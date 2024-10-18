@@ -59,13 +59,38 @@ app.add_middleware(
 # else:
 #     logger.error("REDIS_URL is not set.")
 
+from pathlib import Path
+import os
+import subprocess
+import ast
+
+def get_environ_vars():
+    completed_process = subprocess.run(
+        ['/opt/elasticbeanstalk/bin/get-config', 'environment'],
+        stdout=subprocess.PIPE,
+        text=True,
+        check=True
+    )
+
+    return ast.literal_eval(completed_process.stdout)
+
+env_vars = get_environ_vars()
 
 # Initialize Celery
 celery = Celery(
     __name__,
-    backend = f"redis://default:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
-    broker = f"redis://default:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
+    backend = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
+    broker = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
 )
+print(F"CELERY: {celery}")
+
+
+# # Initialize Celery
+# celery = Celery(
+#     __name__,
+#     backend = f"redis://default:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
+#     broker = f"redis://default:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
+# )
 
 # if 'PRODUCTION' in os.environ:
 #     print(f"CONNECTED")
