@@ -64,33 +64,38 @@ app.add_middleware(
 #     )
 
 
-## TODO: test ##
-
 from pathlib import Path
 import os
 import subprocess
 import ast
 
-def get_environ_vars():
-    completed_process = subprocess.run(
-        ['/opt/elasticbeanstalk/bin/get-config', 'environment'],
-        stdout=subprocess.PIPE,
-        text=True,
-        check=True
+
+if 'LOCAL' in os.environ:
+    # Initialize Celery
+    celery = Celery(
+        __name__,
+        backend = "redis://127.0.0.1",
+        broker = "redis://127.0.0.1:6379/0",
     )
+else:
+    def get_environ_vars():
+        completed_process = subprocess.run(
+            ['/opt/elasticbeanstalk/bin/get-config', 'environment'],
+            stdout=subprocess.PIPE,
+            text=True,
+            check=True
+        )
 
-    return ast.literal_eval(completed_process.stdout)
+        return ast.literal_eval(completed_process.stdout)
 
-env_vars = get_environ_vars()
+    env_vars = get_environ_vars()
 
-# Initialize Celery
-celery = Celery(
-    __name__,
-    backend = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
-    broker = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
-)
-
-
+    # Initialize Celery
+    celery = Celery(
+        __name__,
+        backend = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
+        broker = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
+    )
 
 
 # Initialize Docker client
