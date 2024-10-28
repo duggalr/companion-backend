@@ -98,9 +98,6 @@ else:
     )
 
 
-# Initialize Docker client
-client = docker.from_env()
-
 ## Celery Tasks ##
 @celery.task
 def execute_code_in_container(language: str, code: str):
@@ -170,15 +167,6 @@ def execute_code_in_container(language: str, code: str):
     finally:
         # Clean up the container
         container.remove(force=True)
-
-    # # Wait for the container to complete
-    # result = container.wait()
-
-    # # Capture the container logs (output from the code execution)
-    # logs = container.logs().decode("utf-8")
-
-    # # # Remove the container explicitly
-    # container.remove()
 
     if result is not None:
         if result["StatusCode"] == 0:
