@@ -69,8 +69,6 @@ import os
 import subprocess
 import ast
 
-# TODO: fix asap****** (use gpt as default until I get evaluation in place)
-# - from there, complete the lambda chat deployment
 
 if 'LOCAL' in os.environ:
     # Initialize Celery
