@@ -110,7 +110,7 @@ def execute_code_in_container(language: str, code: str):
     # Set up language-specific Docker image
     docker_image = {
         "python": "python:3.12-slim",
-        "nodejs": "node:14-slim"
+        # "nodejs": "node:14-slim"
     }.get(language)
 
     if not docker_image:
@@ -127,35 +127,57 @@ def execute_code_in_container(language: str, code: str):
     # The code will be placed in the /app directory inside the container
     container_code_file = f"/app/{code_file_name}"
 
-    # Create the command to run inside the container
+    MAX_EXECUTION_TIME_IN_SECONDS = 15
+
+    # Initialize Docker client
+    client = docker.from_env()
+
+    # Command to run inside the container
     exec_cmd = {
         "python": f"python {container_code_file}",
         "nodejs": f"node {container_code_file}"
     }.get(language)
 
-    # Initialize Docker client
-    client = docker.from_env()
+    try:
+        container = client.containers.run(
+            image = docker_image,
+            command = exec_cmd,
+            volumes = {host_code_dir: {"bind": "/app", "mode": "rw"}}, # Mount directory
+            working_dir = "/app",
+            detach = True,
+            user = "nobody",
+            read_only = True,
+            network_mode = "none",
+            mem_limit = "512m",
+            cpu_period = 100000,
+            cpu_quota = 50000,
+            pids_limit = 64,
+            security_opt = ["no-new-privileges"]
+        )
+        result = container.wait(
+            timeout = MAX_EXECUTION_TIME_IN_SECONDS
+        )
+        logs = container.logs().decode("utf-8")
+    except docker.errors.ContainerError as e:
+        logs = f"Error: {str(e)}"
+    except docker.errors.APIError as e:
+        logs = f"Docker API Error: {str(e)}"
+    except docker.errors.DockerException as e:
+        logs = f"Docker Execution Error: {str(e)}"
+    except Exception as e:
+        logs = f"Unexpected Error: {str(e)}"
+    finally:
+        # Clean up the container
+        container.remove(force=True)
 
-    # Run the code inside a Docker container
-    container = client.containers.run(
-        image=docker_image,
-        command=exec_cmd,
-        volumes={host_code_dir: {"bind": "/app", "mode": "rw"}},  # Mount the entire /tmp directory
-        working_dir="/app",
-        detach=True,
-        mem_limit="512m",
-        cpu_period=100000,
-        cpu_quota=50000  # limits CPU to 50% of a single CPU core
-    )
+    # # Wait for the container to complete
+    # result = container.wait()
 
-    # Wait for the container to complete
-    result = container.wait()
+    # # Capture the container logs (output from the code execution)
+    # logs = container.logs().decode("utf-8")
 
-    # Capture the container logs (output from the code execution)
-    logs = container.logs().decode("utf-8")
-
-    # # Remove the container explicitly
-    container.remove()
+    # # # Remove the container explicitly
+    # container.remove()
 
     if result["StatusCode"] == 0:
         return {"success": True, "output": logs}
