@@ -69,13 +69,17 @@ import os
 import subprocess
 import ast
 
+# TODO: fix asap****** (use gpt as default until I get evaluation in place)
+# - from there, complete the lambda chat deployment
 
 if 'LOCAL' in os.environ:
     # Initialize Celery
     celery = Celery(
         __name__,
-        backend = "redis://127.0.0.1",
-        broker = "redis://127.0.0.1:6379/0",
+        # backend = "redis://127.0.0.1",
+        # broker = "redis://127.0.0.1:6379/0",
+        backend = f"redis://default:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
+        broker = f"redis://default:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
     )
 else:
     def get_environ_vars():
