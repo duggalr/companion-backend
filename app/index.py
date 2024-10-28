@@ -127,7 +127,7 @@ def execute_code_in_container(language: str, code: str):
     # The code will be placed in the /app directory inside the container
     container_code_file = f"/app/{code_file_name}"
 
-    MAX_EXECUTION_TIME_IN_SECONDS = 15
+    MAX_EXECUTION_TIME_IN_SECONDS = 10
 
     # Initialize Docker client
     client = docker.from_env()
@@ -138,6 +138,7 @@ def execute_code_in_container(language: str, code: str):
         "nodejs": f"node {container_code_file}"
     }.get(language)
 
+    result = None
     try:
         container = client.containers.run(
             image = docker_image,
@@ -179,8 +180,11 @@ def execute_code_in_container(language: str, code: str):
     # # # Remove the container explicitly
     # container.remove()
 
-    if result["StatusCode"] == 0:
-        return {"success": True, "output": logs}
+    if result is not None:
+        if result["StatusCode"] == 0:
+            return {"success": True, "output": logs}
+        else:
+            return {"success": False, "output": logs}
     else:
         return {"success": False, "output": logs}
 
