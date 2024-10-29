@@ -74,10 +74,8 @@ if 'LOCAL' in os.environ:
     # Initialize Celery
     celery = Celery(
         __name__,
-        # backend = "redis://127.0.0.1",
-        # broker = "redis://127.0.0.1:6379/0",
-        backend = f"redis://default:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
-        broker = f"redis://default:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
+        backend = "redis://127.0.0.1",
+        broker = "redis://127.0.0.1:6379/0",
     )
 else:
     def get_environ_vars():
@@ -214,21 +212,22 @@ Your primary goal is to guide and mentor them, helping them solve their problem 
 
 ##Your Answer:
 """
-
     prompt = prompt.format(
         question=user_question,
         student_code=student_code,
         student_chat_history=student_chat_history
     )
     return prompt
-    # prompt = """Generate a short, 100-word funny children story."""
-    # return prompt
+
 
 async def generate_async_response_stream(user_question, user_code, past_user_messages_str):
     client = AsyncOpenAI(
-        api_key=os.environ['OPENAI_KEY']
+        # api_key=os.environ['OPENAI_KEY'],
+        api_key = os.environ['LAMBDA_INFERENCE_API_KEY'],
+        base_url = os.environ['LAMBDA_INFERENCE_API_BASE_URL'],
     )
-    model = "gpt-4o-mini"
+    # model = "gpt-4o-mini"
+    model = "hermes3-405b"
 
     prompt = _prepate_tutor_prompt(
         user_question = user_question,
@@ -277,12 +276,10 @@ async def websocket_handle_chat_response(websocket: WebSocket):
     try:
         while True:  # Keep receiving messages in a loop
             data = await websocket.receive_json()
-            print('Received data:', data)
 
             user_question = data['text'].strip()
             user_code = data['user_code']
             all_user_messages_str = data['all_user_messages_str']
-            print(f"All Messages: {all_user_messages_str}")
 
             # Respond to the user
             async for text in generate_async_response_stream(
@@ -292,6 +289,7 @@ async def websocket_handle_chat_response(websocket: WebSocket):
             ):
                 if text is None:
                     await websocket.send_text('MODEL_GEN_COMPLETE')
+                    break  # stop sending further text; just in case
                 else:
                     await websocket.send_text(text)
 

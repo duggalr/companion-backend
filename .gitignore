@@ -18,3 +18,5 @@ env
 !.elasticbeanstalk/*.global.yml
 
 *.log
+
+app/experimental_scripts
