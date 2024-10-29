@@ -248,7 +248,6 @@ async def generate_async_response_stream(user_question, user_code, past_user_mes
     )
 
     async for chunk in response_stream:
-        # print('res:', chunk)
         if chunk.choices[0].finish_reason == 'stop':
             yield None
         else:
@@ -296,33 +295,6 @@ async def websocket_handle_chat_response(websocket: WebSocket):
     except WebSocketDisconnect:
         print("WebSocket connection closed")
         await websocket.close()
-
-    # await websocket.accept()
-    # try:
-    #     data = await websocket.receive_json()
-    #     print('Received data:', data)
-    #     # await websocket.send_text('hello')
-    #     # # {'text': 'test', 'sender': 'user', 'type': 'user_message', 'complete': True}
-
-    #     user_question = data['text'].strip()
-    #     user_code = data['user_code']
-    #     # all_user_messages_str = '\n'.join(data['all_messages'])
-    #     all_user_messages_str = data['all_user_messages_str']
-    #     print(f"All Messages: {all_user_messages_str}")
-
-    #     async for text in generate_async_response_stream(
-    #         user_question = user_question,
-    #         user_code = user_code,
-    #         past_user_messages_str = all_user_messages_str
-    #     ):
-    #         if text is None:
-    #             await websocket.send_text('MODEL_GEN_COMPLETE')
-    #         else:
-    #             await websocket.send_text(text)
-
-    # except WebSocketDisconnect:
-    #     print("WebSocket connection closed")
-    #     await websocket.close()
 
 
 @app.post("/execute_user_code")
