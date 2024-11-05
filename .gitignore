@@ -20,3 +20,4 @@ env
 *.log
 
 app/experimental_scripts
+tutor_evaluation
