@@ -6,18 +6,35 @@ if 'PRODUCTION' not in os.environ:
 
 from pydantic import BaseModel
 from openai import AsyncOpenAI
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import docker
 from celery import Celery
 from celery.result import AsyncResult
 
+# Database
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+# from . import models, schemas
+# import models
+# from database import SessionLocal
+from app import models
+from app.database import SessionLocal
 
-### Create FastAPI instance with custom docs and openapi url
+
+
 app = FastAPI(
     docs_url="/api/py/docs",
     openapi_url="/api/py/openapi.json"
 )
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 
 # Add CORS middleware
 app.add_middleware(
@@ -242,7 +259,17 @@ class CodeExecutionRequest(BaseModel):
 
 
 @app.get("/testing-dev")
-async def dev_test_hello_world():
+async def dev_test_hello_world(db: Session = Depends(get_db)):
+    users = db.execute(
+        select(models.AnonUser)
+    ).scalars().all()
+    print('users:', users)
+
+    code_objects = db.execute(
+        select(models.PlaygroundCode)
+    ).scalars().all()
+    print('code-objects:', code_objects)
+
     return {'message': 'Hello World!'}
 
 
@@ -311,3 +338,41 @@ def get_result(task_id: str):
         "result_output_status": result_output_status,
         "result_output_value": result_output_value
     }
+
+
+@app.post("/save_user_run_code")
+async def save_user_run_code(request: Request, db: Session = Depends(get_db)):
+    payload = await request.json()
+    print(f'user-run-code-payload: {payload}')
+
+    user_id = payload['user_id']
+    code_state = payload['code_state']
+    
+    existing_user = db.query(models.AnonUser).filter(models.AnonUser.user_unique_id == user_id).first()
+    if existing_user:
+        new_code_object = models.PlaygroundCode(
+            code = code_state,
+            user_id = user_id
+        )
+        db.add(new_code_object)
+        db.commit() 
+        db.refresh(new_code_object)
+
+    else:
+        new_user = models.AnonUser(
+            user_unique_id = user_id
+        )
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+
+        new_code_object = models.PlaygroundCode(
+            code = code_state,
+            user_id = user_id
+        )
+        db.add(new_code_object)
+        db.commit() 
+        db.refresh(new_code_object)
+
+    return {"message": "Code saved"}
+
