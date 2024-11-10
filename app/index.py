@@ -329,11 +329,9 @@ def get_result(task_id: str):
     """
     Endpoint to check the result of the execution.
     """
-    print(f"Task ID: {task_id}")
     task_result = celery.AsyncResult(task_id)
     result_data = task_result.get()
 
-    print(f"result-data: {result_data}")
     result_output_status = result_data['success']
     result_output_value = result_data['output']
     return {
@@ -429,7 +427,6 @@ async def save_user_run_code(
                     code = code_state,
                     playground_parent_object_id = playground_parent_object.id
                 )
-                pg_code_object.save()
                 db.add(pg_code_object)
                 db.commit() 
                 db.refresh(pg_code_object)
