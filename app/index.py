@@ -378,7 +378,7 @@ async def save_user_run_code(
             auth_zero_unique_sub_id = user_information_json_data['sub']
             associated_user_object = db.query(models.UserOAuth).filter(
                 models.UserOAuth.auth_zero_unique_sub_id == auth_zero_unique_sub_id
-            ).all()
+            ).first()
 
             if associated_user_object is None:
                 return {'success': False, 'message': 'Authentication Error.', 'status_code': 400}
@@ -393,9 +393,32 @@ async def save_user_run_code(
             if custom_user_object is not None:
                 print(f"Custom user object:", custom_user_object)
 
-                if 'pid' in payload:
+                if 'parent_playground_object_id' in payload:
                     # TODO: handle case here where playground-object-id is already provided
-                    pass
+
+                    # current_pid = payload['pid']
+                    current_pid = payload['parent_playground_object_id']
+                    print(f"Current PID: {current_pid}")
+
+                    # pg_base_object = models.PlaygroundObjectBase(id = current_pid)
+                    existing_playground_base_object = db.query(models.PlaygroundObjectBase).filter(
+                        models.PlaygroundObjectBase.id == current_pid,
+                        models.PlaygroundObjectBase.custom_user_id == custom_user_object.id
+                    ).first()
+
+                    if existing_playground_base_object is None:
+                        return {'success': False, 'message': "Not found.", 'status_code': 404}
+                    
+
+                    pg_code_object = models.PlaygroundCode(
+                        code = code_state,
+                        playground_parent_object_id = str(existing_playground_base_object.id)
+                    )
+                    db.add(pg_code_object)
+                    db.commit()
+                    db.refresh(pg_code_object)
+
+                    return {"message": "Code saved", 'parent_playground_object_id': existing_playground_base_object.id, 'status_code': 200}
 
                 else:
                     # save parent object
@@ -410,7 +433,7 @@ async def save_user_run_code(
                     # save code object
                     pg_code_object = models.PlaygroundCode(
                         code = code_state,
-                        playground_parent_object_id = str(playground_parent_object.id)
+                        playground_parent_object_id = str(pg_base_object.id)
                     )
                     db.add(pg_code_object)
                     db.commit() 
