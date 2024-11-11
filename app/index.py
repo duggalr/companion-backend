@@ -357,14 +357,82 @@ async def save_user_run_code(
     db: Session = Depends(get_db),
     token: Optional[str] = Depends(get_optional_token)
 ):
-    
+
     payload = await request.json()
     print(f'user-run-code-payload: {payload}')
 
     code_state = payload['code_state']
 
     if token is not None:
-        pass
+        print(f"CURRENT TOKEN: {token}")
+
+        user_information_response = utils.get_user_information(
+            token = token
+        )
+
+        if user_information_response.status_code == 200:
+            user_information_json_data = user_information_response.json()
+            print('user_information_json_data', user_information_json_data)
+
+            # Get user object first
+            auth_zero_unique_sub_id = user_information_json_data['sub']
+            associated_user_object = db.query(models.UserOAuth).filter(
+                models.UserOAuth.auth_zero_unique_sub_id == auth_zero_unique_sub_id
+            ).all()
+
+            if associated_user_object is None:
+                return {'success': False, 'message': 'Authentication Error.', 'status_code': 400}
+            
+            oauth_user_object_unique_id = associated_user_object.auth_zero_unique_sub_id
+
+            # Get user object
+            custom_user_object = db.query(models.CustomUser).filter(
+                models.CustomUser.oauth_user_id == oauth_user_object_unique_id
+            ).first()
+
+            if custom_user_object is not None:
+                print(f"Custom user object:", custom_user_object)
+
+                if 'pid' in payload:
+                    # TODO: handle case here where playground-object-id is already provided
+                    pass
+
+                else:
+                    # save parent object
+                    pg_base_object = models.PlaygroundObjectBase(
+                        unique_name = uuid.uuid4().hex[:20],
+                        custom_user_id = str(custom_user_object.id)
+                    )
+                    db.add(pg_base_object)
+                    db.commit()
+                    db.refresh(pg_base_object)
+                    
+                    # save code object
+                    pg_code_object = models.PlaygroundCode(
+                        code = code_state,
+                        playground_parent_object_id = str(playground_parent_object.id)
+                    )
+                    db.add(pg_code_object)
+                    db.commit() 
+                    db.refresh(pg_code_object)
+
+                    return {"message": "Code saved", 'parent_playground_object_id': pg_base_object.id, 'status_code': 200}
+
+                # # Get playground object with pid and user information
+                # playground_obj = db.query(models.PlaygroundObjectBase).filter(
+                #     models.PlaygroundObjectBase.id == playground_object_id,
+                #     models.PlaygroundObjectBase.custom_user_id == custom_user_object.id
+                # ).first()
+
+                # if playground_obj is None:
+                #     return {'success': False, 'message': 'Not Found.', 'status_code': 404}
+                
+                # # Get most recent code for playground object
+                # pg_code_object = db.query(models.PlaygroundCode).filter(
+                #     # models.PlaygroundCode.playground_object_id == pg_object.id
+                #     models.PlaygroundCode.playground_parent_object_id == playground_obj.id
+                # ).order_by(models.PlaygroundCode.created_date.desc()).first()
+
     else:
         user_id = payload['user_id']
         
@@ -450,15 +518,13 @@ def validate_authenticated_user(credentials: HTTPAuthorizationCredentials = Depe
         user_data = user_information_response.json()
         user_sub_id = user_data['sub']
         user_email = user_data['email']
-        user_objects = db.query(models.CustomUser).filter(
-            models.CustomUser.auth_zero_unique_sub_id == user_sub_id,
-            models.CustomUser.email == user_email,
-        ).all()
-        print('user-objects:', user_objects)
 
-        if len(user_objects) == 0:
-            # create user object
-            cust_user_object = models.CustomUser(
+        auth_user_object = db.query(models.UserOAuth).filter(
+            models.UserOAuth.auth_zero_unique_sub_id == user_sub_id
+        ).first()
+
+        if auth_user_object is None:
+            auth_user_object = models.UserOAuth(
                 auth_zero_unique_sub_id = user_data['sub'],
                 given_name = user_data['given_name'],
                 family_name = user_data['family_name'],
@@ -467,90 +533,152 @@ def validate_authenticated_user(credentials: HTTPAuthorizationCredentials = Depe
                 email = user_data['email'],
                 email_verified = user_data['email_verified'],
             )
-            db.add(cust_user_object)
+            db.add(auth_user_object)
             db.commit()
-            db.refresh(cust_user_object)
-            return {'success': True}
-        else:
-            return {'success': True}
+            db.refresh(auth_user_object)
+
+        custom_user_object = db.query(models.CustomUser).filter(
+            models.CustomUser.oauth_user_id == user_sub_id,
+        ).first()
+
+        if custom_user_object is None:
+            custom_user_object = models.CustomUser(
+                oauth_user_id = auth_user_object.auth_zero_unique_sub_id,
+            )
+            db.add(custom_user_object)
+            db.commit()
+            db.refresh(custom_user_object)
+
+        return {'success': True}
+
+        # # user_objects = db.query(models.CustomUser).filter(
+        # #     models.CustomUser.auth_zero_unique_sub_id == user_sub_id,
+        # #     models.CustomUser.email == user_email,
+        # # ).all()
+        # # print('user-objects:', user_objects)
+
+        # if len(user_objects) == 0:
+        #     # create user object
+        #     cust_user_object = models.CustomUser(
+        #         auth_zero_unique_sub_id = user_data['sub'],
+        #         given_name = user_data['given_name'],
+        #         family_name = user_data['family_name'],
+        #         full_name = user_data['name'],
+        #         profile_picture_url = user_data['picture'],
+        #         email = user_data['email'],
+        #         email_verified = user_data['email_verified'],
+        #     )
+        #     db.add(cust_user_object)
+        #     db.commit()
+        #     db.refresh(cust_user_object)
+        #     return {'success': True}
+        # else:
+        #     return {'success': True}
     else:
         return {'success': False, 'payload': user_information_response.json(), 'status_code': user_information_response.status_code}
 
 
+
+# Playground Data Pydantic Model
+class PlaygroundData(BaseModel):
+    pid: str
+
+
 @app.post("/fetch-playground-data")
-def fetch_playground_data(request: Request, credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme), db: Session = Depends(get_db)):
+def fetch_playground_data(
+    request: Request,
+    post_data: PlaygroundData,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+):
     token = credentials.credentials
     user_information_response = utils.get_user_information(
         token = token
     )
 
-    json_data = request.json()
-    print("JSON DATA:", json_data)
+    if user_information_response.status_code == 200:
+        user_information_json_data = user_information_response.json()
+        print('user_information_json_data', user_information_json_data)
 
-    playground_object_id = json_data["pid"]
+        playground_object_id = post_data.pid
 
-    # Get user object first
-    auth_zero_unique_sub_id = user_information_response['auth_zero_unique_sub_id']
-    associated_user_objects = db.query(models.UserOAuth).filter(
-        models.UserOAuth.auth_zero_unique_sub_id == auth_zero_unique_sub_id
-    ).all()
-
-    custom_user_object = None
-    if len(associated_user_objects) == 0:
-        # TODO: return error here?
-        raise Exception
-    else:
-        user_id = associated_user_objects[0].user_id
-
-        # Get user object
-        custom_user_object_item = db.query(models.CustomUser).filter(
-            models.CustomUser.id == user_id
-        ).first()
-
-        if custom_user_object_item is None:
-            # TODO: return error here?
-            raise Exception
-        else:
-            custom_user_object = custom_user_object_item
-
-
-    if custom_user_object is not None:
-        print(f"Custom user object:", custom_user_object)
-        
-        # Get playground object with pid and user information
-        pg_object_list = db.query(models.PlaygroundObjectBase).filter(
-            models.PlaygroundObjectBase.id == playground_object_id,
-            models.PlaygroundObjectBase.custom_user_id == custom_user_object.id
+        # Get user object first
+        auth_zero_unique_sub_id = user_information_json_data['sub']
+        associated_user_objects = db.query(models.UserOAuth).filter(
+            models.UserOAuth.auth_zero_unique_sub_id == auth_zero_unique_sub_id
         ).all()
 
-        if len(pg_object_list) == 0:
-            return {'success': False, 'message': 'Not Found', 'code': 404}
-
+        custom_user_object = None
+        if len(associated_user_objects) == 0:  # Anon user trying to access a saved playground object --> return 404
+            return {'success': False, 'message': 'Not Found.', 'status_code': 404}
         else:
-            pg_object = pg_object_list[0]
+            # user_id = associated_user_objects[0].user_id
+            oauth_user_object_unique_id = associated_user_objects[0].auth_zero_unique_sub_id
 
+            # Get user object
+            custom_user_object_item = db.query(models.CustomUser).filter(
+                models.CustomUser.oauth_user_id == oauth_user_object_unique_id
+            ).first()
+
+            if custom_user_object_item is None:
+                # TODO: return error here?
+                raise Exception
+            else:
+                custom_user_object = custom_user_object_item
+
+        if custom_user_object is not None:
+            print(f"Custom user object:", custom_user_object)
+            
+            # Get playground object with pid and user information
+            playground_obj = db.query(models.PlaygroundObjectBase).filter(
+                models.PlaygroundObjectBase.id == playground_object_id,
+                models.PlaygroundObjectBase.custom_user_id == custom_user_object.id
+            ).first()
+
+            if playground_obj is None:
+                return {'success': False, 'message': 'Not Found.', 'status_code': 404}
+            
+            # Get most recent code for playground object
             pg_code_object = db.query(models.PlaygroundCode).filter(
-                models.PlaygroundCode.playground_object_id == pg_object.id
+                # models.PlaygroundCode.playground_object_id == pg_object.id
+                models.PlaygroundCode.playground_parent_object_id == playground_obj.id
             ).order_by(models.PlaygroundCode.created_date.desc()).first()
 
-            pg_chat_messages = db.query(models.PlaygroundChatConversation).filter(
-                models.PlaygroundChatConversation.playground_object_id == pg_object.id
-            )
-
-            pg_chat_messages_list = []
-            for ch_obj in pg_chat_messages:
-                pg_chat_messages_list.append({
-                    'id': ch_obj.id,
-                    'question': ch_obj.question,
-                    'response': ch_obj.response
-                })
-
+            # TODO: get chat messages
             return {
                 'success': True,
+                'playground_object_id': playground_obj.id,
                 'code': pg_code_object.code,
-                'chat_messages': pg_chat_messages_list
+                'chat_messages': None
             }
 
+    #     # if len(pg_object_list) == 0:
+    #     #     return {'success': False, 'message': 'Not Found', 'code': 404}
+
+    #     # else:
+    #     #     pg_object = pg_object_list[0]
+
+    #     #     pg_code_object = db.query(models.PlaygroundCode).filter(
+    #     #         models.PlaygroundCode.playground_object_id == pg_object.id
+    #     #     ).order_by(models.PlaygroundCode.created_date.desc()).first()
+
+    #     #     pg_chat_messages = db.query(models.PlaygroundChatConversation).filter(
+    #     #         models.PlaygroundChatConversation.playground_object_id == pg_object.id
+    #     #     )
+
+    #     #     pg_chat_messages_list = []
+    #     #     for ch_obj in pg_chat_messages:
+    #     #         pg_chat_messages_list.append({
+    #     #             'id': ch_obj.id,
+    #     #             'question': ch_obj.question,
+    #     #             'response': ch_obj.response
+    #     #         })
+
+    #     #     return {
+    #     #         'success': True,
+    #     #         'code': pg_code_object.code,
+    #     #         'chat_messages': pg_chat_messages_list
+    #     #     }
 
 
 
