@@ -313,10 +313,6 @@ async def websocket_handle_chat_response(websocket: WebSocket, db: Session = Dep
                 if text is None:
 
                     await websocket.send_text('MODEL_GEN_COMPLETE')
-
-                    # # TODO:
-                        # run anon case again and test out to ensure it works
-                        # implement authenaticated case and test out / finalize
                     
                     pg_chat_conversation_object = models.PlaygroundChatConversation(
                         question = user_question,
@@ -686,7 +682,7 @@ def fetch_playground_data(
 
         if custom_user_object is not None:
             print(f"Custom user object:", custom_user_object)
-            
+
             # Get playground object with pid and user information
             playground_obj = db.query(models.PlaygroundObjectBase).filter(
                 models.PlaygroundObjectBase.id == playground_object_id,
@@ -703,11 +699,53 @@ def fetch_playground_data(
             ).order_by(models.PlaygroundCode.created_date.desc()).first()
 
             # TODO: get chat messages
+            pg_chat_object_list = db.query(models.PlaygroundChatConversation).filter(
+                models.PlaygroundChatConversation.playground_parent_object_id == playground_obj.id
+            ).all()
+
+            final_chat_messages_rv_list = [{
+                'id': None,
+                'text': """Welcome! 😄 I'm Companion, your personal programming tutor.
+
+If you are running into a problem such as a bug in your code, a LeetCode problem, or need help understanding a concept, ask me and I will be more than happy to help.""",
+                'sender': "bot",
+                'complete': True
+            }]
+            for ch_obj in pg_chat_object_list:
+                # final_chat_messages_rv_list.append({
+                #     'id': ch_obj.id,
+                #     'question': ch_obj.question,
+                #     'response': ch_obj.response,
+                # })
+                
+                final_chat_messages_rv_list.append({
+                    'id': ch_obj.id,
+                    'text': ch_obj.question,
+                    'sender': 'user',
+                    'complete': True
+                })
+
+                final_chat_messages_rv_list.append({
+                    'id': ch_obj.id,
+                    'text': ch_obj.response,
+                    'sender': 'bot',
+                    'complete': True
+                })
+
+#     setChatMessages([{
+#                         text: `Welcome! 😄 I'm Companion, your personal programming tutor.
+    
+# If you are running into a problem such as a bug in your code, a LeetCode problem, or need help understanding a concept, ask me and I will be more than happy to help.`,
+#                         sender: "bot",
+#                         complete: true
+#                     }]);
+
+
             return {
                 'success': True,
                 'playground_object_id': playground_obj.id,
                 'code': pg_code_object.code,
-                'chat_messages': None
+                'chat_messages': final_chat_messages_rv_list
             }
 
     #     # if len(pg_object_list) == 0:
