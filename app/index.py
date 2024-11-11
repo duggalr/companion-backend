@@ -156,7 +156,7 @@ Your primary goal is to guide and mentor them, helping them solve their problem 
     - Native python libraries (ie. like math) are completely fine and are supported.
 
 ##Instructions:
-- Ask or Gauge their pre-requisite knolwedge:
+- Ask or Gauge their pre-requisite knowledge:
     - Try to understand or gauge the student's understanding of the concept or problem they have asked, before jumping in and providing them with further information or hints.
     - By understanding the student's current understanding of the concept or problem, it will make it easier for you to determine which level of abstraction you should start with, when generating your answer.
 - No Over Information:
@@ -276,7 +276,7 @@ async def dev_test_hello_world(db: Session = Depends(get_db)):
 
 
 @app.websocket("/ws_handle_chat_response")
-async def websocket_handle_chat_response(websocket: WebSocket):
+async def websocket_handle_chat_response(websocket: WebSocket, db: Session = Depends(get_db)):
     await websocket.accept()
     try:
         while True:  # Keep receiving messages in a loop
@@ -286,16 +286,52 @@ async def websocket_handle_chat_response(websocket: WebSocket):
             user_code = data['user_code']
             all_user_messages_str = data['all_user_messages_str']
 
+            # TODO: pass the user id for additional layer of security here
+            parent_playground_object_id = data['parent_playground_object_id']
+            
+            parent_pg_object = db.query(models.PlaygroundObjectBase).filter(
+                models.PlaygroundObjectBase.id == parent_playground_object_id,
+            ).first()
+
+            if parent_pg_object is None:
+                return {'success': False, 'message': "Playground object not found.", "status_code": 404}
+
             # Respond to the user
+            full_response_message = ""
+
+            model_prompt = _prepate_tutor_prompt(
+                user_question=user_question,
+                student_code=user_code,
+                student_chat_history=all_user_messages_str
+            )
+
             async for text in generate_async_response_stream(
                 user_question=user_question,
                 user_code=user_code,
                 past_user_messages_str=all_user_messages_str
             ):
                 if text is None:
+
                     await websocket.send_text('MODEL_GEN_COMPLETE')
+
+                    # # TODO:
+                        # run anon case again and test out to ensure it works
+                        # implement authenaticated case and test out / finalize
+                    
+                    pg_chat_conversation_object = models.PlaygroundChatConversation(
+                        question = user_question,
+                        prompt = model_prompt,
+                        response = full_response_message,
+                        code = user_code,
+                        playground_parent_object_id = parent_pg_object.id
+                    )
+                    db.add(pg_chat_conversation_object)
+                    db.commit()
+                    db.refresh(pg_chat_conversation_object)
+                    
                     break  # stop sending further text; just in case
                 else:
+                    full_response_message += text
                     await websocket.send_text(text)
 
     except WebSocketDisconnect:
@@ -522,7 +558,6 @@ async def save_user_run_code(
                 db.commit() 
                 db.refresh(pg_code_object)
                 return {"message": "Code saved", 'parent_playground_object_id': playground_parent_object.id, 'status_code': 200}
-
 
 
 
