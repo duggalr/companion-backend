@@ -732,15 +732,6 @@ If you are running into a problem such as a bug in your code, a LeetCode problem
                     'complete': True
                 })
 
-#     setChatMessages([{
-#                         text: `Welcome! 😄 I'm Companion, your personal programming tutor.
-    
-# If you are running into a problem such as a bug in your code, a LeetCode problem, or need help understanding a concept, ask me and I will be more than happy to help.`,
-#                         sender: "bot",
-#                         complete: true
-#                     }]);
-
-
             return {
                 'success': True,
                 'playground_object_id': playground_obj.id,
@@ -748,33 +739,6 @@ If you are running into a problem such as a bug in your code, a LeetCode problem
                 'chat_messages': final_chat_messages_rv_list
             }
 
-    #     # if len(pg_object_list) == 0:
-    #     #     return {'success': False, 'message': 'Not Found', 'code': 404}
-
-    #     # else:
-    #     #     pg_object = pg_object_list[0]
-
-    #     #     pg_code_object = db.query(models.PlaygroundCode).filter(
-    #     #         models.PlaygroundCode.playground_object_id == pg_object.id
-    #     #     ).order_by(models.PlaygroundCode.created_date.desc()).first()
-
-    #     #     pg_chat_messages = db.query(models.PlaygroundChatConversation).filter(
-    #     #         models.PlaygroundChatConversation.playground_object_id == pg_object.id
-    #     #     )
-
-    #     #     pg_chat_messages_list = []
-    #     #     for ch_obj in pg_chat_messages:
-    #     #         pg_chat_messages_list.append({
-    #     #             'id': ch_obj.id,
-    #     #             'question': ch_obj.question,
-    #     #             'response': ch_obj.response
-    #     #         })
-
-    #     #     return {
-    #     #         'success': True,
-    #     #         'code': pg_code_object.code,
-    #     #         'chat_messages': pg_chat_messages_list
-    #     #     }
 
 
 
@@ -803,57 +767,3 @@ async def fetch_user_messages(conversation_id: int, credentials: HTTPAuthorizati
     print('users:', users)
 
 
-
-
-# # # TODO: test endpoint
-# # @app.post("/test-protected-route")
-# async def test_protected_route(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
-#     token = credentials.credentials
-#     url = f"https://dev-2qo458j0ehopg3ae.us.auth0.com/userinfo"
-#     headers = {
-#         "Authorization": f"Bearer {token}"
-#     }
-#     response = requests.get(url, headers=headers)
-#     print('token-response:', response.json())
-#     # return {"message": "Access granted", "user": payload}
-
-
-# AUTH0_DOMAIN = "https://dev-2qo458j0ehopg3ae.us.auth0.com"
-# API_IDENTIFIER = "https://dev-2qo458j0ehopg3ae.us.auth0.com/api/v2/"
-# ALGORITHMS = ["RS256"]
-
-# def verify_token(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
-#     token = credentials.credentials
-#     try:
-#         signing_key = jwks_client.get_signing_key_from_jwt(token)
-#         payload = jwt.decode(
-#             token,
-#             signing_key.key,
-#             algorithms=ALGORITHMS,
-#             audience=API_IDENTIFIER,
-#             issuer=f"https://{AUTH0_DOMAIN}/"
-#         )
-#         # return payload  # This payload contains the user's profile info from the token
-#         return {'success': True, 'payload': payload, 'status_code': 200}
-#     except jwt.ExpiredSignatureError:
-#         # raise HTTPException(status_code=401, detail="Token has expired")
-#         return {'success': False, 'payload': 'Token has expired', 'status_code': 401}
-#     except jwt.InvalidTokenError:
-#         # raise HTTPException(status_code=401, detail="Invalid token")
-#         return {'success': False, 'payload': 'Invalid token', 'status_code': 401}
-
-    # # user_info = verify_token(token)
-    # # print(f"User Info: {user_info}")
-    # print(credentials.credentials)
-    # user_info_verified_payload = verify_token(credentials)
-    # if user_info_verified_payload['success'] is False:
-    #     return user_info_verified_payload
-    # else:
-    #     print(user_info_verified_payload)
-
-    #     # # TODO: check if user exists (email and unique sub-id from auth0)
-    #     # user_obj = db.query(models.CustomUser).filter(models.CustomUser.)
-    #     # db.query(models.AnonUser).filter(models.AnonUser.user_unique_id == user_id).first()
-    #     # CustomUser
-
-    # # TODO: if token is valid and user_info --> 
