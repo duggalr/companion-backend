@@ -638,6 +638,72 @@ class PlaygroundData(BaseModel):
     pid: str
 
 
+
+@app.post("/fetch-dashboard-data")
+def fetch_dashboard_data(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+):
+    token = credentials.credentials
+    user_information_response = utils.get_user_information(
+        token = token
+    )
+
+    if user_information_response.status_code == 200:
+        user_information_json_data = user_information_response.json()
+        print('user_information_json_data', user_information_json_data)
+
+ # Get user object first
+        auth_zero_unique_sub_id = user_information_json_data['sub']
+        associated_user_objects = db.query(models.UserOAuth).filter(
+            models.UserOAuth.auth_zero_unique_sub_id == auth_zero_unique_sub_id
+        ).all()
+
+        custom_user_object = None
+        if len(associated_user_objects) == 0:  # Anon user trying to access a saved playground object --> return 404
+            return {'success': False, 'message': 'Not Found.', 'status_code': 404}
+        else:
+            # user_id = associated_user_objects[0].user_id
+            oauth_user_object_unique_id = associated_user_objects[0].auth_zero_unique_sub_id
+
+            # Get user object
+            custom_user_object_item = db.query(models.CustomUser).filter(
+                models.CustomUser.oauth_user_id == oauth_user_object_unique_id
+            ).first()
+
+            if custom_user_object_item is None:
+                # TODO: return error here?
+                raise Exception
+            else:
+                custom_user_object = custom_user_object_item
+
+        if custom_user_object is not None:
+            print(f"Custom user object:", custom_user_object)
+
+            playground_object_list = db.query(models.PlaygroundObjectBase).filter(
+                models.PlaygroundObjectBase.custom_user_id == custom_user_object.id
+            ).all()
+
+            rv = []
+            count = 1
+            for pobj in playground_object_list:
+                rv.append({
+                    'id': pobj.id,
+                    'count': count,
+                    'code_file_name': f"Code File #{count}",
+                    'name': pobj.unique_name,
+                    'created_date': pobj.created_at.date(),
+                })
+                count += 1
+
+            return {
+                'success': True,
+                'playground_object_list': rv
+            }
+
+
+
 @app.post("/fetch-playground-data")
 def fetch_playground_data(
     request: Request,
