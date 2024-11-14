@@ -19,7 +19,7 @@ from celery import Celery
 from celery.result import AsyncResult
 
 # Database
-from sqlalchemy import select
+from sqlalchemy import select, desc
 from sqlalchemy.orm import Session
 from app import models, utils
 from app.database import SessionLocal
@@ -597,6 +597,7 @@ def validate_authenticated_user(credentials: HTTPAuthorizationCredentials = Depe
 
         if custom_user_object is None:
             custom_user_object = models.CustomUser(
+
                 oauth_user_id = auth_user_object.auth_zero_unique_sub_id,
             )
             db.add(custom_user_object)
@@ -660,6 +661,8 @@ def fetch_dashboard_data(
             models.UserOAuth.auth_zero_unique_sub_id == auth_zero_unique_sub_id
         ).all()
 
+        print('dashboard-user-objects:', associated_user_objects)
+
         custom_user_object = None
         if len(associated_user_objects) == 0:  # Anon user trying to access a saved playground object --> return 404
             return {'success': False, 'message': 'Not Found.', 'status_code': 404}
@@ -683,7 +686,11 @@ def fetch_dashboard_data(
 
             playground_object_list = db.query(models.PlaygroundObjectBase).filter(
                 models.PlaygroundObjectBase.custom_user_id == custom_user_object.id
-            ).all()
+            )
+
+            # playground_object_list = db.query(models.PlaygroundObjectBase).filter(
+            #     models.PlaygroundObjectBase.custom_user_id == custom_user_object.id
+            # ).order_by(desc(models.PlaygroundObjectBase.date)).all()
 
             rv = []
             count = 1
@@ -694,8 +701,11 @@ def fetch_dashboard_data(
                     'code_file_name': f"Code File #{count}",
                     'name': pobj.unique_name,
                     'created_date': pobj.created_at.date(),
+                    "updated_date": pobj.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
                 })
                 count += 1
+
+            rv.reverse()
 
             return {
                 'success': True,

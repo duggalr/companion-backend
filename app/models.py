@@ -25,12 +25,12 @@ class UserOAuth(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     auth_zero_unique_sub_id = Column(String, unique=True, index=True, nullable=False)
-    given_name = Column(String, unique=True, index=True, nullable=False)
-    family_name = Column(String, unique=True, index=True, nullable=False)
-    full_name = Column(String, unique=True, index=True, nullable=False)
-    profile_picture_url = Column(String, unique=True, index=True, nullable=False)
+    given_name = Column(String, index=True, nullable=False)
+    family_name = Column(String, index=True, nullable=False)
+    full_name = Column(String, index=True, nullable=False)
+    profile_picture_url = Column(String, index=True, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
-    email_verified = Column(Boolean, unique=True, index=True, nullable=False)
+    email_verified = Column(Boolean, index=True, nullable=False)
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
 
 
@@ -60,6 +60,7 @@ class PlaygroundObjectBase(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     unique_name = Column(String, nullable=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
     custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
     custom_user = relationship("CustomUser")
