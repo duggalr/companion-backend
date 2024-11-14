@@ -1,10 +1,4 @@
 import os
-# if 'LOCAL' in os.environ:
-#     from dotenv import load_dotenv, find_dotenv
-#     ENV_FILE = find_dotenv()
-#     load_dotenv(ENV_FILE)
-
-from dotenv import load_dotenv, find_dotenv
 ENV_FILE = find_dotenv()
 load_dotenv(ENV_FILE)
 
