@@ -850,4 +850,3 @@ async def fetch_user_messages(conversation_id: int, credentials: HTTPAuthorizati
     ).scalars().all()
     print('users:', users)
 
-
