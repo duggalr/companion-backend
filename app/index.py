@@ -695,10 +695,16 @@ def fetch_dashboard_data(
             rv = []
             count = 1
             for pobj in playground_object_list:
+
+                number_of_chat_messages = db.query(models.PlaygroundChatConversation).filter(
+                    models.PlaygroundChatConversation.playground_parent_object_id == pobj.id
+                ).count()
+
                 rv.append({
                     'id': pobj.id,
                     'count': count,
                     'code_file_name': f"Code File #{count}",
+                    'number_of_chat_messages': number_of_chat_messages,
                     'name': pobj.unique_name,
                     'created_date': pobj.created_at.date(),
                     "updated_date": pobj.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
@@ -807,6 +813,8 @@ If you are running into a problem such as a bug in your code, a LeetCode problem
                     'sender': 'bot',
                     'complete': True
                 })
+
+            print('Final Chat Messages:', final_chat_messages_rv_list)
 
             return {
                 'success': True,
