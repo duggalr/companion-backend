@@ -1,6 +1,6 @@
 import os
-from dotenv import load_dotenv, find_dotenv
 if 'PRODUCTION' not in os.environ:
+    from dotenv import load_dotenv, find_dotenv
     ENV_FILE = find_dotenv()
     load_dotenv(ENV_FILE)
 
@@ -11,8 +11,6 @@ from openai import AsyncOpenAI
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import jwt
-from jwt import PyJWKClient
 
 import docker
 from celery import Celery
@@ -47,9 +45,50 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# # Hacky Solution to get environment variables as environment properties on the AWS EB Console do not appear to be "pre-rendering"
+# # when celery is launched.
+#     # Thanks to: https://stackoverflow.com/questions/64523533/environment-properties-are-not-passed-to-application-in-elastic-beanstalk 
+# if 'REDIS_URL' not in os.environ:
+#     from pathlib import Path
+#     import os
+#     import subprocess
+#     import ast
 
-# Initialize Celery
+#     def get_environ_vars():
+#         completed_process = subprocess.run(
+#             ['/opt/elasticbeanstalk/bin/get-config', 'environment'],
+#             stdout=subprocess.PIPE,
+#             text=True,
+#             check=True
+#         )
+
+#         return ast.literal_eval(completed_process.stdout)
+
+#     env_vars = get_environ_vars()
+
+#     # Initialize Celery
+#     celery = Celery(
+#         __name__,
+#         backend = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
+#         broker = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
+#     )
+
+# else: # local development
+#     celery = Celery(
+#         __name__,
+#         backend = "redis://127.0.0.1",
+#         broker = "redis://127.0.0.1:6379/0",
+#     )
+
+
+from pathlib import Path
+import os
+import subprocess
+import ast
+
+
 if 'LOCAL' in os.environ:
+    # Initialize Celery
     celery = Celery(
         __name__,
         backend = "redis://127.0.0.1",
@@ -370,8 +409,6 @@ def get_result(task_id: str):
         "result_output_status": result_output_status,
         "result_output_value": result_output_value
     }
-
-
 
 
 async def get_optional_token(request: Request) -> Optional[str]:
@@ -849,4 +886,3 @@ async def fetch_user_messages(conversation_id: int, credentials: HTTPAuthorizati
         select(models.CustomUser).where(user_unique_id == user_unique_id)
     ).scalars().all()
     print('users:', users)
-
