@@ -3,6 +3,20 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+from pathlib import Path
+import subprocess
+import ast
+
+def get_environ_vars():
+    completed_process = subprocess.run(
+        ['/opt/elasticbeanstalk/bin/get-config', 'environment'],
+        stdout=subprocess.PIPE,
+        text=True,
+        check=True
+    )
+    return ast.literal_eval(completed_process.stdout)
+
+env_vars = get_environ_vars()
 
 if 'LOCAL' in os.environ:
     from dotenv import load_dotenv, find_dotenv
@@ -11,7 +25,7 @@ if 'LOCAL' in os.environ:
 
     DATABASE_URL = f"postgresql://{os.environ['LOCAL_DB_USER']}:{os.environ['LOCAL_DB_USER']}@localhost/{os.environ['LOCAL_DB_NAME']}"
 else:
-    DATABASE_URL = f"postgresql://{os.environ['PRODUCTION_DB_USERNAME']}:{os.environ['PRODUCTION_DB_PASSWORD']}@{os.environ['PRODUCTION_DB_URL']}:5432/postgres"
+    DATABASE_URL = f"postgresql://{env_vars['PRODUCTION_DB_USERNAME']}:{env_vars['PRODUCTION_DB_PASSWORD']}@{env_vars['PRODUCTION_DB_URL']}:5432/postgres"
 
 #     DATABASE_URL = f"postgresql://{os.environ['PRODUCTION_DB_USERNAME']}:{os.environ['PRODUCTION_DB_PASSWORD']}@{os.environ['PRODUCTION_DB_URL']}/{os.environ['PRODUCTION_DB_NAME']}"
 
