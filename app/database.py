@@ -1,7 +1,4 @@
 import os
-ENV_FILE = find_dotenv()
-load_dotenv(ENV_FILE)
-
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
