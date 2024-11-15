@@ -152,7 +152,7 @@ def execute_code_in_container(language: str, code: str):
             user = "nobody",
             read_only = True,
             network_mode = "none",
-            mem_limit = "512m",
+            mem_limit = "256m",
             cpu_period = 100000,
             cpu_quota = 50000,
             pids_limit = 64,
