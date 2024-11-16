@@ -1,0 +1,22 @@
+# fly.toml app configuration file generated for companion-backend-morning-shape-5438 on 2024-11-16T00:09:41-05:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'companion-backend-morning-shape-5438'
+primary_region = 'yyz'
+
+[build]
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
