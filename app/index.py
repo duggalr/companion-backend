@@ -670,11 +670,9 @@ def validate_authenticated_user(credentials: HTTPAuthorizationCredentials = Depe
         return {'success': False, 'payload': user_information_response.json(), 'status_code': user_information_response.status_code}
 
 
-
 # Playground Data Pydantic Model
 class PlaygroundData(BaseModel):
     pid: str
-
 
 
 @app.post("/fetch-dashboard-data")
@@ -754,7 +752,6 @@ def fetch_dashboard_data(
                 'success': True,
                 'playground_object_list': rv
             }
-
 
 
 @app.post("/fetch-playground-data")
@@ -861,8 +858,6 @@ If you are running into a problem such as a bug in your code, a LeetCode problem
             }
 
 
-
-
 @app.post("/fetch-user-messages")
 async def fetch_user_messages(conversation_id: int, credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme), db: Session = Depends(get_db)):
     print(f"Conversation ID: {conversation_id}")
@@ -886,3 +881,4 @@ async def fetch_user_messages(conversation_id: int, credentials: HTTPAuthorizati
         select(models.CustomUser).where(user_unique_id == user_unique_id)
     ).scalars().all()
     print('users:', users)
+
