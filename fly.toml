@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for companion-backend-morning-shape-5438 on 2024-11-16T00:09:41-05:00
+# fly.toml app configuration file generated for companion-backend on 2024-11-15T23:26:26-05:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'companion-backend-morning-shape-5438'
+app = 'companion-backend'
 primary_region = 'yyz'
 
 [build]
