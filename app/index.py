@@ -45,57 +45,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# # Hacky Solution to get environment variables as environment properties on the AWS EB Console do not appear to be "pre-rendering"
-# # when celery is launched.
-#     # Thanks to: https://stackoverflow.com/questions/64523533/environment-properties-are-not-passed-to-application-in-elastic-beanstalk 
-# if 'REDIS_URL' not in os.environ:
-#     from pathlib import Path
-#     import os
-#     import subprocess
-#     import ast
-
-#     def get_environ_vars():
-#         completed_process = subprocess.run(
-#             ['/opt/elasticbeanstalk/bin/get-config', 'environment'],
-#             stdout=subprocess.PIPE,
-#             text=True,
-#             check=True
-#         )
-
-#         return ast.literal_eval(completed_process.stdout)
-
-#     env_vars = get_environ_vars()
-
-#     # Initialize Celery
-#     celery = Celery(
-#         __name__,
-#         backend = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
-#         broker = f"redis://default:{env_vars['REDIS_PASSWORD']}@{env_vars['REDIS_URL']}/0",
-#     )
-
-# else: # local development
-#     celery = Celery(
-#         __name__,
-#         backend = "redis://127.0.0.1",
-#         broker = "redis://127.0.0.1:6379/0",
-#     )
-
-
-from pathlib import Path
-import os
-import subprocess
-import ast
-
 
 if 'LOCAL' in os.environ:
     # Initialize Celery
-    celery = Celery(
+    celery_app = Celery(
         __name__,
         backend = "redis://127.0.0.1",
         broker = "redis://127.0.0.1:6379/0",
     )
 else:
-    celery = Celery(
+    celery_app = Celery(
         __name__,
         backend = f"{os.environ['REDIS_URL']}/0",
         broker = f"{os.environ['REDIS_URL']}/0",
@@ -105,7 +64,7 @@ else:
 
 
 ## Celery Tasks ##
-@celery.task
+@celery_app.task
 def execute_code_in_container(language: str, code: str):
     """
     Task to run user-submitted code inside a Docker container.
@@ -248,6 +207,7 @@ You are on the right track. Pay close attention to the operation you are perform
 
 ##Your Answer:
 """
+    
     prompt = prompt.format(
         question=user_question,
         student_code=student_code,
@@ -400,7 +360,7 @@ def get_result(task_id: str):
     """
     Endpoint to check the result of the execution.
     """
-    task_result = celery.AsyncResult(task_id)
+    task_result = celery_app.AsyncResult(task_id)
     result_data = task_result.get()
 
     result_output_status = result_data['success']
@@ -591,8 +551,6 @@ async def save_user_run_code(
                 db.commit() 
                 db.refresh(pg_code_object)
                 return {"message": "Code saved", 'parent_playground_object_id': playground_parent_object.id, 'status_code': 200}
-
-
 
 
 # Security dependency for Bearer token
