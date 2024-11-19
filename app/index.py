@@ -45,22 +45,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# if 'LOCAL' in os.environ:
+#     # Initialize Celery
+#     celery_app = Celery(
+#         __name__,
+#         backend = "redis://127.0.0.1",
+#         broker = "redis://127.0.0.1:6379/0",
+#     )
+# else:
+#     celery_app = Celery(
+#         __name__,
+#         backend = f"{os.environ['CELERY_BROKER_URL']}/0",
+#         broker = f"{os.environ['CELERY_RESULT_BACKEND']}/0",
+#         # backend = f"redis://default:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
+#         # broker = f"redis://default:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
+#     )
 
-if 'LOCAL' in os.environ:
-    # Initialize Celery
-    celery_app = Celery(
-        __name__,
-        backend = "redis://127.0.0.1",
-        broker = "redis://127.0.0.1:6379/0",
-    )
-else:
-    celery_app = Celery(
-        __name__,
-        backend = f"{os.environ['REDIS_URL']}/0",
-        broker = f"{os.environ['REDIS_URL']}/0",
-        # backend = f"redis://default:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
-        # broker = f"redis://default:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
-    )
+celery_app = Celery(
+    __name__,
+    backend = "redis://127.0.0.1",
+    broker = "redis://127.0.0.1:6379/0",
+)
 
 
 ## Celery Tasks ##

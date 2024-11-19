@@ -5,28 +5,53 @@ services:
     build:
       context: .
     container_name: fastapi_app
-    command: uvicorn index:app --host 0.0.0.0 --port 8000
+    command: sh -c "poetry run alembic upgrade head && poetry run uvicorn app.index:app --host 0.0.0.0 --port 8000"
     ports:
       - "8000:8000"
     environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0  # Use the Redis service name
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - DATABASE_URL=${DATABASE_URL}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - redis
+      - postgres
+    restart: always
 
   celery:
     build:
       context: .
     container_name: celery_worker
-    command: celery -A index.celery_app worker --loglevel=info
+    command: poetry run celery -A app.index.celery_app worker --loglevel=info
     environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0  # Use the Redis service name
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - DATABASE_URL=${DATABASE_URL}
     depends_on:
       - redis
+      - postgres
+    restart: always
 
   redis:
     image: redis:alpine
     container_name: redis
     ports:
       - "6379:6379"
+    restart: always
+
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - companion_postgres_data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  companion_postgres_data:
