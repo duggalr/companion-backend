@@ -38,13 +38,7 @@ def get_db():
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    # allow_origins=["http://localhost:3000", "https://staging.companionai.dev", "https://www.companionai.dev", "http://129.213.19.179:3000"],
-    allow_origins=[
-        'http://localhost:3000',
-        'https://staging.companionai.dev',
-        'https://www.companionai.dev',
-        'http://129.213.19.179:3000'
-    ]
+    allow_origins=["http://localhost:3000", "https://staging.companionai.dev", "https://www.companionai.dev", "http://129.213.19.179:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
