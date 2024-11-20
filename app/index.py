@@ -46,8 +46,8 @@ app.add_middleware(
 
 celery_app = Celery(
     __name__,
-    backend = f"{REDIS_BACKEND_URL}",
-    broker = f"{REDIS_BACKEND_URL}/0",
+    backend = f"{os.environ['REDIS_BACKEND_URL']}",
+    broker = f"{os.environ['REDIS_BACKEND_URL']}/0",
 )
 
 ## Celery Tasks ##
