@@ -1,8 +1,7 @@
 import os
-if 'PRODUCTION' not in os.environ:
-    from dotenv import load_dotenv, find_dotenv
-    ENV_FILE = find_dotenv()
-    load_dotenv(ENV_FILE)
+from dotenv import load_dotenv, find_dotenv
+ENV_FILE = find_dotenv()
+load_dotenv(ENV_FILE)
 
 import uuid
 from typing import Optional
@@ -39,34 +38,23 @@ def get_db():
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://staging.companionai.dev", "https://www.companionai.dev", "http://129.213.19.179:3000"],
+    # allow_origins=["http://localhost:3000", "https://staging.companionai.dev", "https://www.companionai.dev", "http://129.213.19.179:3000"],
+    allow_origins=[
+        'http://localhost:3000',
+        'https://staging.companionai.dev',
+        'https://www.companionai.dev',
+        'http://129.213.19.179:3000'
+    ]
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# if 'LOCAL' in os.environ:
-#     # Initialize Celery
-#     celery_app = Celery(
-#         __name__,
-#         backend = "redis://127.0.0.1",
-#         broker = "redis://127.0.0.1:6379/0",
-#     )
-# else:
-#     celery_app = Celery(
-#         __name__,
-#         backend = f"{os.environ['CELERY_BROKER_URL']}/0",
-#         broker = f"{os.environ['CELERY_RESULT_BACKEND']}/0",
-#         # backend = f"redis://default:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
-#         # broker = f"redis://default:{os.environ['REDIS_PASSWORD']}@{os.environ['REDIS_URL']}/0",
-#     )
-
 celery_app = Celery(
     __name__,
-    backend = "redis://127.0.0.1",
-    broker = "redis://127.0.0.1:6379/0",
+    backend = f"{REDIS_BACKEND_URL}",
+    broker = f"{REDIS_BACKEND_URL}/0",
 )
-
 
 ## Celery Tasks ##
 @celery_app.task
