@@ -831,8 +831,6 @@ async def fetch_user_messages(conversation_id: int, credentials: HTTPAuthorizati
     # user_info = verify_token(token)
     # print(f"User Info: {user_info}")
 
-    # {'sub': 'google-oauth2|113496083358787655292', 'given_name': 'Rahul', 'family_name': 'Duggal', 'nickname': 'rahul', 'name': 'Rahul Duggal', 'picture': 'https://lh3.googleusercontent.com/a/ACg8ocKacIzTaUjFQSe8JSJF6dgKO011ViDNaVWk-ghaV1MnkbGL7w=s96-c', 'updated_at': '2024-11-09T17:50:44.403Z', 'email': 'rahul@lambdal.com', 'email_verified': True}
-
     user_unique_id = user_info['sub']
     # given_name = user_info['given_name']
     # family_name = user_info['family_name']
