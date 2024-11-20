@@ -39,7 +39,7 @@ def get_db():
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://staging.companionai.dev", "https://www.companionai.dev"],
+    allow_origins=["http://localhost:3000", "https://staging.companionai.dev", "https://www.companionai.dev", "http://129.213.19.179:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -392,6 +392,7 @@ async def save_user_run_code(
     token: Optional[str] = Depends(get_optional_token)
 ):
 
+    print(f'save user running code...')
     payload = await request.json()
     print(f'user-run-code-payload: {payload}')
 

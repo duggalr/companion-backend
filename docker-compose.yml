@@ -55,3 +55,8 @@ services:
 
 volumes:
   companion_postgres_data:
+
+# TODO: 
+  # in our A10:
+    # start by creating the .env file and proceed from there to get public-IP version running
+    # then, get the SSL stuff linked and running with our domain (this will be prod api lambda chat)
