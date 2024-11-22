@@ -38,7 +38,8 @@ def get_db():
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://staging.companionai.dev", "https://www.companionai.dev", "http://129.213.19.179:3000"],
+    # allow_origins=["http://localhost:3000", "https://staging.companionai.dev", "https://www.companionai.dev"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -231,6 +232,7 @@ async def generate_async_response_stream(user_question, user_code, past_user_mes
     )
 
     async for chunk in response_stream:
+        print('Chunk:', chunk)
         if chunk.choices[0].finish_reason == 'stop':
             yield None
         else:
@@ -267,6 +269,7 @@ async def websocket_handle_chat_response(websocket: WebSocket, db: Session = Dep
     try:
         while True:  # Keep receiving messages in a loop
             data = await websocket.receive_json()
+            # print(f'Received Data: {data}')
 
             user_question = data['text'].strip()
             user_code = data['user_code']
@@ -296,6 +299,7 @@ async def websocket_handle_chat_response(websocket: WebSocket, db: Session = Dep
                 user_code=user_code,
                 past_user_messages_str=all_user_messages_str
             ):
+
                 if text is None:
 
                     await websocket.send_text('MODEL_GEN_COMPLETE')
