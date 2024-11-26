@@ -73,6 +73,7 @@ class PlaygroundCode(Base):
     __tablename__ = "playground_code"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    programming_language = Column(String, nullable=False, default='python')
     code = Column(String, nullable=False)
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
     playground_parent_object_id = Column(UUID, ForeignKey("playground_object.id"), nullable=True)
