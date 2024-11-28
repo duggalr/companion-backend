@@ -221,12 +221,12 @@ You are on the right track. Pay close attention to the operation you are perform
 
 async def generate_async_response_stream(user_question, user_code, past_user_messages_str):
     client = AsyncOpenAI(
-        # api_key=os.environ['OPENAI_KEY'],
-        api_key = os.environ['LAMBDA_INFERENCE_API_KEY'],
-        base_url = os.environ['LAMBDA_INFERENCE_API_BASE_URL'],
+        api_key=os.environ['OPENAI_KEY'],
+        # api_key = os.environ['LAMBDA_INFERENCE_API_KEY'],
+        # base_url = os.environ['LAMBDA_INFERENCE_API_BASE_URL'],
     )
-    # model = "gpt-4o-mini"
-    model = "hermes3-405b"
+    model = "gpt-4o-mini"
+    # model = "hermes3-405b"
 
     prompt = _prepate_tutor_prompt(
         user_question = user_question,
