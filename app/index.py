@@ -219,7 +219,56 @@ You are on the right track. Pay close attention to the operation you are perform
     return prompt
 
 
-async def generate_async_response_stream(user_question, user_code, past_user_messages_str):
+
+def _prepare_general_tutor_prompt(user_question, student_chat_history):
+    prompt = """##Instructions:
+You will be a personal tutor primarily for students or individuals who are learning new concepts and fields.
+Be as resourceful to them as possible and provide them with as much guidance and help. 
+Help the individual develop their own syllabus, lesson plan, questions, quizzes, so they can get a deep understanding of their material.
+
+No Direct Answers: Do not provide direct solutions to the students' questions or challenges. Instead, focus on providing hints, explanations, and guidance that help them understand and solve the problems on their own. For questions students ask, don't simply provide the answer. Instead, provide a hint and try to ask the student a follow-up question/suggestion. Under no circumstance should you provide the student a direct answer to their problem/question.
+Encourage Problem Solving: Always encourage the students to think through the problems themselves. Ask leading questions that guide them toward a solution, and provide feedback on their thought processes.
+
+##Example Student Question:
+list_one = [2,23,523,1231,32,9]
+total_product = 0
+for idx in list_one:
+    total_product = idx * idx
+
+I'm confused here. I am multiplying idx and setting it to total_product but getting the wrong answer. What is wrong?
+
+##Example Bad Answer (Avoid this type of answer):
+You are correct in iterating through the list with the for loop but at the moment, your total_product is incorrectly setup. Try this instead:
+list_one = [2,23,523,1231,32,9]
+total_product = 1
+for idx in list_one:
+    total_product = total_product * idx
+
+##Example Good Answer: (this is a good answer because it identifies the mistake the student is making but instead of correcting it for the student, it asks the student a follow-up question as a hint, forcing the student to think on their own)
+You are on the right track. Pay close attention to the operation you are performing in the loop. You're currently multiplying the number with itself, but you want to find the product of all numbers. What operation should you use instead to continuously update 'total_product'?
+
+Based on the conversation, try to always ask meaningful follow-up questions to the individual. 
+This is a great way to foster a more engaging conversation, and help the individual gain a more deeper understanding of the material they are trying to learn.
+However, if you feel the student has received the information they need and there is no meaningful follow-up question you can think of, please close out the conversation by thanking the student and telling them they can ask any other questions if they wish.
+
+##Previous Chat History with Student:
+{previous_chat_history_st}
+
+##Student Question:
+{question}
+
+##Your Answer:
+"""
+    
+    prompt = prompt.format(
+        question=user_question,
+        previous_chat_history_st=student_chat_history
+    )
+    return prompt
+
+
+
+async def generate_async_response_stream(prompt):
     client = AsyncOpenAI(
         api_key=os.environ['OPENAI_KEY'],
         # api_key = os.environ['LAMBDA_INFERENCE_API_KEY'],
@@ -228,11 +277,11 @@ async def generate_async_response_stream(user_question, user_code, past_user_mes
     model = "gpt-4o-mini"
     # model = "hermes3-405b"
 
-    prompt = _prepate_tutor_prompt(
-        user_question = user_question,
-        student_code = user_code,
-        student_chat_history = past_user_messages_str
-    )
+    # prompt = _prepate_tutor_prompt(
+    #     user_question = user_question,
+    #     student_code = user_code,
+    #     student_chat_history = past_user_messages_str
+    # )
     response_stream = await client.chat.completions.create(
         messages=[
             {
@@ -293,9 +342,7 @@ async def websocket_handle_chat_response(websocket: WebSocket, db: Session = Dep
             )
 
             async for text in generate_async_response_stream(
-                user_question=user_question,
-                user_code=user_code,
-                past_user_messages_str=all_user_messages_str
+                prompt = model_prompt
             ):
 
                 if text is None:
@@ -578,6 +625,12 @@ def validate_authenticated_user(credentials: HTTPAuthorizationCredentials = Depe
 class PlaygroundData(BaseModel):
     pid: str
 
+class AnonUserRequestData(BaseModel):
+    anon_user_id: str
+
+class GeneralTutorConversationRequestData(BaseModel):
+    gt_object_id: str
+
 
 @app.post("/fetch-dashboard-data")
 def fetch_dashboard_data(
@@ -756,4 +809,289 @@ If you are running into a problem such as a bug in your code, a LeetCode problem
                 'chat_messages': final_chat_messages_rv_list
             }
 
+
+
+
+@app.post("/create-anon-user")
+def create_anon_user(
+    request: Request,
+    data: AnonUserRequestData,
+    db: Session = Depends(get_db)
+):
+    anon_user_id = data.anon_user_id
+    print(f"anon-user-id: {anon_user_id}")
+
+    existing_anon_user_object = models.AnonUser(
+        user_unique_id = anon_user_id
+    )
+    db.add(existing_anon_user_object)
+    db.commit()
+    db.refresh(existing_anon_user_object)
+
+    anon_custom_user_object = models.CustomUser(
+        anon_user_id = str(anon_user_id)
+    )
+    db.add(anon_custom_user_object)
+    db.commit()
+    db.refresh(anon_custom_user_object)
+
+    return {"success": True}
+
+
+
+@app.post("/create-general-tutor-parent-object")
+def create_general_tutor_parent_object(
+    request: Request,
+    # data: AnonUserRequestData,
+    data: Optional[AnonUserRequestData] = None,
+    token: Optional[str] = Depends(get_optional_token),
+    db: Session = Depends(get_db)
+):
+    if token is not None:
+        # handle authenticated state
+        user_information_response = utils.get_user_information(
+            token = token
+        )
+
+        if user_information_response.status_code == 200:
+            user_information_json_data = user_information_response.json()
+
+            # Get user object first
+            auth_zero_unique_sub_id = user_information_json_data['sub']
+            associated_user_object = db.query(models.UserOAuth).filter(
+                models.UserOAuth.auth_zero_unique_sub_id == auth_zero_unique_sub_id
+            ).first()
+
+            if associated_user_object is None:
+                return {'success': False, 'message': 'Authentication Error.', 'status_code': 400}
+            
+            oauth_user_object_unique_id = associated_user_object.auth_zero_unique_sub_id
+
+            # Get user object
+            custom_user_object = db.query(models.CustomUser).filter(
+                models.CustomUser.oauth_user_id == oauth_user_object_unique_id
+            ).first()
+
+            print(f"Custom User Object: {custom_user_object}")
+
+            general_tutor_parent_object = models.GeneralTutorParentObject(
+                custom_user_id = custom_user_object.id
+            )
+            db.add(general_tutor_parent_object)
+            db.commit()
+            db.refresh(general_tutor_parent_object)
+
+            return {
+                'general_tutor_parent_object_id': general_tutor_parent_object.id
+            }
+
+    else:
+        # unauthenticated state
+        anon_user_id = data.anon_user_id
+        
+        custom_user_object = db.query(models.CustomUser).filter(
+            models.CustomUser.anon_user_id == anon_user_id
+        ).first()
+
+        if custom_user_object is None:
+            return {'success': False, 'message': 'User not found.'}
+
+        general_tutor_parent_object = models.GeneralTutorParentObject(
+            custom_user_id = custom_user_object.id
+        )
+        db.add(general_tutor_parent_object)
+        db.commit()
+        db.refresh(general_tutor_parent_object)
+
+        return {
+            'general_tutor_parent_object_id': general_tutor_parent_object.id
+        }
+
+
+@app.websocket("/ws_general_tutor_chat")
+async def websocket_general_tutor_handle(websocket: WebSocket, db: Session = Depends(get_db)):
+    await websocket.accept()
+    try:
+        while True:  # Keep receiving messages in a loop
+            data = await websocket.receive_json()
+
+            print('received_data:', data)
+
+            user_message = data['text'].strip()
+            all_past_user_messages = data['all_past_chat_messages'].strip()
+            general_tutor_parent_object_id = data['general_tutor_object_id']
+
+            # TODO: pass the user id for additional layer of security here
+            general_tutor_parent_object = db.query(models.GeneralTutorParentObject).filter(
+                models.GeneralTutorParentObject.id == general_tutor_parent_object_id,
+            ).first()
+
+            if general_tutor_parent_object is None:
+                return {'success': False, 'message': "Object not found.", "status_code": 404}
+            
+            # Respond to the user
+            full_response_message = ""
+
+            # TODO: finalize the general_tutor_prompt 
+            gt_model_prompt = _prepare_general_tutor_prompt(
+                user_question = user_message,
+                student_chat_history = all_past_user_messages
+            )
+
+            async for text in generate_async_response_stream(
+                prompt = gt_model_prompt,
+            ):
+                if text is None:
+                    await websocket.send_text('MODEL_GEN_COMPLETE')
+                    gt_chat_conversation_object = models.GeneralTutorChatConversation(
+                        user_message = user_message,
+                        prompt = gt_model_prompt,
+                        model_response = full_response_message,
+                        general_tutor_parent_object_id = general_tutor_parent_object.id,
+                    )
+                    db.add(gt_chat_conversation_object)
+                    db.commit()
+                    db.refresh(gt_chat_conversation_object)
+                    
+                    break  # stop sending further text; just in case
+                else:
+                    full_response_message += text
+                    await websocket.send_text(text)
+
+    except WebSocketDisconnect:
+        print("WebSocket connection closed")
+        await websocket.close()
+
+
+@app.post("/fetch-general-tutor-conversation")
+def fetch_general_tutor_conversation(
+    request: Request,
+    data: GeneralTutorConversationRequestData,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db)
+):
+    
+    token = credentials.credentials
+    user_information_response = utils.get_user_information(
+        token = token
+    )
+
+    if user_information_response.status_code == 200:
+        user_information_json_data = user_information_response.json()
+
+        # Get user object first
+        auth_zero_unique_sub_id = user_information_json_data['sub']
+        user_auth_zero_object = db.query(models.UserOAuth).filter(
+            models.UserOAuth.auth_zero_unique_sub_id == auth_zero_unique_sub_id
+        ).first()
+
+        if user_auth_zero_object is None:
+            return {'success': False, 'message': 'Not Found.', 'status_code': 404}
+        
+        associated_custom_user_object = db.query(models.CustomUser).filter(
+            models.CustomUser.oauth_user_id == user_auth_zero_object.auth_zero_unique_sub_id
+        ).first()
+
+        if associated_custom_user_object is None:
+            return {'success': False, 'message': 'Not Found.', 'status_code': 404}
+
+        # Fetch General Tutor Information
+        general_tutor_parent_object_id = data.gt_object_id
+        general_tutor_parent_object = db.query(models.GeneralTutorParentObject).filter(
+            models.GeneralTutorParentObject.id == general_tutor_parent_object_id,
+        ).first()
+
+        if general_tutor_parent_object is None:
+            return {'success': False, 'error': "Object not found."}
+
+        gt_chat_conversation_objects = db.query(models.GeneralTutorChatConversation).filter(
+            models.GeneralTutorChatConversation.general_tutor_parent_object_id == general_tutor_parent_object.id,
+        ).all()
+
+        final_chat_messages_rv_list = [{
+            'id': None,
+            'text': """Welcome! 😄 I'm Companion, your general tutor.
+        
+Feel free to ask me about anything you would like to learn, whether that's a problem you are working on, or a concept that need's further explaining...""",
+            'sender': "bot",
+            'complete': True
+        }]
+
+        for ch_obj in gt_chat_conversation_objects:
+            final_chat_messages_rv_list.append({
+                'id': ch_obj.id,
+                'text': ch_obj.user_message,
+                'sender': 'user',
+                'complete': True
+            })
+            final_chat_messages_rv_list.append({
+                'id': ch_obj.id,
+                'text': ch_obj.model_response,
+                'sender': 'bot',
+                'complete': True
+            })
+
+        return {
+            'success': True,
+            'gt_object_id': general_tutor_parent_object_id,
+            'chat_messages': final_chat_messages_rv_list
+
+            # 'playground_object_id': playground_obj.id,
+            # 'programming_language': pg_code_object.programming_language,
+            # 'code': pg_code_object.code,
+            # 'chat_messages': final_chat_messages_rv_list
+        }
+    
+
+
+
+
+@app.post("/fetch_all_user_gt_conversations")
+def fetch_all_user_gt_conversations(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db)
+):
+    
+    token = credentials.credentials
+    user_information_response = utils.get_user_information(
+        token = token
+    )
+
+    if user_information_response.status_code == 200:
+        user_information_json_data = user_information_response.json()
+
+        # Get user object first
+        auth_zero_unique_sub_id = user_information_json_data['sub']
+        user_auth_zero_object = db.query(models.UserOAuth).filter(
+            models.UserOAuth.auth_zero_unique_sub_id == auth_zero_unique_sub_id
+        ).first()
+
+        if user_auth_zero_object is None:
+            return {'success': False, 'message': 'Not Found.', 'status_code': 404}
+        
+        associated_custom_user_object = db.query(models.CustomUser).filter(
+            models.CustomUser.oauth_user_id == user_auth_zero_object.auth_zero_unique_sub_id
+        ).first()
+
+        if associated_custom_user_object is None:
+            return {'success': False, 'message': 'Not Found.', 'status_code': 404}
+
+        user_gt_objects = db.query(models.GeneralTutorParentObject).filter(
+            models.GeneralTutorParentObject.custom_user_id == associated_custom_user_object.id,
+        ).order_by(models.GeneralTutorParentObject.updated_at.desc()).all()
+
+        final_rv = []
+        c = 1
+        for obj in user_gt_objects:
+            final_rv.append({
+                'object_id': obj.id,
+                'name': f"Conversation #{c}",
+            })
+            c += 1
+
+        return {
+            'success': True,
+            'all_gt_objects': final_rv
+        }
 

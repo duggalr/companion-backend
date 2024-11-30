@@ -51,6 +51,40 @@ class CustomUser(Base):
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
 
 
+class GeneralTutorParentObject(Base):
+    """
+    General Tutor Parent Object
+    """
+    __tablename__ = 'general_tutor_parent_object'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    unique_name = Column(String, nullable=True)  # in anon case, this will be empty
+
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
+    custom_user = relationship("CustomUser")
+
+
+class GeneralTutorChatConversation(Base):
+    """
+    General Tutor Chat Conversation
+    """
+    __tablename__ = 'general_tutor_chat_conversation'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_message = Column(String, nullable=False)
+    prompt = Column(String, nullable=False)
+    model_response = Column(String, nullable=False)
+    created_date = Column(DateTime, server_default=func.now(), nullable=False)
+
+    general_tutor_parent_object_id = Column(UUID, ForeignKey("general_tutor_parent_object.id"), nullable=True)
+    general_tutor_parent_object = relationship("GeneralTutorParentObject")
+
+
+
+
 class PlaygroundObjectBase(Base):
     """
     Base model for Playground Code Data
