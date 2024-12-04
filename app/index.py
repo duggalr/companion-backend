@@ -153,6 +153,9 @@ You will be assisting a student, who will be asking questions on a specific Pyth
 Your will be their upbeat, encouraging tutor.
 - Even though you are encouraging and upbeat, maintain a natural conversation flow. Don't overcompliment in each message. Keep it natural like a good tutor.
 Your primary goal is to guide and mentor them, helping them solve their problem effectively, but also to become a great individual thinker. Please adhere to these guidelines. Further instructions are provided below. Also, an example is provided below.
+- In addition, if the student has correctly solved the problem, end the conversation.
+- Do not try to make the conversation going along, especially when the student has already successfully solved the problem.
+- Instead, ask the student if they have any other questions or other concepts/problems they would like to explore.
 - Please don't guide the student to using any libraries that need pip install as the remote code execution environment doesn't support those libraries.
     - Native python libraries (ie. like math) are completely fine and are supported.
 
@@ -222,30 +225,23 @@ You are on the right track. Pay close attention to the operation you are perform
 
 def _prepare_general_tutor_prompt(user_question, student_chat_history):
     prompt = """##Instructions:
-You will be a personal tutor primarily for students or individuals who are learning new concepts and fields.
-Be as resourceful to them as possible and provide them with as much guidance and help. 
-Help the individual develop their own syllabus, lesson plan, questions, quizzes, so they can get a deep understanding of their material.
+You will be a personal learning assistant primarily for students or individuals who are learning new concepts and fields.
+Be as resourceful to them as possible and provide them with as much guidance and help.
 
-No Direct Answers: Do not provide direct solutions to the students' questions or challenges. Instead, focus on providing hints, explanations, and guidance that help them understand and solve the problems on their own. For questions students ask, don't simply provide the answer. Instead, provide a hint and try to ask the student a follow-up question/suggestion. Under no circumstance should you provide the student a direct answer to their problem/question.
-Encourage Problem Solving: Always encourage the students to think through the problems themselves. Ask leading questions that guide them toward a solution, and provide feedback on their thought processes.
+No Direct Answers:
+- If a student comes to you with a specific question they are working on and need help with it, do not provide them with any sort of direct answer.
+- Instead, like a great tutor, provide the student with hints, potentially through precise examples that will help guide their thinking.
+- Encourage problem solving to ensure the student is able to think through the problem on their own.
+- For specific problems the student is working on, especially programming related, don't provide pseudocode or direct code solutions.
+- Providing code or pseudocode for smaller, specific parts of their problem is okay but in general, force the student to think through the problem on their own.
+- Rather, provide the student with precise examples and hints, that will help guide their thinking.
+- Under no circumstance should you provide the student a direct answer.
 
-##Example Student Question:
-list_one = [2,23,523,1231,32,9]
-total_product = 0
-for idx in list_one:
-    total_product = idx * idx
-
-I'm confused here. I am multiplying idx and setting it to total_product but getting the wrong answer. What is wrong?
-
-##Example Bad Answer (Avoid this type of answer):
-You are correct in iterating through the list with the for loop but at the moment, your total_product is incorrectly setup. Try this instead:
-list_one = [2,23,523,1231,32,9]
-total_product = 1
-for idx in list_one:
-    total_product = total_product * idx
-
-##Example Good Answer: (this is a good answer because it identifies the mistake the student is making but instead of correcting it for the student, it asks the student a follow-up question as a hint, forcing the student to think on their own)
-You are on the right track. Pay close attention to the operation you are performing in the loop. You're currently multiplying the number with itself, but you want to find the product of all numbers. What operation should you use instead to continuously update 'total_product'?
+Exploratory Questions:
+- If a student comes to you with a more exploratory question, like "what is xyz", or "why is xyz useful", or "how do I learn xyz",
+be as detailed as possible in your response. Provide them with solid, relevant information, along with precise examples if applicable.
+- Understand their interests or objectives and really help fulfill their intellectual curiosity.
+- If relevant and applicable, help the individual develop their own syllabus, lesson plan, questions, quizzes, so they can get a deep understanding of their material.
 
 Based on the conversation, try to always ask meaningful follow-up questions to the individual. 
 This is a great way to foster a more engaging conversation, and help the individual gain a more deeper understanding of the material they are trying to learn.
@@ -259,7 +255,6 @@ However, if you feel the student has received the information they need and ther
 
 ##Your Answer:
 """
-    
     prompt = prompt.format(
         question=user_question,
         previous_chat_history_st=student_chat_history
@@ -529,11 +524,11 @@ async def save_user_run_code(
 
         if parent_playground_object_id is None:
 
-            # if playground_parent_object is None:
-            pg_parent_unique_name = uuid.uuid4().hex[:20]
+            # # if playground_parent_object is None:
+            # pg_parent_unique_name = uuid.uuid4().hex[:20]
 
             playground_parent_object = models.PlaygroundObjectBase(
-                unique_name = pg_parent_unique_name,
+                # unique_name = pg_parent_unique_name,
                 custom_user_id = str(anon_custom_user_object.id)
             )
             db.add(playground_parent_object)
@@ -631,6 +626,14 @@ class AnonUserRequestData(BaseModel):
 class GeneralTutorConversationRequestData(BaseModel):
     gt_object_id: str
 
+class ChangeGeneralTutorConversationRequestData(BaseModel):
+    gt_object_id: str
+    conversation_name: str
+
+class ChangeCodeConversationRequestData(BaseModel):
+    current_conversation_id: str
+    new_conversation_name: str
+
 
 @app.post("/fetch-dashboard-data")
 def fetch_dashboard_data(
@@ -691,10 +694,15 @@ def fetch_dashboard_data(
                     models.PlaygroundChatConversation.playground_parent_object_id == pobj.id
                 ).count()
 
+                if pobj.unique_name is not None:
+                    code_file_name = pobj.unique_name
+                else:
+                    code_file_name = f"Code File #{count}"
+                
                 rv.append({
                     'id': pobj.id,
                     'count': count,
-                    'code_file_name': f"Code File #{count}",
+                    'code_file_name': code_file_name,
                     'number_of_chat_messages': number_of_chat_messages,
                     'name': pobj.unique_name,
                     'programming_language': pg_code_object.programming_language,
@@ -1041,9 +1049,6 @@ Feel free to ask me about anything you would like to learn, whether that's a pro
             # 'code': pg_code_object.code,
             # 'chat_messages': final_chat_messages_rv_list
         }
-    
-
-
 
 
 @app.post("/fetch_all_user_gt_conversations")
@@ -1084,10 +1089,18 @@ def fetch_all_user_gt_conversations(
         final_rv = []
         c = 1
         for obj in user_gt_objects:
-            final_rv.append({
-                'object_id': obj.id,
-                'name': f"Conversation #{c}",
-            })
+            # # TOOD: 
+            # print('Conv-Name:', obj.unique_name)
+            if obj.unique_name is not None:
+                final_rv.append({
+                    'object_id': obj.id,
+                    'name': obj.unique_name.strip(),
+                })
+            else:
+                final_rv.append({
+                    'object_id': obj.id,
+                    'name': f"Conversation #{c}",
+                })
             c += 1
 
         return {
@@ -1095,3 +1108,117 @@ def fetch_all_user_gt_conversations(
             'all_gt_objects': final_rv
         }
 
+
+@app.post("/change_gt_conversation_name")
+def change_gt_conversation_name(
+    request: Request,
+    data: ChangeGeneralTutorConversationRequestData,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db)
+):
+
+    token = credentials.credentials
+    user_information_response = utils.get_user_information(
+        token = token
+    )
+
+    if user_information_response.status_code == 200:
+        user_information_json_data = user_information_response.json()
+
+        # Get user object first
+        auth_zero_unique_sub_id = user_information_json_data['sub']
+        user_auth_zero_object = db.query(models.UserOAuth).filter(
+            models.UserOAuth.auth_zero_unique_sub_id == auth_zero_unique_sub_id
+        ).first()
+
+        if user_auth_zero_object is None:
+            return {'success': False, 'message': 'Not Found.', 'status_code': 404}
+        
+        associated_custom_user_object = db.query(models.CustomUser).filter(
+            models.CustomUser.oauth_user_id == user_auth_zero_object.auth_zero_unique_sub_id
+        ).first()
+
+        if associated_custom_user_object is None:
+            return {'success': False, 'message': 'Not Found.', 'status_code': 404}
+
+        # Get current GT conversation object
+        gt_object_id = data.gt_object_id
+        gt_new_conversation_name = data.conversation_name
+
+        gt_object = db.query(models.GeneralTutorParentObject).filter(
+            models.GeneralTutorParentObject.id == gt_object_id,
+            models.GeneralTutorParentObject.custom_user_id == associated_custom_user_object.id,
+        ).first()
+
+        # Check if the object exists before modifying it
+        if gt_object:
+            gt_new_conversation_name = gt_new_conversation_name.strip()
+            gt_object.unique_name = gt_new_conversation_name
+            db.commit()
+            db.refresh(gt_object)
+            return {
+                'success': True,
+            }
+        else:
+            return {'success': False}
+        
+
+@app.post("/change_pg_code_name")
+def change_pg_code_name(
+    request: Request,
+    data: ChangeCodeConversationRequestData,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db)
+):
+
+    token = credentials.credentials
+    user_information_response = utils.get_user_information(
+        token = token
+    )
+
+    if user_information_response.status_code == 200:
+        user_information_json_data = user_information_response.json()
+
+        # Get user object first
+        auth_zero_unique_sub_id = user_information_json_data['sub']
+        user_auth_zero_object = db.query(models.UserOAuth).filter(
+            models.UserOAuth.auth_zero_unique_sub_id == auth_zero_unique_sub_id
+        ).first()
+
+        if user_auth_zero_object is None:
+            return {'success': False, 'message': 'Not Found.', 'status_code': 404}
+        
+        associated_custom_user_object = db.query(models.CustomUser).filter(
+            models.CustomUser.oauth_user_id == user_auth_zero_object.auth_zero_unique_sub_id
+        ).first()
+
+        if associated_custom_user_object is None:
+            return {'success': False, 'message': 'Not Found.', 'status_code': 404}
+
+        # Get current GT conversation object
+        pg_object_id = data.current_conversation_id
+        pg_new_conversation_name = data.new_conversation_name.strip()
+
+        pg_object = db.query(models.PlaygroundObjectBase).filter(
+            models.PlaygroundObjectBase.id == pg_object_id,
+            models.PlaygroundObjectBase.custom_user_id == associated_custom_user_object.id,
+        ).first()
+
+        if pg_object:
+            pg_object.unique_name = pg_new_conversation_name
+            db.commit()
+            db.refresh(pg_object)
+            return {
+                'success': True,
+            }
+        else:
+            return {'success': False}
+
+
+# class ChangeCodeConversationRequestData(BaseModel):
+#     current_conversation_id: str
+#     new_conversation_name: str
+
+# class (BaseModel):
+#     gt_object_id: str
+#     conversation_name: str
