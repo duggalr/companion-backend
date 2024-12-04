@@ -524,11 +524,11 @@ async def save_user_run_code(
 
         if parent_playground_object_id is None:
 
-            # if playground_parent_object is None:
-            pg_parent_unique_name = uuid.uuid4().hex[:20]
+            # # if playground_parent_object is None:
+            # pg_parent_unique_name = uuid.uuid4().hex[:20]
 
             playground_parent_object = models.PlaygroundObjectBase(
-                unique_name = pg_parent_unique_name,
+                # unique_name = pg_parent_unique_name,
                 custom_user_id = str(anon_custom_user_object.id)
             )
             db.add(playground_parent_object)
@@ -626,6 +626,14 @@ class AnonUserRequestData(BaseModel):
 class GeneralTutorConversationRequestData(BaseModel):
     gt_object_id: str
 
+class ChangeGeneralTutorConversationRequestData(BaseModel):
+    gt_object_id: str
+    conversation_name: str
+
+class ChangeCodeConversationRequestData(BaseModel):
+    current_conversation_id: str
+    new_conversation_name: str
+
 
 @app.post("/fetch-dashboard-data")
 def fetch_dashboard_data(
@@ -686,10 +694,15 @@ def fetch_dashboard_data(
                     models.PlaygroundChatConversation.playground_parent_object_id == pobj.id
                 ).count()
 
+                if pobj.unique_name is not None:
+                    code_file_name = pobj.unique_name
+                else:
+                    code_file_name = f"Code File #{count}"
+                
                 rv.append({
                     'id': pobj.id,
                     'count': count,
-                    'code_file_name': f"Code File #{count}",
+                    'code_file_name': code_file_name,
                     'number_of_chat_messages': number_of_chat_messages,
                     'name': pobj.unique_name,
                     'programming_language': pg_code_object.programming_language,
@@ -1036,9 +1049,6 @@ Feel free to ask me about anything you would like to learn, whether that's a pro
             # 'code': pg_code_object.code,
             # 'chat_messages': final_chat_messages_rv_list
         }
-    
-
-
 
 
 @app.post("/fetch_all_user_gt_conversations")
@@ -1079,10 +1089,18 @@ def fetch_all_user_gt_conversations(
         final_rv = []
         c = 1
         for obj in user_gt_objects:
-            final_rv.append({
-                'object_id': obj.id,
-                'name': f"Conversation #{c}",
-            })
+            # # TOOD: 
+            # print('Conv-Name:', obj.unique_name)
+            if obj.unique_name is not None:
+                final_rv.append({
+                    'object_id': obj.id,
+                    'name': obj.unique_name.strip(),
+                })
+            else:
+                final_rv.append({
+                    'object_id': obj.id,
+                    'name': f"Conversation #{c}",
+                })
             c += 1
 
         return {
@@ -1090,3 +1108,117 @@ def fetch_all_user_gt_conversations(
             'all_gt_objects': final_rv
         }
 
+
+@app.post("/change_gt_conversation_name")
+def change_gt_conversation_name(
+    request: Request,
+    data: ChangeGeneralTutorConversationRequestData,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db)
+):
+
+    token = credentials.credentials
+    user_information_response = utils.get_user_information(
+        token = token
+    )
+
+    if user_information_response.status_code == 200:
+        user_information_json_data = user_information_response.json()
+
+        # Get user object first
+        auth_zero_unique_sub_id = user_information_json_data['sub']
+        user_auth_zero_object = db.query(models.UserOAuth).filter(
+            models.UserOAuth.auth_zero_unique_sub_id == auth_zero_unique_sub_id
+        ).first()
+
+        if user_auth_zero_object is None:
+            return {'success': False, 'message': 'Not Found.', 'status_code': 404}
+        
+        associated_custom_user_object = db.query(models.CustomUser).filter(
+            models.CustomUser.oauth_user_id == user_auth_zero_object.auth_zero_unique_sub_id
+        ).first()
+
+        if associated_custom_user_object is None:
+            return {'success': False, 'message': 'Not Found.', 'status_code': 404}
+
+        # Get current GT conversation object
+        gt_object_id = data.gt_object_id
+        gt_new_conversation_name = data.conversation_name
+
+        gt_object = db.query(models.GeneralTutorParentObject).filter(
+            models.GeneralTutorParentObject.id == gt_object_id,
+            models.GeneralTutorParentObject.custom_user_id == associated_custom_user_object.id,
+        ).first()
+
+        # Check if the object exists before modifying it
+        if gt_object:
+            gt_new_conversation_name = gt_new_conversation_name.strip()
+            gt_object.unique_name = gt_new_conversation_name
+            db.commit()
+            db.refresh(gt_object)
+            return {
+                'success': True,
+            }
+        else:
+            return {'success': False}
+        
+
+@app.post("/change_pg_code_name")
+def change_pg_code_name(
+    request: Request,
+    data: ChangeCodeConversationRequestData,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db)
+):
+
+    token = credentials.credentials
+    user_information_response = utils.get_user_information(
+        token = token
+    )
+
+    if user_information_response.status_code == 200:
+        user_information_json_data = user_information_response.json()
+
+        # Get user object first
+        auth_zero_unique_sub_id = user_information_json_data['sub']
+        user_auth_zero_object = db.query(models.UserOAuth).filter(
+            models.UserOAuth.auth_zero_unique_sub_id == auth_zero_unique_sub_id
+        ).first()
+
+        if user_auth_zero_object is None:
+            return {'success': False, 'message': 'Not Found.', 'status_code': 404}
+        
+        associated_custom_user_object = db.query(models.CustomUser).filter(
+            models.CustomUser.oauth_user_id == user_auth_zero_object.auth_zero_unique_sub_id
+        ).first()
+
+        if associated_custom_user_object is None:
+            return {'success': False, 'message': 'Not Found.', 'status_code': 404}
+
+        # Get current GT conversation object
+        pg_object_id = data.current_conversation_id
+        pg_new_conversation_name = data.new_conversation_name.strip()
+
+        pg_object = db.query(models.PlaygroundObjectBase).filter(
+            models.PlaygroundObjectBase.id == pg_object_id,
+            models.PlaygroundObjectBase.custom_user_id == associated_custom_user_object.id,
+        ).first()
+
+        if pg_object:
+            pg_object.unique_name = pg_new_conversation_name
+            db.commit()
+            db.refresh(pg_object)
+            return {
+                'success': True,
+            }
+        else:
+            return {'success': False}
+
+
+# class ChangeCodeConversationRequestData(BaseModel):
+#     current_conversation_id: str
+#     new_conversation_name: str
+
+# class (BaseModel):
+#     gt_object_id: str
+#     conversation_name: str
