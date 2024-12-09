@@ -6,7 +6,7 @@ load_dotenv(ENV_FILE)
 import uuid
 from typing import Optional
 from pydantic import BaseModel
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, OpenAI
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -146,7 +146,7 @@ def execute_code_in_container(language: str, code: str):
 
 
 ## Util Functions for Views ##
-def _prepate_tutor_prompt(user_question, student_code, student_chat_history):
+def _prepate_tutor_prompt(user_current_problem_name, user_current_problem_text, user_question, student_code, student_chat_history):
     # - For example, if the student asks about a specific data structure or algorithm, try to understand their understanding of the underlying concepts like arrays, linked lists, stacks, queues, trees, graphs, and recursion.
     prompt = """##Task:
 You will be assisting a student, who will be asking questions on a specific Python Programming Problem.
@@ -205,7 +205,13 @@ You are on the right track. Pay close attention to the operation you are perform
 ##Previous Chat History:
 {student_chat_history}
 
-##Student Question:
+##Student Current Working Problem:
+Name: {user_current_problem_name}
+
+Question: {user_current_problem_text}
+
+
+##Student Chat Message:
 {question}
 
 ##Student Code:
@@ -217,8 +223,11 @@ You are on the right track. Pay close attention to the operation you are perform
     prompt = prompt.format(
         question=user_question,
         student_code=student_code,
-        student_chat_history=student_chat_history
+        student_chat_history=student_chat_history,
+        user_current_problem_name=user_current_problem_name,
+        user_current_problem_text=user_current_problem_text,
     )
+    print(prompt)
     return prompt
 
 
@@ -299,6 +308,28 @@ async def generate_async_response_stream(prompt):
                 yield content
 
 
+def _generate_sync_ai_response(prompt):
+    client = OpenAI(
+        api_key=os.environ['OPENAI_KEY'],
+    )
+    model = "gpt-4o-mini"
+    response = client.chat.completions.create(
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                ],
+            }
+        ],
+        model=model,
+        # response_format={ "type": "json_object" }
+    )    
+    return response
+
+
+
+
 ## Views ##
 
 class CodeExecutionRequest(BaseModel):
@@ -316,6 +347,7 @@ async def websocket_handle_chat_response(websocket: WebSocket, db: Session = Dep
             user_question = data['text'].strip()
             user_code = data['user_code']
             all_user_messages_str = data['all_user_messages_str']
+            user_current_problem_name, user_current_problem_text = data['current_problem_name'], data['current_problem_question']
 
             # TODO: pass the user id for additional layer of security here
             parent_playground_object_id = data['parent_playground_object_id']
@@ -331,6 +363,8 @@ async def websocket_handle_chat_response(websocket: WebSocket, db: Session = Dep
             full_response_message = ""
 
             model_prompt = _prepate_tutor_prompt(
+                user_current_problem_name = user_current_problem_name,
+                user_current_problem_text = user_current_problem_text,
                 user_question=user_question,
                 student_code=user_code,
                 student_chat_history=all_user_messages_str
@@ -634,6 +668,11 @@ class ChangeCodeConversationRequestData(BaseModel):
     current_conversation_id: str
     new_conversation_name: str
 
+class GenerateTestCasesQuestoinData(BaseModel):
+    question_name: str
+    question_text: str
+
+
 
 @app.post("/fetch-dashboard-data")
 def fetch_dashboard_data(
@@ -845,6 +884,36 @@ def create_anon_user(
 
     return {"success": True}
 
+
+@app.post("/validate-anon-user")
+def validate_anon_user(
+    request: Request,
+    data: AnonUserRequestData,
+    db: Session = Depends(get_db)
+):
+    anon_user_id = data.anon_user_id
+    print(f"anon-user-id: {anon_user_id}")
+
+    anon_user_object = db.query(models.CustomUser).filter(
+        models.CustomUser.anon_user_id == anon_user_id
+    ).first()
+
+    if anon_user_object is None:  # create anon user
+        existing_anon_user_object = models.AnonUser(
+            user_unique_id = anon_user_id
+        )
+        db.add(existing_anon_user_object)
+        db.commit()
+        db.refresh(existing_anon_user_object)
+
+        anon_custom_user_object = models.CustomUser(
+            anon_user_id = str(anon_user_id)
+        )
+        db.add(anon_custom_user_object)
+        db.commit()
+        db.refresh(anon_custom_user_object)
+    else:
+        return {'success': True}
 
 
 @app.post("/create-general-tutor-parent-object")
@@ -1215,10 +1284,144 @@ def change_pg_code_name(
             return {'success': False}
 
 
-# class ChangeCodeConversationRequestData(BaseModel):
-#     current_conversation_id: str
-#     new_conversation_name: str
 
-# class (BaseModel):
-#     gt_object_id: str
-#     conversation_name: str
+@app.post("/generate_new_question_testcases")
+def generate_new_testcases(
+    request: Request,
+    data: GenerateTestCasesQuestoinData,
+    db: Session = Depends(get_db)
+):
+
+    question_name = data.question_name.strip()
+    question_text = data.question_text.strip()
+
+    prompt = """## Instructions:
+Your task is to generate example input / output examples, given the question below.
+Return a list, with 3 JSON dictionaries showing input and output examples for the question.
+Please provide 3 DISTINCT INPUT OUTPUT EXAMPLES.
+For cases where you need to generate an input / output dictionary containing multiple parameters or value, please encapsulate the dictionary as a string.
+
+## Example Output:
+[{"input": "...", "output": "..."}, ...]
+
+## Data:
+"""
+
+    prompt += f"""Question: {question_text}
+
+## Output:
+"""
+    print(prompt)
+
+    response = _generate_sync_ai_response(prompt)
+    print(f"Response:", response)
+
+    import json
+
+    response_json_dict = json.loads(response.choices[0].message.content)
+    print(response_json_dict)
+
+    final_rv = {
+        'success': True,
+        'model_response': response_json_dict
+    }
+    return final_rv
+
+    # async for text in generate_async_response_stream(
+    #     prompt = prompt,
+    # ):
+    #     if text is None:
+    #         await websocket.send_text('MODEL_GEN_COMPLETE')
+    #         break  # stop sending further text; just in case
+    #     else:
+    #         await websocket.send_text(text)
+
+
+# class GenerateTestCasesQuestoinData(BaseModel):
+#     question_name: str
+#     question_text: str
+
+# @app.websocket("/ws_generate_new_question_testcases")
+# async def websocket_generate_new_question_testcases(websocket: WebSocket, db: Session = Depends(get_db)):
+#     await websocket.accept()
+#     try:
+#         while True:  # Keep receiving messages in a loop
+#             data = await websocket.receive_json()
+#             print('received_data:', data)
+
+#             action_type = data['type']
+#             if action_type == 'generate_test_case':
+#                 question_name = data['question_name'].strip()
+#                 question_text = data['question_text'].strip()
+
+#                 prompt = """## Instructions:
+# Your task is to generate example input / output examples, given the question below.
+# Return a list, with 3 JSON dictionaries showing input and output examples for the question.
+
+# ## Example Output:
+# [{"input": "...", "output": "..."}, ...]
+
+# ## Data:
+# """
+
+#                 prompt += f"""Question: {question_text}
+
+# ## Output:
+# """
+#                 print(prompt)
+
+#                 # TODO: 
+
+#                 async for text in generate_async_response_stream(
+#                     prompt = prompt,
+#                 ):
+#                     if text is None:
+#                         await websocket.send_text('MODEL_GEN_COMPLETE')
+#                         break  # stop sending further text; just in case
+#                     else:
+#                         await websocket.send_text(text)
+        
+#             # user_message = data['text'].strip()
+#             # all_past_user_messages = data['all_past_chat_messages'].strip()
+#             # general_tutor_parent_object_id = data['general_tutor_object_id']
+
+#             # # TODO: pass the user id for additional layer of security here
+#             # general_tutor_parent_object = db.query(models.GeneralTutorParentObject).filter(
+#             #     models.GeneralTutorParentObject.id == general_tutor_parent_object_id,
+#             # ).first()
+
+#             # if general_tutor_parent_object is None:
+#             #     return {'success': False, 'message': "Object not found.", "status_code": 404}
+            
+#             # # Respond to the user
+#             # full_response_message = ""
+
+#             # # TODO: finalize the general_tutor_prompt 
+#             # gt_model_prompt = _prepare_general_tutor_prompt(
+#             #     user_question = user_message,
+#             #     student_chat_history = all_past_user_messages
+#             # )
+
+#             # async for text in generate_async_response_stream(
+#             #     prompt = gt_model_prompt,
+#             # ):
+#             #     if text is None:
+#             #         await websocket.send_text('MODEL_GEN_COMPLETE')
+#             #         gt_chat_conversation_object = models.GeneralTutorChatConversation(
+#             #             user_message = user_message,
+#             #             prompt = gt_model_prompt,
+#             #             model_response = full_response_message,
+#             #             general_tutor_parent_object_id = general_tutor_parent_object.id,
+#             #         )
+#             #         db.add(gt_chat_conversation_object)
+#             #         db.commit()
+#             #         db.refresh(gt_chat_conversation_object)
+                    
+#             #         break  # stop sending further text; just in case
+#             #     else:
+#             #         full_response_message += text
+#             #         await websocket.send_text(text)
+
+#     except WebSocketDisconnect:
+#         print("WebSocket connection closed")
+#         await websocket.close()
