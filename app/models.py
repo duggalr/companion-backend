@@ -83,8 +83,6 @@ class GeneralTutorChatConversation(Base):
     general_tutor_parent_object = relationship("GeneralTutorParentObject")
 
 
-
-
 class PlaygroundObjectBase(Base):
     """
     Base model for Playground Code Data
@@ -143,3 +141,25 @@ class PlaygroundChatConversation(Base):
     playground_parent_object = relationship("PlaygroundObjectBase")
 
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
+
+
+class PlaygroundQuestion(Base):
+    """
+    Playground Question
+    """
+    __tablename__ = 'playground_question'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    text = Column(String, nullable=False)
+    starter_code = Column(String, nullable=True)
+    solution_code = Column(String, nullable=True)
+    solution_time_complexity = Column(String, nullable=True)
+    example_io_list = Column(String, nullable=False)
+    test_case_list = Column(String, nullable=False)
+    created_date = Column(DateTime, server_default=func.now(), nullable=False)
+
+
+# class Submission(Base):
+#     """
+#     """

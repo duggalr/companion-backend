@@ -60,7 +60,7 @@ def execute_code_in_container(language: str, code: str):
     # Set up language-specific Docker image
     docker_image = {
         "python": "python:3.12-slim",
-        "javascript": "node:14-slim",
+        # "javascript": "node:14-slim",
         # "haskell": "haskell:latest",
         # "rust": "rust:slim"
     }.get(language)
@@ -70,7 +70,7 @@ def execute_code_in_container(language: str, code: str):
 
     language_file_extension = {
         "python": ".py",
-        "javascript": ".js",
+        # "javascript": ".js",
         # "haskell": ".hs",
         # "rust": ".rs"
     }
@@ -98,7 +98,7 @@ def execute_code_in_container(language: str, code: str):
     # Command to run inside the container
     exec_cmd = {
         "python": f"python {container_code_file}",
-        "javascript": f"node {container_code_file}",
+        # "javascript": f"node {container_code_file}",
         # "haskell": f"runghc {container_code_file}",
         # "rust": f"rustc {container_code_file} -o /app/executable && /app/executable"
     }.get(language)
@@ -323,7 +323,7 @@ def _generate_sync_ai_response(prompt):
             }
         ],
         model=model,
-        # response_format={ "type": "json_object" }
+        response_format={ "type": "json_object" }
     )    
     return response
 
@@ -388,7 +388,7 @@ async def websocket_handle_chat_response(websocket: WebSocket, db: Session = Dep
                     db.add(pg_chat_conversation_object)
                     db.commit()
                     db.refresh(pg_chat_conversation_object)
-                    
+
                     break  # stop sending further text; just in case
                 else:
                     full_response_message += text
@@ -1284,25 +1284,32 @@ def change_pg_code_name(
             return {'success': False}
 
 
-
-@app.post("/generate_new_question_testcases")
-def generate_new_testcases(
+# @app.post("/generate_new_question_testcases")
+# def generate_new_testcases(
+@app.post("/update_user_question")
+def save_or_update_user_question(
     request: Request,
     data: GenerateTestCasesQuestoinData,
     db: Session = Depends(get_db)
 ):
 
+    unique_question_id = data.question_id
     question_name = data.question_name.strip()
     question_text = data.question_text.strip()
 
     prompt = """## Instructions:
-Your task is to generate example input / output examples, given the question below.
-Return a list, with 3 JSON dictionaries showing input and output examples for the question.
-Please provide 3 DISTINCT INPUT OUTPUT EXAMPLES.
-For cases where you need to generate an input / output dictionary containing multiple parameters or value, please encapsulate the dictionary as a string.
+For the given question below, your task is to generate:
+- 3 Distinct Input / Output Examples with a 1-2 line description for each example to be shown to the user, to help them better understand the question.
+- 10 extremely well-thought and diverse test-cases, to actually test the user's code on submission. These won't be shown to the user, but meant to test the correctness of the user's code/submission.
+
+Return the following JSON dictionary below, with the specified format below.
+- For cases where you need to generate an input / output dictionary containing multiple parameters or value, please encapsulate the dictionary as a string.
 
 ## Example Output:
-[{"input": "...", "output": "..."}, ...]
+{
+    "input_output_example_list": [{"input": "...", "output": "..."}, ...],
+    "test_case_list": [{"input": "...", "output": "..."}, ...]
+}
 
 ## Data:
 """
@@ -1321,11 +1328,58 @@ For cases where you need to generate an input / output dictionary containing mul
     response_json_dict = json.loads(response.choices[0].message.content)
     print(response_json_dict)
 
-    final_rv = {
-        'success': True,
-        'model_response': response_json_dict
-    }
-    return final_rv
+    question_input_output_example_list = response_json_dict['input_output_example_list']
+    question_test_case_list = response_json_dict['test_case_list']
+
+    if unique_question_id is None:
+        pg_question_object = models.PlaygroundQuestion(
+            name = question_name,
+            text = question_text,
+            example_io_list = question_input_output_example_list,
+            test_case_list = question_test_case_list
+        )
+        db.add(pg_question_object)
+        db.commit()
+        db.refresh(pg_question_object)
+
+        final_rv = {
+            'success': True,
+            'unique_question_id': unique_question_id,
+            'question_name': question_name,
+            'question_text': question_text,
+            'example_io_list': question_input_output_example_list
+        }
+        return final_rv
+
+    else:
+        pg_question_object = db.query(models.PlaygroundQuestion).filter(
+            models.PlaygroundQuestion.id == unique_question_id
+        ).first()
+
+        if pg_question_object:
+            pg_question_object.name = question_name
+            pg_question_object.text = question_text
+            pg_question_object.example_io_list = question_input_output_example_list
+            pg_question_object.test_case_list = question_test_case_list
+            db.commit()
+
+            final_rv = {
+                'success': True,
+                'unique_question_id': unique_question_id,
+                'question_name': question_name,
+                'question_text': question_text,
+                'example_io_list': question_input_output_example_list
+            }
+            return final_rv
+
+        else:
+            return {'success': False, 'message': "Question object not found."}
+
+    # final_rv = {
+    #     'success': True,
+    #     'model_response': response_json_dict
+    # }
+    # return final_rv
 
     # async for text in generate_async_response_stream(
     #     prompt = prompt,
@@ -1335,6 +1389,56 @@ For cases where you need to generate an input / output dictionary containing mul
     #         break  # stop sending further text; just in case
     #     else:
     #         await websocket.send_text(text)
+
+
+
+from sqlalchemy.sql.expression import func
+import ast
+
+@app.post("/get_random_initial_pg_question")
+def get_random_initial_pg_question(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    random_pg_q_object = db.query(models.PlaygroundQuestion).order_by(func.random()).first()
+    random_pg_q_object_dict = {
+        # column.name: getattr(random_pg_q_object, column.name)
+        # for column in random_pg_q_object.__table__.columns
+        'question_id': random_pg_q_object.id,
+        'name': random_pg_q_object.name,
+        'text': random_pg_q_object.text,
+        'starter_code': random_pg_q_object.starter_code,
+        'example_io_list': ast.literal_eval(random_pg_q_object.example_io_list)
+    }
+    return random_pg_q_object_dict
+
+
+class UserCodeSubmission(BaseModel):
+    pg_object_id: str
+    user_code: str
+    question_id: str
+
+@app.post("/submit_user_code")
+def handle_user_code_submission(
+    request: Request,
+    data: UserCodeSubmission,
+    db: Session = Depends(get_db)
+):
+    print('code-submission-data:', data)
+
+    pg_object_id = data.pg_object_id
+    question_id = data.question_id
+    user_code = data.user_code
+
+    pg_question_object = db.query(models.PlaygroundQuestion).filter(
+        models.PlaygroundQuestion.id == question_id
+    ).first()
+
+    q_test_cases = ast.literal_eval(pg_question_object.test_case_list)
+    print('question-test-cases:', q_test_cases)
+    # TODO: go through each test case
+
+
 
 
 # class GenerateTestCasesQuestoinData(BaseModel):
