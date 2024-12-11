@@ -445,6 +445,7 @@ async def get_optional_token(request: Request) -> Optional[str]:
     return None
 
 
+# TODO: leverage pydantic here for payload
 @app.post("/save_user_run_code")
 async def save_user_run_code(
     request: Request,
@@ -1392,6 +1393,37 @@ Return the following JSON dictionary, with the specified format below.
 
 
 
+class SaveUserCodeData(BaseModel):
+    user_id: str
+    question_id: str
+    code: str
+
+@app.post("/save_user_code")
+def save_user_code(
+    request: Request,
+    data: SaveUserCodeData,
+    db: Session = Depends(get_db)
+):
+    user_id = data.user_id
+    question_id = data.question_id
+    current_code = data.code
+    print('full data', data)
+
+    pg_code_object = models.PlaygroundCode(
+        programming_language = 'python',
+        code = current_code,
+        question_object_id = question_id
+    )
+    db.add(pg_code_object)
+    db.commit()
+    db.refresh(pg_code_object)
+
+    return {
+        'success': True,
+    }
+
+
+
 
 
 #     # TODO: get user ID and go from there
@@ -1610,6 +1642,10 @@ def handle_user_code_submission(
     q_test_cases = ast.literal_eval(pg_question_object.test_case_list)
     print('question-test-cases:', q_test_cases)
     # TODO: go through each test case
+
+
+
+
 
 
 
