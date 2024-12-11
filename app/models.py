@@ -51,6 +51,35 @@ class CustomUser(Base):
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
 
 
+class QuestionBaseModel(Base):  # Base Model
+    __abstract__ = True
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    text = Column(String, nullable=False)
+    example_io_list = Column(String, nullable=False)
+    created_date = Column(DateTime, server_default=func.now(), nullable=False)
+
+
+# constant table that isn't to be manipulated
+class InitialPlaygroundQuestion(QuestionBaseModel):  
+    __tablename__ = 'initial_playground_question'
+
+    starter_code = Column(String, nullable=False)
+    solution_code = Column(String, nullable=False)
+    solution_time_complexity = Column(String, nullable=False)
+    test_case_list = Column(String, nullable=True)
+
+
+class UserCreatedPlaygroundQuestion(QuestionBaseModel):
+    __tablename__ = 'user_created_playground_question'
+
+    custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
+    custom_user = relationship("CustomUser")
+
+
+
+
 class GeneralTutorParentObject(Base):
     """
     General Tutor Parent Object
@@ -143,23 +172,23 @@ class PlaygroundChatConversation(Base):
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
 
 
-class PlaygroundQuestion(Base):
-    """
-    Playground Question
-    """
-    __tablename__ = 'playground_question'
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, nullable=False)
-    text = Column(String, nullable=False)
-    starter_code = Column(String, nullable=True)
-    solution_code = Column(String, nullable=True)
-    solution_time_complexity = Column(String, nullable=True)
-    example_io_list = Column(String, nullable=False)
-    test_case_list = Column(String, nullable=False)
-    created_date = Column(DateTime, server_default=func.now(), nullable=False)
-
-
-# class Submission(Base):
+# class PlaygroundQuestion(Base):
 #     """
+#     Playground Question
 #     """
+#     __tablename__ = 'playground_question'
+
+#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+#     name = Column(String, nullable=False)
+#     text = Column(String, nullable=False)
+#     starter_code = Column(String, nullable=True)
+#     solution_code = Column(String, nullable=True)
+#     solution_time_complexity = Column(String, nullable=True)
+#     example_io_list = Column(String, nullable=False)
+#     test_case_list = Column(String, nullable=True)
+#     created_date = Column(DateTime, server_default=func.now(), nullable=False)
+
+
+# # class Submission(Base):
+# #     """
+# #     """

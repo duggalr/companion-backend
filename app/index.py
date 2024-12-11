@@ -3,6 +3,7 @@ from dotenv import load_dotenv, find_dotenv
 ENV_FILE = find_dotenv()
 load_dotenv(ENV_FILE)
 
+import ast
 import uuid
 from typing import Optional
 from pydantic import BaseModel
@@ -668,7 +669,9 @@ class ChangeCodeConversationRequestData(BaseModel):
     current_conversation_id: str
     new_conversation_name: str
 
-class GenerateTestCasesQuestoinData(BaseModel):
+class GenerateTestCasesQuestionData(BaseModel):
+    current_anon_user_id: str
+    question_id: str
     question_name: str
     question_text: str
 
@@ -1289,26 +1292,27 @@ def change_pg_code_name(
 @app.post("/update_user_question")
 def save_or_update_user_question(
     request: Request,
-    data: GenerateTestCasesQuestoinData,
+    data: GenerateTestCasesQuestionData,
     db: Session = Depends(get_db)
 ):
 
-    unique_question_id = data.question_id
+    # TODO: assuming anon case
+    user_id = data.current_anon_user_id
+    question_id = data.question_id
     question_name = data.question_name.strip()
     question_text = data.question_text.strip()
 
+    # TODO: abstract in separate openai-wrapper
     prompt = """## Instructions:
 For the given question below, your task is to generate:
-- 3 Distinct Input / Output Examples with a 1-2 line description for each example to be shown to the user, to help them better understand the question.
-- 10 extremely well-thought and diverse test-cases, to actually test the user's code on submission. These won't be shown to the user, but meant to test the correctness of the user's code/submission.
+- 3 Distinct Input / Output Examples with a 1-2 line description / explanation for each example to be shown to the user, to help them better understand the question.
 
-Return the following JSON dictionary below, with the specified format below.
+Return the following JSON dictionary, with the specified format below.
 - For cases where you need to generate an input / output dictionary containing multiple parameters or value, please encapsulate the dictionary as a string.
 
 ## Example Output:
 {
-    "input_output_example_list": [{"input": "...", "output": "..."}, ...],
-    "test_case_list": [{"input": "...", "output": "..."}, ...]
+    "input_output_example_list": [{"input": "...", "output": "...", "explanation": "..."}, ...]
 }
 
 ## Data:
@@ -1328,89 +1332,258 @@ Return the following JSON dictionary below, with the specified format below.
     response_json_dict = json.loads(response.choices[0].message.content)
     print(response_json_dict)
 
-    question_input_output_example_list = response_json_dict['input_output_example_list']
-    question_test_case_list = response_json_dict['test_case_list']
+    question_input_output_example_list_string = str(response_json_dict['input_output_example_list'])
+    question_input_output_example_list_json_representation = json.dumps(response_json_dict['input_output_example_list'])
+    print(f"loading json:", question_input_output_example_list_json_representation)
+    # question_test_case_list = response_json_dict['test_case_list']
 
-    if unique_question_id is None:
-        pg_question_object = models.PlaygroundQuestion(
-            name = question_name,
-            text = question_text,
-            example_io_list = question_input_output_example_list,
-            test_case_list = question_test_case_list
-        )
-        db.add(pg_question_object)
+    ## TODO: initially simply creating new question objects everytime
+    # if unique_question_id is None:
+    # pg_question_object = models.PlaygroundQuestion(
+    #     name = question_name,
+    #     text = question_text,
+    #     example_io_list = question_input_output_example_list_string,
+    #     # test_case_list = question_test_case_list
+    # )
+    # db.add(pg_question_object)
+    # db.commit()
+    # db.refresh(pg_question_object)
+
+    # TODO: get custom user object; pass to new created object and go from there
+    custom_user_object = db.query(models.CustomUser).filter(
+        models.CustomUser.anon_user_id == user_id
+    ).first()
+
+    if custom_user_object:
+        existing_pg_question_object = db.query(models.UserCreatedPlaygroundQuestion).filter(
+            models.UserCreatedPlaygroundQuestion.id == question_id
+        ).first()
+        existing_pg_question_object.name = question_name
+        existing_pg_question_object.text = question_text
+        existing_pg_question_object.example_io_list = question_input_output_example_list_string
         db.commit()
-        db.refresh(pg_question_object)
+        db.refresh(existing_pg_question_object)
 
+        # TODO: abstract the responses for all functions
         final_rv = {
             'success': True,
-            'unique_question_id': unique_question_id,
+            'unique_question_id': existing_pg_question_object.id,
             'question_name': question_name,
             'question_text': question_text,
-            'example_io_list': question_input_output_example_list
+            'example_io_list': question_input_output_example_list_json_representation
         }
         return final_rv
 
-    else:
-        pg_question_object = db.query(models.PlaygroundQuestion).filter(
-            models.PlaygroundQuestion.id == unique_question_id
-        ).first()
+        # user_created_question_object = models.UserCreatedPlaygroundQuestion(
+        #     custom_user_id = custom_user_object.id,
+        #     name = question_name,
+        #     text = question_text,
+        #     example_io_list = question_input_output_example_list_string
+        # )
 
-        if pg_question_object:
-            pg_question_object.name = question_name
-            pg_question_object.text = question_text
-            pg_question_object.example_io_list = question_input_output_example_list
-            pg_question_object.test_case_list = question_test_case_list
-            db.commit()
+        # final_rv = {
+        #     'success': True,
+        #     'unique_question_id': user_created_question_object.id,
+        #     'question_name': question_name,
+        #     'question_text': question_text,
+        #     'example_io_list': question_input_output_example_list_json_representation
+        # }
+        # return final_rv
 
-            final_rv = {
-                'success': True,
-                'unique_question_id': unique_question_id,
-                'question_name': question_name,
-                'question_text': question_text,
-                'example_io_list': question_input_output_example_list
-            }
-            return final_rv
 
-        else:
-            return {'success': False, 'message': "Question object not found."}
 
-    # final_rv = {
-    #     'success': True,
-    #     'model_response': response_json_dict
-    # }
-    # return final_rv
 
-    # async for text in generate_async_response_stream(
-    #     prompt = prompt,
-    # ):
-    #     if text is None:
-    #         await websocket.send_text('MODEL_GEN_COMPLETE')
-    #         break  # stop sending further text; just in case
-    #     else:
-    #         await websocket.send_text(text)
+
+#     # TODO: get user ID and go from there
+
+#     # unique_question_id = data.question_id
+#     # question_name = data.question_name.strip()
+#     # question_text = data.question_text.strip()
+
+# #     prompt = """## Instructions:
+# # For the given question below, your task is to generate:
+# # - 3 Distinct Input / Output Examples with a 1-2 line description for each example to be shown to the user, to help them better understand the question.
+# # - 10 extremely well-thought and diverse test-cases, to actually test the user's code on submission. These won't be shown to the user, but meant to test the correctness of the user's code/submission.
+
+# # Return the following JSON dictionary below, with the specified format below.
+# # - For cases where you need to generate an input / output dictionary containing multiple parameters or value, please encapsulate the dictionary as a string.
+
+# # ## Example Output:
+# # {
+# #     "input_output_example_list": [{"input": "...", "output": "..."}, ...],
+# #     "test_case_list": [{"input": "...", "output": "..."}, ...]
+# # }
+
+# # ## Data:
+# # """
+    
+#     # TODO: add custom user object ID
+#     current_anon_user_id = data.current_anon_user_id
+#     question_name = data.question_name.strip()
+#     question_text = data.question_text.strip()
+
+#     # TODO: abstract openaiwrapper
+#     prompt = """## Instructions:
+# For the given question below, your task is to generate:
+# - 3 Distinct Input / Output Examples with a 1-2 line description / explanation for each example to be shown to the user, to help them better understand the question.
+
+# Return the following JSON dictionary, with the specified format below.
+# - For cases where you need to generate an input / output dictionary containing multiple parameters or value, please encapsulate the dictionary as a string.
+
+# ## Example Output:
+# {
+#     "input_output_example_list": [{"input": "...", "output": "...", "explanation": "..."}, ...]
+# }
+
+# ## Data:
+# """
+
+#     prompt += f"""Question: {question_text}
+
+# ## Output:
+# """
+#     print(prompt)
+
+#     response = _generate_sync_ai_response(prompt)
+#     print(f"Response:", response)
+
+#     import json
+
+#     response_json_dict = json.loads(response.choices[0].message.content)
+#     print(response_json_dict)
+
+#     question_input_output_example_list_string = str(response_json_dict['input_output_example_list'])
+#     question_input_output_example_list_json_representation = json.dumps(response_json_dict['input_output_example_list'])
+#     print(f"loading json:", question_input_output_example_list_json_representation)
+#     # question_test_case_list = response_json_dict['test_case_list']
+
+#     ## TODO: initially simply creating new question objects everytime
+#     # if unique_question_id is None:
+#     # pg_question_object = models.PlaygroundQuestion(
+#     #     name = question_name,
+#     #     text = question_text,
+#     #     example_io_list = question_input_output_example_list_string,
+#     #     # test_case_list = question_test_case_list
+#     # )
+#     # db.add(pg_question_object)
+#     # db.commit()
+#     # db.refresh(pg_question_object)
+
+#     # TODO: get custom user object; pass to new created object and go from there
+#     custom_user_object = db.query(models.CustomUser).filter(
+#         models.CustomUser.anon_user_id == current_anon_user_id
+#     ).first()
+    
+#     if custom_user_object:
+#         user_created_question_object = models.UserCreatedPlaygroundQuestion(
+#             custom_user_id = custom_user_object.id,
+#             name = question_name,
+#             text = question_text,
+#             example_io_list = question_input_output_example_list_string
+#         )
+
+#         final_rv = {
+#             'success': True,
+#             'unique_question_id': user_created_question_object.id,
+#             'question_name': question_name,
+#             'question_text': question_text,
+#             'example_io_list': question_input_output_example_list_json_representation
+#         }
+#         return final_rv
+
+#     # else:
+#     #     pg_question_object = db.query(models.PlaygroundQuestion).filter(
+#     #         models.PlaygroundQuestion.id == unique_question_id
+#     #     ).first()
+
+#     #     if pg_question_object:
+#     #         pg_question_object.name = question_name
+#     #         pg_question_object.text = question_text
+#     #         pg_question_object.example_io_list = question_input_output_example_list_string
+#     #         # pg_question_object.test_case_list = question_test_case_list
+#     #         db.commit()
+
+#     #         final_rv = {
+#     #             'success': True,
+#     #             'unique_question_id': unique_question_id,
+#     #             'question_name': question_name,
+#     #             'question_text': question_text,
+#     #             'example_io_list': question_input_output_example_list_json_representation
+#     #         }
+#     #         return final_rv
+
+#         # else:
+#         #     return {'success': False, 'message': "Question object not found."}
+
+#     # final_rv = {
+#     #     'success': True,
+#     #     'model_response': response_json_dict
+#     # }
+#     # return final_rv
+
+#     # async for text in generate_async_response_stream(
+#     #     prompt = prompt,
+#     # ):
+#     #     if text is None:
+#     #         await websocket.send_text('MODEL_GEN_COMPLETE')
+#     #         break  # stop sending further text; just in case
+#     #     else:
+#     #         await websocket.send_text(text)
 
 
 
 from sqlalchemy.sql.expression import func
 import ast
+import json
+
+
+# TODO: abstract and put all these pydantic models in new file
+class UserGetRandomQuestion(BaseModel):
+    user_id: str
 
 @app.post("/get_random_initial_pg_question")
 def get_random_initial_pg_question(
     request: Request,
+    data: UserGetRandomQuestion,
     db: Session = Depends(get_db)
 ):
-    random_pg_q_object = db.query(models.PlaygroundQuestion).order_by(func.random()).first()
-    random_pg_q_object_dict = {
-        # column.name: getattr(random_pg_q_object, column.name)
-        # for column in random_pg_q_object.__table__.columns
-        'question_id': random_pg_q_object.id,
-        'name': random_pg_q_object.name,
-        'text': random_pg_q_object.text,
-        'starter_code': random_pg_q_object.starter_code,
-        'example_io_list': ast.literal_eval(random_pg_q_object.example_io_list)
+    # TODO: Assuming Anon Case
+    random_initial_question_object = db.query(models.InitialPlaygroundQuestion).order_by(func.random()).first()
+    user_id = data.user_id
+
+    # TODO: abstract this logic of fetching anon user into own function as it's called in every view..
+    anon_custom_user_object = db.query(models.CustomUser).filter(
+        models.CustomUser.anon_user_id == user_id
+    ).first()
+
+    print(f"Anon CU Object:", anon_custom_user_object)
+
+    ## Create New Question Object
+
+    new_pg_question_object = models.UserCreatedPlaygroundQuestion(
+        name = random_initial_question_object.name,
+        text = random_initial_question_object.text,
+        example_io_list = random_initial_question_object.example_io_list,
+    )
+    db.add(new_pg_question_object)
+    db.commit()
+    db.refresh(new_pg_question_object)
+
+    print('Example I/O List:',  random_initial_question_object.example_io_list, type(random_initial_question_object.example_io_list))
+
+    return {
+        'success': True,
+        'data': {
+            'question_id': new_pg_question_object.id,
+            'name': new_pg_question_object.name,
+            'text': new_pg_question_object.text,
+            'starter_code': random_initial_question_object.starter_code,
+            'example_io_list': ast.literal_eval(random_initial_question_object.example_io_list)
+        }
     }
-    return random_pg_q_object_dict
+    
+
+
 
 
 class UserCodeSubmission(BaseModel):

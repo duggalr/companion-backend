@@ -10,12 +10,14 @@ from app.database import SessionLocal
 initial_question_list = [
 
     {
+        # TODO: update with explanations --> retest to ensure all of (1) is working solid / intended (check DB entires)
+        # proceed to (2)
         'name': 'Find Palindromic Substrings',
         'question': 'Write a function that finds all palindromic substrings in a given string.',
         'input_output_list': [
-            { 'input': '"abba"', 'output': '["a", "b", "bb", "abba"]' },
-            { 'input': '"racecar"', 'output': '["r", "a", "c", "e", "cec", "aceca", "racecar"]' },
-            { 'input': '"abc"', 'output': '["a", "b", "c"]' }
+            { 'input': '"abba"', 'output': '["a", "b", "bb", "abba"]', 'explanation': 'The string "abba" contains palindromes of various lengths, including "abba" itself.'},
+            { 'input': '"racecar"', 'output': '["r", "a", "c", "e", "cec", "aceca", "racecar"]', 'explanation': 'The string "racecar" contains several palindromes, including the full string itself.'},
+            { 'input': '"abc"', 'output': '["a", "b", "c"]', 'explanation': 'The string "abc" contains only single-character palindromes.'}
         ],
         'function_name': "find_palindromic_substrings",
         'starter_code': """def find_palindromic_substrings(s: str) -> list:
@@ -36,7 +38,7 @@ def find_palindromic_substrings(s: str) -> list:p
 """,
         'time_complexity': 'O(n^2)',
         'test_case_list': [
-            { 'input': '"abba"', 'expected_output': ["a", "b", "bb", "abba"] },
+            { 'input': '"abba"', 'expected_output': ["a", "b", "bb", "abba"]},
             { 'input': '"racecar"', 'expected_output': ["r", "a", "c", "e", "cec", "aceca", "racecar"] },
             { 'input': '"abc"', 'expected_output': ["a", "b", "c"] },
             { 'input': '"a"', 'expected_output': ["a"] },
@@ -49,14 +51,13 @@ def find_palindromic_substrings(s: str) -> list:p
         ]
     },
 
-# TODO: generate testcase for this dict; save; then, update random-initial-q loading in react; from there, implement submit functionality and go from there
     {
         'name': 'String Compression',
         'question': 'Implement a function that compresses a string using the counts of repeated characters (e.g., "aaabb" -> "a3b2").',
         'input_output_list': [
-            { 'input': '"aaabb"', 'output': '"a3b2"' },
-            { 'input': '"abc"', 'output': '"a1b1c1"' },
-            { 'input': '"aaAAaa"', 'output': '"a2A2a2"' }
+            { 'input': '"aaabb"', 'output': '"a3b2"', 'explanation': 'The string "aaabb" has 3 consecutive "a"s followed by 2 consecutive "b"s.'},
+            { 'input': '"abc"', 'output': '"a1b1c1"', 'explanation': 'The string "abc" contains no repeating characters, so each is followed by a count of 1.'},
+            { 'input': '"aaAAaa"', 'output': '"a2A2a2"', 'explanation': 'The string "aaAAaa" alternates between lower and uppercase letters, compressing each group separately.'}
         ],
         'starter_code': """def compress_string(s: str) -> str:
     raise NotImplementedError""",
@@ -90,7 +91,6 @@ def compress_string(s: str) -> str:
         ],
     },
 
-
 ]
 
 
@@ -99,24 +99,16 @@ def compress_string(s: str) -> str:
     # when choosing initial random question, call backend since we want to pass QID
 
 db = SessionLocal()
-# for di in initial_question_list:
-#     pg_question_object = models.PlaygroundQuestion(
-#         name = di['name'],
-#         text = di['question'],
-#         starter_code = di['starter_code'],
-#         solution_code = di['solution'],
-#         solution_time_complexity = di['time_complexity'],
-#         example_io_list = str(di['input_output_list']),
-#         test_case_list = str(di['test_case_list']),
-#     )
-#     db.add(pg_question_object)
-#     db.commit()
-#     db.refresh(pg_question_object)
-
-
-# class PlaygroundQuestion(Base):
-#     """
-#     Playground Question
-#     """
-#     __tablename__ = 'playground_question'
-
+for di in initial_question_list:
+    pg_question_object = models.InitialPlaygroundQuestion(
+        name = di['name'],
+        text = di['question'],
+        starter_code = di['starter_code'],
+        solution_code = di['solution'],
+        solution_time_complexity = di['time_complexity'],
+        example_io_list = str(di['input_output_list']),
+        test_case_list = str(di['test_case_list']),
+    )
+    db.add(pg_question_object)
+    db.commit()
+    db.refresh(pg_question_object)
