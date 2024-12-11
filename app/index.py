@@ -344,21 +344,26 @@ async def websocket_handle_chat_response(websocket: WebSocket, db: Session = Dep
     try:
         while True:  # Keep receiving messages in a loop
             data = await websocket.receive_json()
-
+            
             user_question = data['text'].strip()
             user_code = data['user_code']
             all_user_messages_str = data['all_user_messages_str']
             user_current_problem_name, user_current_problem_text = data['current_problem_name'], data['current_problem_question']
 
-            # TODO: pass the user id for additional layer of security here
-            parent_playground_object_id = data['parent_playground_object_id']
-            
-            parent_pg_object = db.query(models.PlaygroundObjectBase).filter(
-                models.PlaygroundObjectBase.id == parent_playground_object_id,
-            ).first()
+            # # TODO: pass the user id for additional layer of security here
+            # parent_playground_object_id = data['parent_playground_object_id']
+            # parent_pg_object = db.query(models.PlaygroundObjectBase).filter(
+            #     models.PlaygroundObjectBase.id == parent_playground_object_id,
+            # ).first()
+            # if parent_pg_object is None:
+            #     return {'success': False, 'message': "Playground object not found.", "status_code": 404}
 
-            if parent_pg_object is None:
-                return {'success': False, 'message': "Playground object not found.", "status_code": 404}
+            parent_question_object_id = data['parent_question_object_id']
+            parent_question_object = db.query(models.UserCreatedPlaygroundQuestion).filter(
+                models.UserCreatedPlaygroundQuestion.id == parent_question_object_id
+            ).first()
+            if parent_question_object is None:
+                return {'success': False, 'message': "Question object not found.", "status_code": 404}
 
             # Respond to the user
             full_response_message = ""
@@ -378,13 +383,14 @@ async def websocket_handle_chat_response(websocket: WebSocket, db: Session = Dep
                 if text is None:
 
                     await websocket.send_text('MODEL_GEN_COMPLETE')
-                    
+
                     pg_chat_conversation_object = models.PlaygroundChatConversation(
                         question = user_question,
                         prompt = model_prompt,
                         response = full_response_message,
                         code = user_code,
-                        playground_parent_object_id = parent_pg_object.id
+                        question_object_id = parent_question_object_id
+                        # playground_parent_object_id = parent_pg_object.id
                     )
                     db.add(pg_chat_conversation_object)
                     db.commit()

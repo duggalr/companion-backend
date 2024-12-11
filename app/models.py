@@ -95,6 +95,35 @@ class PlaygroundCode(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
 
+## Chat Models
+
+class TutorConversationBaseModel(Base):
+    """
+    Abstract Base Model for covering all Tutor Conversations
+    """
+    __abstract__ = True
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    question = Column(String, nullable=False)
+    prompt = Column(String, nullable=False)
+    response = Column(String, nullable=False)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class PlaygroundChatConversation(TutorConversationBaseModel):
+    """
+    Playground Chat Conversation
+    """
+    __tablename__ = 'playground_chat_conversation'
+
+    code = Column(String, nullable=True)
+    question_object_id = Column(UUID, ForeignKey('user_created_playground_question.id'), nullable=False)
+    parent_question_object = relationship("UserCreatedPlaygroundQuestion")
+
+
+
+
 
 ## OLD Tutor Models 
 
