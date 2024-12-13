@@ -3,9 +3,10 @@ from dotenv import load_dotenv, find_dotenv
 ENV_FILE = find_dotenv()
 load_dotenv(ENV_FILE)
 
+import json
 import ast
 import uuid
-from typing import Optional
+from typing import Optional, Generator
 from pydantic import BaseModel
 from openai import AsyncOpenAI, OpenAI
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Depends, HTTPException
@@ -19,8 +20,11 @@ from celery.result import AsyncResult
 # Database
 from sqlalchemy import select, desc
 from sqlalchemy.orm import Session
-from app import models, utils
+from app import models
 from app.database import SessionLocal
+from app.llm import prompts, openai_wrapper
+from app.utils import get_user_object
+from app.response_utils import not_found_error
 
 
 app = FastAPI(
@@ -28,7 +32,7 @@ app = FastAPI(
     openapi_url="/api/py/openapi.json"
 )
 
-def get_db():
+def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
         yield db
@@ -46,11 +50,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+## Initialize OpenAI Wrapper
+opai_wrapper = openai_wrapper.OpenAIWrapper(
+    api_key = os.environ['OPENAI_KEY'],
+    model = "gpt-4o-mini"
+)
+
+
+## Initialize Celery
 celery_app = Celery(
     __name__,
     backend = f"{os.environ['REDIS_BACKEND_URL']}",
     broker = f"{os.environ['REDIS_BACKEND_URL']}/0",
 )
+
 
 ## Celery Tasks ##
 @celery_app.task
@@ -466,7 +480,7 @@ async def save_user_run_code(
     if token is not None:
         user_information_response = utils.get_user_information(
             token = token
-        )        
+        )
 
         if user_information_response.status_code == 200:
             user_information_json_data = user_information_response.json()
@@ -1294,108 +1308,108 @@ def change_pg_code_name(
             return {'success': False}
 
 
-# @app.post("/generate_new_question_testcases")
-# def generate_new_testcases(
 @app.post("/update_user_question")
-def save_or_update_user_question(
-    request: Request,
-    data: GenerateTestCasesQuestionData,
-    db: Session = Depends(get_db)
+def update_user_question_old(
+    data: pydantic_schemas.UpdateGeneralPlaygroundQuestion,
+    db: Session = Depends(get_db),
+    token: Optional[str] = Depends(get_optional_token)
 ):
 
-    # TODO: assuming anon case
-    user_id = data.current_anon_user_id
     question_id = data.question_id
     question_name = data.question_name.strip()
     question_text = data.question_text.strip()
 
-    # TODO: abstract in separate openai-wrapper
-    prompt = """## Instructions:
-For the given question below, your task is to generate:
-- 3 Distinct Input / Output Examples with a 1-2 line description / explanation for each example to be shown to the user, to help them better understand the question.
+    custom_user_object = None
+    if token is not None:
+        _, custom_user_object = utils.get_authenticated_custom_object(
+            token = token,
+            db = db
+        )
+        if custom_user_object is None:
+            return response_utils.bad_request_error(
+                data = {},
+                detail = "Authentication Error."
+            )
+    else:
+        if data.user_id is None:
+            return response_utils.bad_request_error(
+                data = {},
+                detail = "User ID not found."
+            )
+        custom_user_object = utils.get_anon_user_information(
+            user_id = data.user_id
+        )
 
-Return the following JSON dictionary, with the specified format below.
-- For cases where you need to generate an input / output dictionary containing multiple parameters or value, please encapsulate the dictionary as a string.
+    # Fetch Question Object
+    existing_pg_question_object = db.query(models.UserCreatedPlaygroundQuestion).filter(
+        models.UserCreatedPlaygroundQuestion.id == question_id
+    ).first()
+    if existing_pg_question_object is None:
+        return response_utils.not_found_error(
+            detail = "Question object not found."
+        )
 
-## Example Output:
-{
-    "input_output_example_list": [{"input": "...", "output": "...", "explanation": "..."}, ...]
-}
-
-## Data:
-"""
-
+    # Generate Prompt / AI Response
+    prompt = prompts.GENERATE_INPUT_OUTPUT_EXAMPLE_PROMPT
     prompt += f"""Question: {question_text}
 
 ## Output:
 """
-    print(prompt)
 
-    response = _generate_sync_ai_response(prompt)
-    print(f"Response:", response)
+    ai_response = opai_wrapper.generate_sync_response(
+        prompt = prompt
+    )
+    ai_response_json_dict = json.loads(ai_response.choices[0].message.content)
+    question_input_output_example_list_string = str(ai_response_json_dict['input_output_example_list'])
+    question_input_output_example_list_json_representation = json.dumps(ai_response_json_dict['input_output_example_list'])
 
-    import json
+    existing_pg_question_object.name = question_name
+    existing_pg_question_object.text = question_text
+    existing_pg_question_object.example_io_list = question_input_output_example_list_string
+    db.commit()
+    db.refresh(existing_pg_question_object)
+    
+    final_rv = {
+        'unique_question_id': existing_pg_question_object.id,
+        'question_name': question_name,
+        'question_text': question_text,
+        'example_io_list': question_input_output_example_list_json_representation
+    }
+    return response_utils.success_response(
+        data = final_rv
+    )
 
-    response_json_dict = json.loads(response.choices[0].message.content)
-    print(response_json_dict)
 
-    question_input_output_example_list_string = str(response_json_dict['input_output_example_list'])
-    question_input_output_example_list_json_representation = json.dumps(response_json_dict['input_output_example_list'])
-    print(f"loading json:", question_input_output_example_list_json_representation)
-    # question_test_case_list = response_json_dict['test_case_list']
+# TODO:
+@app.post("/update_user_question", response_model=schemas.QuestionUpdateResponse)
+def update_user_question(
+    data: pydantic_schemas.UpdateGeneralPlaygroundQuestion,
+    db: Session = Depends(get_db),
+    token: Optional[str] = Depends(get_optional_token)
+):
+    # Get user object
+    custom_user_object = get_user_object()
 
-    ## TODO: initially simply creating new question objects everytime
-    # if unique_question_id is None:
-    # pg_question_object = models.PlaygroundQuestion(
-    #     name = question_name,
-    #     text = question_text,
-    #     example_io_list = question_input_output_example_list_string,
-    #     # test_case_list = question_test_case_list
-    # )
-    # db.add(pg_question_object)
-    # db.commit()
-    # db.refresh(pg_question_object)
-
-    # TODO: get custom user object; pass to new created object and go from there
-    custom_user_object = db.query(models.CustomUser).filter(
-        models.CustomUser.anon_user_id == user_id
+    # Fetch question
+    existing_pg_question_object = db.query(models.UserCreatedPlaygroundQuestion).filter(
+        models.UserCreatedPlaygroundQuestion.id == data.question_id,
+        models.UserCreatedPlaygroundQuestion.user_id == custom_user_object.id
     ).first()
+    if not existing_pg_question_object:
+        return not_found_error(
+            detail = "Question object not found or Unauthorized."
+        )
 
-    if custom_user_object:
-        existing_pg_question_object = db.query(models.UserCreatedPlaygroundQuestion).filter(
-            models.UserCreatedPlaygroundQuestion.id == question_id
-        ).first()
-        existing_pg_question_object.name = question_name
-        existing_pg_question_object.text = question_text
-        existing_pg_question_object.example_io_list = question_input_output_example_list_string
-        db.commit()
-        db.refresh(existing_pg_question_object)
+    # Generate AI Response
+    try:
+        prompt = f"{prompts.GENERATE_INPUT_OUTPUT_EXAMPLE_PROMPT}Question: {data.question_text.strip()}\n\n## Output:\n"
+        ai_response = opai_wrapper.generate_sync_response(prompt=prompt)
+        ai_response_json_dict = json.loads(ai_response.choices[0].message.content)
+        example_io_list = ai_response_json_dict["input_output_example_list"]
+    except (KeyError, JSONDecodeError):
+        raise HTTPException(status_code=500, detail="Invalid AI response format.")
 
-        # TODO: abstract the responses for all functions
-        final_rv = {
-            'success': True,
-            'unique_question_id': existing_pg_question_object.id,
-            'question_name': question_name,
-            'question_text': question_text,
-            'example_io_list': question_input_output_example_list_json_representation
-        }
-        return final_rv
 
-        # user_created_question_object = models.UserCreatedPlaygroundQuestion(
-        #     custom_user_id = custom_user_object.id,
-        #     name = question_name,
-        #     text = question_text,
-        #     example_io_list = question_input_output_example_list_string
-        # )
-
-        # final_rv = {
-        #     'success': True,
-        #     'unique_question_id': user_created_question_object.id,
-        #     'question_name': question_name,
-        #     'question_text': question_text,
-        #     'example_io_list': question_input_output_example_list_json_representation
-        # }
-        # return final_rv
 
 
 
@@ -1575,51 +1589,162 @@ import ast
 import json
 
 
-# TODO: abstract and put all these pydantic models in new file
-class UserGetRandomQuestion(BaseModel):
-    user_id: str
+
+# # TODO: abstract and put all these pydantic models in new file
+# class UserGetRandomQuestion(BaseModel):
+#     user_id: str
 
 @app.post("/get_random_initial_pg_question")
 def get_random_initial_pg_question(
     request: Request,
-    data: UserGetRandomQuestion,
-    db: Session = Depends(get_db)
+    data: pydantic_schemas.AnonUserSchema,
+    db: Session = Depends(get_db),
+    token: Optional[str] = Depends(get_optional_token)
 ):
-    # TODO: Assuming Anon Case
-    random_initial_question_object = db.query(models.InitialPlaygroundQuestion).order_by(func.random()).first()
-    user_id = data.user_id
 
-    # TODO: abstract this logic of fetching anon user into own function as it's called in every view..
-    anon_custom_user_object = db.query(models.CustomUser).filter(
-        models.CustomUser.anon_user_id == user_id
-    ).first()
+    current_custom_user_object = None 
+    random_initial_question_object = None
 
-    print(f"Anon CU Object:", anon_custom_user_object)
+    if token is not None:
+        # Authenticated Version
+        user_information_response = utils.get_auth_zero_user_info(
+            token = token
+        )
+        if user_information_response.status_code == 200:
+            user_information_json_data = user_information_response.json()
 
-    ## Create New Question Object
+            # Get user object first
+            auth_zero_unique_sub_id = user_information_json_data['sub']
+            associated_user_object = db.query(models.UserOAuth).filter(
+                models.UserOAuth.auth_zero_unique_sub_id == auth_zero_unique_sub_id
+            ).first()
 
+            if associated_user_object is None:
+                # return {'success': False, 'message': 'Authentication Error.', 'status_code': 400}
+                return response_utils.bad_request_error(
+                    data = {},
+                    detail = "Authentication Error."
+                )
+        
+            oauth_user_object_unique_id = associated_user_object.auth_zero_unique_sub_id
+
+            # Get custom user object
+            current_custom_user_object = db.query(models.CustomUser).filter(
+                models.CustomUser.oauth_user_id == oauth_user_object_unique_id
+            ).first()
+
+            if current_custom_user_object is None:
+                return response_utils.bad_request_error(
+                    data = {},
+                    detail = "Authentication Error."
+                )
+
+            # Fetch random question
+            random_initial_question_object = utils.get_random_initial_playground_question(db)
+            # custom_user_id = anon_custom_user_object.id
+
+        else:
+            return response_utils.bad_request_error(
+                data=user_information_response.json()
+            )
+            # {'success': False, 'payload': user_information_response.json(), 'status_code': user_information_response.status_code}
+
+    else:
+        # Get Anon User Object
+        user_id = data.user_id
+        current_custom_user_object = utils.get_anon_user_information(
+            user_id = user_id,
+            db = db
+        )
+        if current_custom_user_object is None:
+            # TODO: return standard 404 as this should not happen
+            return response_utils.not_found_error("User Not Found.")
+
+        # Get Random Question Object
+        # random_initial_question_object = db.query(models.InitialPlaygroundQuestion).order_by(func.random()).first()
+        # user_id = data.user_id
+
+        random_initial_question_object = utils.get_random_initial_playground_question(db)
+
+        # # Create New Question Object
+        # new_pg_question_object = models.UserCreatedPlaygroundQuestion(
+        #     name = random_initial_question_object.name,
+        #     text = random_initial_question_object.text,
+        #     example_io_list = random_initial_question_object.example_io_list,
+        #     custom_user_id = anon_custom_user_object.id
+        # )
+        # db.add(new_pg_question_object)
+        # db.commit()
+        # db.refresh(new_pg_question_object)
+
+        # to_return = {
+        #     'question_id': new_pg_question_object.id,
+        #     'name': new_pg_question_object.name,
+        #     'text': new_pg_question_object.text,
+        #     'starter_code': random_initial_question_object.starter_code,
+        #     'example_io_list': ast.literal_eval(random_initial_question_object.example_io_list)
+        # }
+        # return response_utils.success_response(data = to_return)
+
+
+    # Create New Question Object
     new_pg_question_object = models.UserCreatedPlaygroundQuestion(
         name = random_initial_question_object.name,
         text = random_initial_question_object.text,
         example_io_list = random_initial_question_object.example_io_list,
+        custom_user_id = current_custom_user_object.id
     )
     db.add(new_pg_question_object)
     db.commit()
     db.refresh(new_pg_question_object)
 
-    print('Example I/O List:',  random_initial_question_object.example_io_list, type(random_initial_question_object.example_io_list))
-
-    return {
-        'success': True,
-        'data': {
-            'question_id': new_pg_question_object.id,
-            'name': new_pg_question_object.name,
-            'text': new_pg_question_object.text,
-            'starter_code': random_initial_question_object.starter_code,
-            'example_io_list': ast.literal_eval(random_initial_question_object.example_io_list)
-        }
+    to_return = {
+        'question_id': new_pg_question_object.id,
+        'name': new_pg_question_object.name,
+        'text': new_pg_question_object.text,
+        'starter_code': random_initial_question_object.starter_code,
+        'example_io_list': ast.literal_eval(random_initial_question_object.example_io_list)
     }
-    
+    return response_utils.success_response(data = to_return)
+
+
+
+    # print(f"Anon CU Object:", anon_custom_user_object)
+
+    # # TODO: Assuming Anon Case
+    # random_initial_question_object = db.query(models.InitialPlaygroundQuestion).order_by(func.random()).first()
+    # user_id = data.user_id
+
+    # # TODO: abstract this logic of fetching anon user into own function as it's called in every view..
+    # anon_custom_user_object = db.query(models.CustomUser).filter(
+    #     models.CustomUser.anon_user_id == user_id
+    # ).first()
+
+    # print(f"Anon CU Object:", anon_custom_user_object)
+
+    # ## Create New Question Object
+    # new_pg_question_object = models.UserCreatedPlaygroundQuestion(
+    #     name = random_initial_question_object.name,
+    #     text = random_initial_question_object.text,
+    #     example_io_list = random_initial_question_object.example_io_list,
+    # )
+    # db.add(new_pg_question_object)
+    # db.commit()
+    # db.refresh(new_pg_question_object)
+
+    # print('Example I/O List:',  random_initial_question_object.example_io_list, type(random_initial_question_object.example_io_list))
+
+    # return {
+    #     'success': True,
+    #     'data': {
+    #         'question_id': new_pg_question_object.id,
+    #         'name': new_pg_question_object.name,
+    #         'text': new_pg_question_object.text,
+    #         'starter_code': random_initial_question_object.starter_code,
+    #         'example_io_list': ast.literal_eval(random_initial_question_object.example_io_list)
+    #     }
+    # }
+
 
 
 
