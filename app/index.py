@@ -1,6 +1,5 @@
 import os
 from typing import Optional, Generator
-import docker
 from celery import Celery
 from sqlalchemy.orm import Session
 
@@ -9,12 +8,15 @@ from fastapi import FastAPI, HTTPException, Depends
 
 from app.database import SessionLocal
 from app.llm import prompts, openai_wrapper
-from app.llm.openai_wrapper import ai_api_wrapper
 from app.models import AnonUser, CustomUser
-from pydantic_schemas import AnonUserSchema
-from config import settings
+from app.pydantic_schemas import RequiredAnonUserSchema
+from app.config import settings
 from app.utils import create_anon_user_object
 
+# TODO: 
+    # recreate requirements file and proceed from there
+    # get current landing page working
+    # **Build V1 of new landing page tonight**
 
 app = FastAPI(
     docs_url="/api/py/docs",
@@ -55,39 +57,35 @@ app.add_middleware(
 )
 
 
+## Views
+
 @app.post("/validate-anon-user")
 def validate_anon_user(
-    data: AnonUserSchema,
+    data: RequiredAnonUserSchema,
     db: Session = Depends(get_db)
 ):
     anon_user_id = data.user_id
-    print(f"anon-user-id: {anon_user_id}")
-
     custom_user_object_id = create_anon_user_object(
         anon_user_id = anon_user_id,
         db = db
     )
     return {
         'success': True,
-        'custom_user_object_id': custom_user_object_id
+        'custom_user_object_dict': custom_user_object_id
     }
 
 
 @app.post("/create-anon-user")
 def create_anon_user(
-    data: AnonUserSchema,
+    data: RequiredAnonUserSchema,
     db: Session = Depends(get_db)
 ):
-    anon_user_id = data.anon_user_id
-    print(f"anon-user-id: {anon_user_id}")
-    
+    anon_user_id = data.user_id
     custom_user_object_id = create_anon_user_object(
         anon_user_id = anon_user_id,
         db = db
     )
     return {
         'success': True,
-        'custom_user_object_id': custom_user_object_id
+        'custom_user_object_dict': custom_user_object_id
     }
-
-

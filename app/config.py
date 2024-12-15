@@ -1,5 +1,5 @@
 from typing import List
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):  # will load the .env file
     openai_key: str

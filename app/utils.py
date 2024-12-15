@@ -2,10 +2,7 @@ from sqlalchemy.orm import Session
 from app.models import AnonUser, CustomUser
 
 
-def _check_if_anon_user_exists(
-    anon_user_id: str,
-    db: Session
-):
+def _check_if_anon_user_exists(anon_user_id: str,db: Session) -> bool:
     anon_user_object = db.query(CustomUser).filter(
         CustomUser.anon_user_id == anon_user_id
     ).first()
@@ -14,7 +11,7 @@ def _check_if_anon_user_exists(
     return True
 
 def create_anon_user_object(anon_user_id: str, db: Session) -> CustomUser:
-    if _check_if_anon_user_exists():
+    if _check_if_anon_user_exists(anon_user_id, db):
         return db.query(CustomUser).filter(
             CustomUser.anon_user_id == anon_user_id
         ).first()
@@ -34,4 +31,3 @@ def create_anon_user_object(anon_user_id: str, db: Session) -> CustomUser:
     db.refresh(anon_custom_user_object)
     
     return anon_custom_user_object
-
