@@ -525,4 +525,3 @@ async def websocket_handle_chat_response(
         print("WebSocket connection closed")
         await websocket.close()
 
-
