@@ -5,7 +5,6 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.database import Base
 
-
 ## User Models ##
 
 class AnonUser(Base):
@@ -79,3 +78,47 @@ class UserCreatedPlaygroundQuestion(QuestionBaseModel):
 
     custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
     custom_user = relationship("CustomUser")
+
+
+## Code Models ##
+
+class PlaygroundCode(Base):
+    """
+    Meant to store the playground code information
+    """
+    __tablename__ = "playground_code"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    programming_language = Column(String, nullable=False, default='python')
+    code = Column(String, nullable=False)
+    question_object_id = Column(UUID, ForeignKey('user_created_playground_question.id'), nullable=False)
+    parent_question_object = relationship("UserCreatedPlaygroundQuestion")
+
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+## Chat Models ##
+
+class TutorConversationBaseModel(Base):
+    """
+    Abstract Base Model for covering all Tutor Conversations
+    """
+    __abstract__ = True
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    question = Column(String, nullable=False)
+    prompt = Column(String, nullable=False)
+    response = Column(String, nullable=False)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+class PlaygroundChatConversation(TutorConversationBaseModel):
+    """
+    Playground Chat Conversation
+    """
+    __tablename__ = 'playground_chat_conversation'
+
+    code = Column(String, nullable=True)
+    question_object_id = Column(UUID, ForeignKey('user_created_playground_question.id'), nullable=False)
+    parent_question_object = relationship("UserCreatedPlaygroundQuestion")

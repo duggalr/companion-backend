@@ -11,3 +11,11 @@ class UpdateQuestionSchema(RequiredAnonUserSchema):
     question_id: str
     question_name: str
     question_text: str
+
+class CodeExecutionRequestSchema(BaseModel):
+    language: str
+    code: str
+
+class SaveCodeSchema(RequiredAnonUserSchema):
+    question_id: str
+    code: str
