@@ -19,3 +19,6 @@ class CodeExecutionRequestSchema(BaseModel):
 class SaveCodeSchema(RequiredAnonUserSchema):
     question_id: str
     code: str
+
+class SaveLandingPageEmailSchema(BaseModel):
+    email: str

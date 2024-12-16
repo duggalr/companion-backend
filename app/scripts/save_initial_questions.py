@@ -50,6 +50,121 @@ def find_palindromic_substrings(s: str) -> list:p
     },
 
     {
+        'name': 'Longest Consecutive Sequence',
+        'question': 'Write a function to find the length of the longest consecutive elements sequence in an unsorted array.',
+        'input_output_list': [
+            { 'input': '[100, 4, 200, 1, 3, 2]', 'output': '4', 'explanation': 'The longest consecutive sequence is [1, 2, 3, 4].' },
+            { 'input': '[0, 3, 7, 2, 5, 8, 4, 6, 0, 1]', 'output': '9', 'explanation': 'The longest consecutive sequence is [0, 1, 2, 3, 4, 5, 6, 7, 8].' },
+            { 'input': '[1, 2, 3, 4, 10]', 'output': '4', 'explanation': 'The longest consecutive sequence is [1, 2, 3, 4].' }
+        ],
+        'function_name': "longest_consecutive_sequence",
+        'starter_code': """def longest_consecutive_sequence(nums: list) -> int:
+    raise NotImplementedError""",
+        'solution': """
+def longest_consecutive_sequence(nums: list) -> int:
+    if not nums:
+        return 0
+    num_set = set(nums)
+    longest_streak = 0
+
+    for num in num_set:
+        if num - 1 not in num_set:
+            current_num = num
+            current_streak = 1
+
+            while current_num + 1 in num_set:
+                current_num += 1
+                current_streak += 1
+
+            longest_streak = max(longest_streak, current_streak)
+    return longest_streak
+""",
+        'time_complexity': 'O(n)',
+        'test_case_list': [
+            { 'input': '[100, 4, 200, 1, 3, 2]', 'expected_output': 4 },
+            { 'input': '[0, 3, 7, 2, 5, 8, 4, 6, 0, 1]', 'expected_output': 9 },
+            { 'input': '[1, 2, 3, 4, 10]', 'expected_output': 4 },
+            { 'input': '[]', 'expected_output': 0 },
+            { 'input': '[1]', 'expected_output': 1 }
+        ]
+    },
+
+    {
+        'name': 'Maximum Subarray',
+        'question': 'Write a function to find the maximum sum of a contiguous subarray in a given array.',
+        'input_output_list': [
+            { 'input': '[-2,1,-3,4,-1,2,1,-5,4]', 'output': '6', 'explanation': 'The maximum subarray is [4,-1,2,1], with a sum of 6.' },
+            { 'input': '[1]', 'output': '1', 'explanation': 'The array contains only one element, which is the maximum sum.' },
+            { 'input': '[5,4,-1,7,8]', 'output': '23', 'explanation': 'The maximum subarray is the entire array, with a sum of 23.' }
+        ],
+        'function_name': "max_subarray",
+        'starter_code': """def max_subarray(nums: list) -> int:
+    raise NotImplementedError""",
+        'solution': """
+def max_subarray(nums: list) -> int:
+    max_current = max_global = nums[0]
+    for i in range(1, len(nums)):
+        max_current = max(nums[i], max_current + nums[i])
+        max_global = max(max_global, max_current)
+    return max_global
+""",
+        'time_complexity': 'O(n)',
+        'test_case_list': [
+            { 'input': '[-2,1,-3,4,-1,2,1,-5,4]', 'expected_output': 6 },
+            { 'input': '[1]', 'expected_output': 1 },
+            { 'input': '[5,4,-1,7,8]', 'expected_output': 23 },
+            { 'input': '[-1,-2,-3,-4]', 'expected_output': -1 },
+            { 'input': '[0,0,0,0]', 'expected_output': 0 }
+        ]
+    },
+
+    {
+        'name': 'Binary Tree Level Order Traversal',
+        'question': 'Write a function to return the level order traversal of a binary tree (each level as a separate list).',
+        'input_output_list': [
+            { 'input': '[3,9,20,null,null,15,7]', 'output': '[[3], [9, 20], [15, 7]]', 'explanation': 'The binary tree has three levels.' },
+            { 'input': '[1]', 'output': '[[1]]', 'explanation': 'The binary tree has only one level.' },
+            { 'input': '[]', 'output': '[]', 'explanation': 'The tree is empty.' }
+        ],
+        'function_name': "level_order_traversal",
+        'starter_code': """class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+
+def level_order_traversal(root: TreeNode) -> list:
+    raise NotImplementedError""",
+        'solution': """
+from collections import deque
+
+def level_order_traversal(root: TreeNode) -> list:
+    if not root:
+        return []
+    result, queue = [], deque([root])
+    while queue:
+        level = []
+        for _ in range(len(queue)):
+            node = queue.popleft()
+            level.append(node.val)
+            if node.left:
+                queue.append(node.left)
+            if node.right:
+                queue.append(node.right)
+        result.append(level)
+    return result
+""",
+        'time_complexity': 'O(n)',
+        'test_case_list': [
+            { 'input': '[3,9,20,null,null,15,7]', 'expected_output': [[3], [9, 20], [15, 7]] },
+            { 'input': '[1]', 'expected_output': [[1]] },
+            { 'input': '[]', 'expected_output': [] },
+            { 'input': '[1,2,3]', 'expected_output': [[1], [2, 3]] },
+            { 'input': '[1,null,2,3]', 'expected_output': [[1], [2], [3]] }
+        ]
+    },
+
+    {
         'name': 'String Compression',
         'question': 'Implement a function that compresses a string using the counts of repeated characters (e.g., "aaabb" -> "a3b2").',
         'input_output_list': [
@@ -88,6 +203,114 @@ def compress_string(s: str) -> str:
             { 'input': '"aabcccccaaa"', 'expected_output': "a2b1c5a3" }  # Mixed single and multiple repeated characters
         ],
     },
+
+    {
+        'name': 'Valid Parentheses',
+        'question': 'Write a function to determine if a string containing parentheses is valid. A string is valid if all open parentheses are closed in the correct order.',
+        'input_output_list': [
+            { 'input': '"()"', 'output': 'True', 'explanation': 'The string contains a matching pair of parentheses.' },
+            { 'input': '"()[]{}"', 'output': 'True', 'explanation': 'The string contains matching pairs of parentheses, brackets, and braces.' },
+            { 'input': '"(]"', 'output': 'False', 'explanation': 'The string contains mismatched parentheses.' }
+        ],
+        'function_name': "is_valid_parentheses",
+        'starter_code': """def is_valid_parentheses(s: str) -> bool:
+    raise NotImplementedError""",
+        'solution': """
+def is_valid_parentheses(s: str) -> bool:
+    stack = []
+    mapping = {')': '(', ']': '[', '}': '{'}
+    for char in s:
+        if char in mapping:
+            top_element = stack.pop() if stack else '#'
+            if mapping[char] != top_element:
+                return False
+        else:
+            stack.append(char)
+    return not stack
+""",
+        'time_complexity': 'O(n)',
+        'test_case_list': [
+            { 'input': '"()"', 'expected_output': True },
+            { 'input': '"()[]{}"', 'expected_output': True },
+            { 'input': '"(]"', 'expected_output': False },
+            { 'input': '"([{}])"', 'expected_output': True },
+            { 'input': '"[{]}"', 'expected_output': False }
+        ]
+    },
+
+    {
+        'name': 'Find First and Last Position of Element in Sorted Array',
+        'question': 'Write a function to find the starting and ending position of a given target in a sorted array. If the target is not found, return [-1, -1].',
+        'input_output_list': [
+            { 'input': '[5,7,7,8,8,10], 8', 'output': '[3, 4]', 'explanation': 'The target 8 appears in positions 3 and 4.' },
+            { 'input': '[5,7,7,8,8,10], 6', 'output': '[-1, -1]', 'explanation': 'The target 6 does not appear in the array.' },
+            { 'input': '[], 0', 'output': '[-1, -1]', 'explanation': 'The array is empty, so the target cannot be found.' }
+        ],
+        'function_name': "search_range",
+        'starter_code': """def search_range(nums: list, target: int) -> list:
+    raise NotImplementedError""",
+        'solution': """
+def search_range(nums: list, target: int) -> list:
+    def find_bound(is_first):
+        left, right = 0, len(nums) - 1
+        while left <= right:
+            mid = (left + right) // 2
+            if nums[mid] > target or (is_first and nums[mid] == target):
+                right = mid - 1
+            else:
+                left = mid + 1
+        return left
+
+    start = find_bound(True)
+    end = find_bound(False) - 1
+    if start <= end < len(nums) and nums[start] == target and nums[end] == target:
+        return [start, end]
+    return [-1, -1]
+""",
+        'time_complexity': 'O(log n)',
+        'test_case_list': [
+            { 'input': '[5,7,7,8,8,10], 8', 'expected_output': [3, 4] },
+            { 'input': '[5,7,7,8,8,10], 6', 'expected_output': [-1, -1] },
+            { 'input': '[], 0', 'expected_output': [-1, -1] },
+            { 'input': '[2,2,2,2], 2', 'expected_output': [0, 3] },
+            { 'input': '[1,3,5,7], 3', 'expected_output': [1, 1] }
+        ]
+    },
+
+    {
+        'name': 'Merge Intervals',
+        'question': 'Write a function to merge all overlapping intervals in a list and return the merged intervals.',
+        'input_output_list': [
+            { 'input': '[[1,3],[2,6],[8,10],[15,18]]', 'output': '[[1,6],[8,10],[15,18]]', 'explanation': 'Intervals [1,3] and [2,6] overlap and are merged into [1,6].' },
+            { 'input': '[[1,4],[4,5]]', 'output': '[[1,5]]', 'explanation': 'Intervals [1,4] and [4,5] overlap and are merged into [1,5].' },
+            { 'input': '[[1,3],[4,5]]', 'output': '[[1,3],[4,5]]', 'explanation': 'No intervals overlap, so no merging is required.' }
+        ],
+        'function_name': "merge_intervals",
+        'starter_code': """def merge_intervals(intervals: list) -> list:
+    raise NotImplementedError""",
+        'solution': """
+def merge_intervals(intervals: list) -> list:
+    if not intervals:
+        return []
+    intervals.sort(key=lambda x: x[0])
+    merged = [intervals[0]]
+    for current in intervals[1:]:
+        last = merged[-1]
+        if current[0] <= last[1]:
+            last[1] = max(last[1], current[1])
+        else:
+            merged.append(current)
+    return merged
+""",
+        'time_complexity': 'O(n log n)',
+        'test_case_list': [
+            { 'input': '[[1,3],[2,6],[8,10],[15,18]]', 'expected_output': [[1,6],[8,10],[15,18]] },
+            { 'input': '[[1,4],[4,5]]', 'expected_output': [[1,5]] },
+            { 'input': '[[1,3],[4,5]]', 'expected_output': [[1,3],[4,5]] },
+            { 'input': '[[1,4]]', 'expected_output': [[1,4]] },
+            { 'input': '[[6,8],[1,9],[2,4],[4,7]]', 'expected_output': [[1,9]] }
+        ]
+    }
 
 ]
 

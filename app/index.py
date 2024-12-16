@@ -13,8 +13,8 @@ from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconn
 
 from app.database import SessionLocal
 from app.llm import prompts, openai_wrapper
-from app.models import InitialPlaygroundQuestion, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation
-from app.pydantic_schemas import RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema
+from app.models import InitialPlaygroundQuestion, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail
+from app.pydantic_schemas import RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema
 from app.config import settings
 from app.utils import create_anon_user_object, get_anon_custom_user_object, _get_random_initial_pg_question
 
@@ -59,6 +59,34 @@ app.add_middleware(
 
 
 ## Views
+
+@app.post("/save_landing_page_email")
+def save_landing_page_email(
+    data: SaveLandingPageEmailSchema,
+    db: Session = Depends(get_db)
+):
+    user_email = data.email.strip()
+    lp_email_object = LandingPageEmail(
+        email = user_email
+    )
+    db.add(lp_email_object)
+    db.commit()
+    db.refresh(lp_email_object)
+
+    return {'success': True}
+
+
+@app.get("/get_number_of_lp_email_submissions")
+def get_number_of_registered_emails(
+    db: Session = Depends(get_db)
+):
+    number_of_email_submissions = db.query(LandingPageEmail).count()
+    print(f"Number of submissions:", number_of_email_submissions)
+    return {
+        'success': True,
+        'number_of_email_submissions': number_of_email_submissions
+    }
+
 
 @app.post("/validate-anon-user")
 def validate_anon_user(
@@ -346,7 +374,6 @@ def save_user_code(
 
 
 
-
 def _prepate_tutor_prompt(user_current_problem_name, user_current_problem_text, user_question, student_code, student_chat_history):
     prompt = """##Task:
 You will be assisting a student, who will be asking questions on a specific Python Programming Problem.
@@ -497,3 +524,5 @@ async def websocket_handle_chat_response(
     except WebSocketDisconnect:
         print("WebSocket connection closed")
         await websocket.close()
+
+

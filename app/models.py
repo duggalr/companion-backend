@@ -5,6 +5,20 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.database import Base
 
+
+## Landing Page ##
+
+class LandingPageEmail(Base):
+    """
+    Table storing all the emails from the landing page
+    """
+    __tablename__ = "landing_page_email"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String, nullable=False)
+    created_date = Column(DateTime, server_default=func.now(), nullable=False)
+
+
 ## User Models ##
 
 class AnonUser(Base):
