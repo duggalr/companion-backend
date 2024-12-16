@@ -6,6 +6,21 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 
+## Landing Page ##
+
+class LandingPageEmail(Base):
+    """
+    Table storing all the emails from the landing page
+    """
+    __tablename__ = "landing_page_email"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String, nullable=False)
+    created_date = Column(DateTime, server_default=func.now(), nullable=False)
+
+
+## User Models ##
+
 class AnonUser(Base):
     """
     Anon User Model
@@ -15,7 +30,6 @@ class AnonUser(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_unique_id = Column(String, unique=True, index=True, nullable=False)
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
-
 
 class UserOAuth(Base):
     """
@@ -32,7 +46,6 @@ class UserOAuth(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     email_verified = Column(Boolean, index=True, nullable=False)
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
-
 
 class CustomUser(Base):
     """
@@ -51,54 +64,37 @@ class CustomUser(Base):
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
 
 
-class GeneralTutorParentObject(Base):
-    """
-    General Tutor Parent Object
-    """
-    __tablename__ = 'general_tutor_parent_object'
+## Question Models ##
+
+class QuestionBaseModel(Base):  # Base Model
+    __abstract__ = True
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    unique_name = Column(String, nullable=True)  # in anon case, this will be empty
-
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
-
-    custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
-    custom_user = relationship("CustomUser")
-
-
-class GeneralTutorChatConversation(Base):
-    """
-    General Tutor Chat Conversation
-    """
-    __tablename__ = 'general_tutor_chat_conversation'
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_message = Column(String, nullable=False)
-    prompt = Column(String, nullable=False)
-    model_response = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    text = Column(String, nullable=False)
+    example_io_list = Column(String, nullable=False)
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
-
-    general_tutor_parent_object_id = Column(UUID, ForeignKey("general_tutor_parent_object.id"), nullable=True)
-    general_tutor_parent_object = relationship("GeneralTutorParentObject")
-
-
-
-
-class PlaygroundObjectBase(Base):
-    """
-    Base model for Playground Code Data
-    """
-    __tablename__ = "playground_object"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    unique_name = Column(String, nullable=True)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+class InitialPlaygroundQuestion(QuestionBaseModel):
+    """
+    Constant Table with Initial Questions
+    """
+    __tablename__ = 'initial_playground_question'
+
+    starter_code = Column(String, nullable=False)
+    solution_code = Column(String, nullable=False)
+    solution_time_complexity = Column(String, nullable=False)
+    test_case_list = Column(String, nullable=True)
+
+class UserCreatedPlaygroundQuestion(QuestionBaseModel):
+    __tablename__ = 'user_created_playground_question'
 
     custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
     custom_user = relationship("CustomUser")
 
+
+## Code Models ##
 
 class PlaygroundCode(Base):
     """
@@ -109,37 +105,34 @@ class PlaygroundCode(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     programming_language = Column(String, nullable=False, default='python')
     code = Column(String, nullable=False)
-    created_date = Column(DateTime, server_default=func.now(), nullable=False)
-    playground_parent_object_id = Column(UUID, ForeignKey("playground_object.id"), nullable=True)
-    playground_parent_object = relationship("PlaygroundObjectBase")
+    question_object_id = Column(UUID, ForeignKey('user_created_playground_question.id'), nullable=False)
+    parent_question_object = relationship("UserCreatedPlaygroundQuestion")
+
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
 
-class PlaygroundCodeRun(Base):
+## Chat Models ##
+
+class TutorConversationBaseModel(Base):
     """
-    Playground Code Run Model
-        -- tracks runs from the playground code editor
+    Abstract Base Model for covering all Tutor Conversations
     """
-    __tablename__ = "playground_code_run"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    created_date = Column(DateTime, server_default=func.now(), nullable=False)
-    playground_parent_object_id = Column(UUID, ForeignKey("playground_object.id"), nullable=True)
-    playground_parent_object = relationship("PlaygroundObjectBase")
-
-
-class PlaygroundChatConversation(Base):
-    """
-    Playground Chat Conversation
-    """
-    __tablename__ = 'playground_chat_conversation'
+    __abstract__ = True
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     question = Column(String, nullable=False)
     prompt = Column(String, nullable=False)
     response = Column(String, nullable=False)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+class PlaygroundChatConversation(TutorConversationBaseModel):
+    """
+    Playground Chat Conversation
+    """
+    __tablename__ = 'playground_chat_conversation'
+
     code = Column(String, nullable=True)
-
-    playground_parent_object_id = Column(UUID, ForeignKey("playground_object.id"), nullable=True)
-    playground_parent_object = relationship("PlaygroundObjectBase")
-
-    created_date = Column(DateTime, server_default=func.now(), nullable=False)
+    question_object_id = Column(UUID, ForeignKey('user_created_playground_question.id'), nullable=False)
+    parent_question_object = relationship("UserCreatedPlaygroundQuestion")
