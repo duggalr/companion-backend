@@ -6,3 +6,8 @@ from pydantic import BaseModel
 
 class RequiredAnonUserSchema(BaseModel):
     user_id: str
+
+class UpdateQuestionSchema(RequiredAnonUserSchema):
+    question_id: str
+    question_name: str
+    question_text: str

@@ -6,6 +6,8 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 
+## User Models ##
+
 class AnonUser(Base):
     """
     Anon User Model
@@ -15,7 +17,6 @@ class AnonUser(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_unique_id = Column(String, unique=True, index=True, nullable=False)
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
-
 
 class UserOAuth(Base):
     """
@@ -33,7 +34,6 @@ class UserOAuth(Base):
     email_verified = Column(Boolean, index=True, nullable=False)
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
 
-
 class CustomUser(Base):
     """
     Custom User Model
@@ -49,3 +49,33 @@ class CustomUser(Base):
     oauth_user = relationship("UserOAuth")
 
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
+
+
+## Question Models ##
+
+class QuestionBaseModel(Base):  # Base Model
+    __abstract__ = True
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    text = Column(String, nullable=False)
+    example_io_list = Column(String, nullable=False)
+    created_date = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+class InitialPlaygroundQuestion(QuestionBaseModel):
+    """
+    Constant Table with Initial Questions
+    """
+    __tablename__ = 'initial_playground_question'
+
+    starter_code = Column(String, nullable=False)
+    solution_code = Column(String, nullable=False)
+    solution_time_complexity = Column(String, nullable=False)
+    test_case_list = Column(String, nullable=True)
+
+class UserCreatedPlaygroundQuestion(QuestionBaseModel):
+    __tablename__ = 'user_created_playground_question'
+
+    custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
+    custom_user = relationship("CustomUser")
