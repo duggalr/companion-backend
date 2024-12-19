@@ -1,10 +1,9 @@
 # Database
-from sqlalchemy import select, desc
-from sqlalchemy.orm import Session
-
+import os
 import sys
-sys.path.append('/Users/rahulduggal/Documents/new_projects/new_companion/companion_backend')
-from app import models, utils
+parent_dir_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+sys.path.append(parent_dir_path)
+from app import models
 from app.database import SessionLocal
 
 initial_question_list = [
