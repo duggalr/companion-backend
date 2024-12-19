@@ -16,7 +16,7 @@ class ValidateAuthZeroUserSchema(BaseModel):
     profile_picture_url: str
     sub_id: str
 
-class UpdateQuestionSchema(RequiredAnonUserSchema):
+class UpdateQuestionSchema(NotRequiredAnonUserSchema):
     question_id: str
     question_name: str
     question_text: str
@@ -25,7 +25,7 @@ class CodeExecutionRequestSchema(BaseModel):
     language: str
     code: str
 
-class SaveCodeSchema(RequiredAnonUserSchema):
+class SaveCodeSchema(NotRequiredAnonUserSchema):
     question_id: str
     code: str
 

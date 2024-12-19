@@ -91,6 +91,7 @@ def get_user_object(db: Session, user_id: Optional[str], token: Optional[str]):
         user_id = user_id
     )
 
+
 def _get_random_initial_pg_question(db: Session) -> Optional[InitialPlaygroundQuestion]:
     """
     Fetch a random initial playground question from the database.
