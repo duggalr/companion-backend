@@ -72,6 +72,9 @@ def _get_authenticated_custom_object(token: str, db: Session) -> Tuple[Optional[
 
 
 def get_user_object(db: Session, user_id: Optional[str], token: Optional[str]):
+
+    print('user-id-new:', user_id, token)
+
     if token:
         _, user_object = _get_authenticated_custom_object(token=token, db=db)
         if not user_object:
@@ -87,8 +90,11 @@ def get_user_object(db: Session, user_id: Optional[str], token: Optional[str]):
             detail="User ID not found."
         )
 
+    print('user_id:', user_id)
+
     return get_anon_custom_user_object(
-        user_id = user_id
+        anon_user_id = user_id,
+        db = db
     )
 
 
@@ -107,3 +113,4 @@ async def get_optional_token(request: Request) -> Optional[str]:
         if scheme.lower() == "bearer":
             return token
     return None
+

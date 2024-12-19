@@ -7,6 +7,18 @@ class NotRequiredAnonUserSchema(BaseModel):
 class RequiredAnonUserSchema(BaseModel):
     user_id: str
 
+class NotRequiredQuestionIdSchema(BaseModel):
+    question_id: Optional[str] = None
+
+class UpdateQuestionSchema(NotRequiredAnonUserSchema, NotRequiredQuestionIdSchema):
+    question_name: str
+    question_text: str
+    example_input_output_list: Optional[list]
+
+# class UpdateQuestionSchema(NotRequiredAnonUserSchema):
+#     question_id: Optional[str] = None
+
+
 class ValidateAuthZeroUserSchema(BaseModel):
     email: str
     email_verified: bool
@@ -16,17 +28,11 @@ class ValidateAuthZeroUserSchema(BaseModel):
     profile_picture_url: str
     sub_id: str
 
-class UpdateQuestionSchema(NotRequiredAnonUserSchema):
-    question_id: str
-    question_name: str
-    question_text: str
-
 class CodeExecutionRequestSchema(BaseModel):
     language: str
     code: str
 
-class SaveCodeSchema(NotRequiredAnonUserSchema):
-    question_id: str
+class SaveCodeSchema(UpdateQuestionSchema):
     code: str
 
 class SaveLandingPageEmailSchema(BaseModel):
