@@ -199,6 +199,8 @@ def get_random_initial_playground_question(
         db = db
     )
 
+# question_input_output_example_list_json_representation = json.dumps(ai_response_json_dict['input_output_example_list'])
+
     to_return = {
         # 'question_id': random_initial_question_object.id,
         'name': random_initial_question_object.name,
@@ -262,62 +264,87 @@ def update_user_question(
         token = token
     )
 
-    # TODO: will need to abstract the question creation or fetch functionality
-
-    current_question_id = data.question_id
-    existing_pg_question_object = None
-    if current_question_id is not None:
-        existing_pg_question_object = db.query(UserCreatedPlaygroundQuestion).filter(
-            UserCreatedPlaygroundQuestion.id == current_question_id,
-            UserCreatedPlaygroundQuestion.custom_user_id == authenticated_user_object.id 
-        ).first()
-
-        if not existing_pg_question_object:
-            raise HTTPException(status_code=404, detail="Question object not found or unauthorized.")
-
-    # Generate AI Response
-    try:
-        prompt = f"{prompts.GENERATE_INPUT_OUTPUT_EXAMPLE_PROMPT}Question: {data.question_text.strip()}\n\n## Output:\n"
-        ai_response = op_ai_wrapper.generate_sync_response(
-            prompt = prompt
-        )
-        ai_response_json_dict = json.loads(ai_response.choices[0].message.content)
-    except (KeyError, JSONDecodeError):
-        raise HTTPException(status_code=500, detail="Invalid AI response format.")
-
-    # Convert to JSON
-    question_input_output_example_list_string = str(ai_response_json_dict['input_output_example_list'])
-    question_input_output_example_list_json_representation = json.dumps(ai_response_json_dict['input_output_example_list'])
-
-    print("Question output:", question_input_output_example_list_json_representation)
-
-    if existing_pg_question_object is not None:
-        existing_pg_question_object.name = data.question_name
-        existing_pg_question_object.text = data.question_text
-        existing_pg_question_object.example_io_list = question_input_output_example_list_string
-        db.commit()
-        db.refresh(existing_pg_question_object)
-    else:
-        existing_pg_question_object = UserCreatedPlaygroundQuestion(
-            name = data.question_name,
-            text = data.question_text,
-            example_io_list = question_input_output_example_list_string,
-            custom_user_id = authenticated_user_object.id
-        )
-        db.add(existing_pg_question_object)
-        db.commit()
-        db.refresh(existing_pg_question_object)
+    pg_question_object = _get_or_create_user_question_object(
+        db = db,
+        data = {
+            'user_id': None,
+            'question_id': data.question_id,
+            'question_name': data.question_name,
+            'question_text': data.question_text,
+            'example_input_output_list': data.example_input_output_list,
+            'code': None
+        },
+        custom_user_object = authenticated_user_object
+    )
 
     final_rv = {
-        'unique_question_id': existing_pg_question_object.id,
+        'unique_question_id': pg_question_object.id,
         'question_name': data.question_name,
         'question_text': data.question_text,
-        'example_io_list': question_input_output_example_list_json_representation
+        'example_io_list': ast.literal_eval(pg_question_object.example_io_list)
     }
     return {
         'success': True,
         'data': final_rv
     }
+
+
+    # # TODO: will need to abstract the question creation or fetch functionality
+
+    # current_question_id = data.question_id
+    # existing_pg_question_object = None
+    # if current_question_id is not None:
+    #     existing_pg_question_object = db.query(UserCreatedPlaygroundQuestion).filter(
+    #         UserCreatedPlaygroundQuestion.id == current_question_id,
+    #         UserCreatedPlaygroundQuestion.custom_user_id == authenticated_user_object.id 
+    #     ).first()
+
+    #     if not existing_pg_question_object:
+    #         raise HTTPException(status_code=404, detail="Question object not found or unauthorized.")
+
+    # # Generate AI Response
+    # try:
+    #     prompt = f"{prompts.GENERATE_INPUT_OUTPUT_EXAMPLE_PROMPT}Question: {data.question_text.strip()}\n\n## Output:\n"
+    #     ai_response = op_ai_wrapper.generate_sync_response(
+    #         prompt = prompt
+    #     )
+    #     ai_response_json_dict = json.loads(ai_response.choices[0].message.content)
+    # except (KeyError, JSONDecodeError):
+    #     raise HTTPException(status_code=500, detail="Invalid AI response format.")
+
+    # # Convert to JSON
+    # question_input_output_example_list_string = str(ai_response_json_dict['input_output_example_list'])
+    # question_input_output_example_list_json_representation = json.dumps(ai_response_json_dict['input_output_example_list'])
+
+    # print("Question output:", question_input_output_example_list_json_representation)
+
+    # if existing_pg_question_object is not None:
+    #     existing_pg_question_object.name = data.question_name
+    #     existing_pg_question_object.text = data.question_text
+    #     existing_pg_question_object.example_io_list = question_input_output_example_list_string
+    #     db.commit()
+    #     db.refresh(existing_pg_question_object)
+    # else:
+    #     existing_pg_question_object = UserCreatedPlaygroundQuestion(
+    #         name = data.question_name,
+    #         text = data.question_text,
+    #         example_io_list = question_input_output_example_list_string,
+    #         custom_user_id = authenticated_user_object.id
+    #     )
+    #     db.add(existing_pg_question_object)
+    #     db.commit()
+    #     db.refresh(existing_pg_question_object)
+
+    # final_rv = {
+    #     'unique_question_id': existing_pg_question_object.id,
+    #     'question_name': data.question_name,
+    #     'question_text': data.question_text,
+    #     'example_io_list': question_input_output_example_list_json_representation
+    # }
+    # return {
+    #     'success': True,
+    #     'data': final_rv
+    # }
 
     # TODO:
     # existing_pg_question_object = db.query(UserCreatedPlaygroundQuestion).filter(
@@ -624,7 +651,6 @@ def _get_or_create_user_question_object(db: Session, data: SaveCodeSchema, custo
 
         if not existing_pg_question_object:
             raise HTTPException(status_code=404, detail="Question object not found or unauthorized.")
-
     else:
 
         print(type(data.example_input_output_list), data.example_input_output_list)
