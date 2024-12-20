@@ -641,6 +641,35 @@ def _get_or_create_user_question_object(db: Session, data: SaveCodeSchema, custo
     return existing_pg_question_object
 
 
+@app.post("/save_user_question")
+def save_user_question(
+    data: UpdateQuestionSchema,
+    db: Session = Depends(get_db),
+    token: Optional[str] = Depends(get_optional_token),
+):
+    custom_user_object = get_user_object(
+        db,
+        data.user_id,
+        token
+    )
+
+    pg_question_object = UserCreatedPlaygroundQuestion(
+        name = data.question_name,
+        text = data.question_text,
+        example_io_list = str(data.example_input_output_list),
+        custom_user_id = custom_user_object.id
+    )
+    db.add(pg_question_object)
+    db.commit()
+    db.refresh(pg_question_object)
+
+    return {
+        'success': True,
+        'data': {'question_id': pg_question_object.id}
+    }
+
+
+
 @app.post("/save_user_code")
 def save_user_code(
     data: SaveCodeSchema,
@@ -688,6 +717,7 @@ def save_user_code(
 
     return {
         'success': True,
+        'data': {'question_object_id': question_object.id}
     }
 
 
@@ -710,6 +740,8 @@ async def websocket_handle_chat_response(
             user_current_problem_name, user_current_problem_text = data['current_problem_name'], data['current_problem_question']
 
             parent_question_object_id = data['parent_question_object_id']
+            print('question-id:', parent_question_object_id)
+
             parent_question_object = db.query(UserCreatedPlaygroundQuestion).filter(
                 UserCreatedPlaygroundQuestion.id == parent_question_object_id
             ).first()
@@ -731,7 +763,6 @@ async def websocket_handle_chat_response(
             async for text in op_ai_wrapper.generate_async_response(
                 prompt = model_prompt
             ):
-
                 if text is None:
                     await websocket.send_text('MODEL_GEN_COMPLETE')
 

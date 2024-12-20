@@ -13,11 +13,10 @@ class NotRequiredQuestionIdSchema(BaseModel):
 class UpdateQuestionSchema(NotRequiredAnonUserSchema, NotRequiredQuestionIdSchema):
     question_name: str
     question_text: str
-    example_input_output_list: Optional[list]
+    example_input_output_list: Optional[list] = None
 
 # class UpdateQuestionSchema(NotRequiredAnonUserSchema):
 #     question_id: Optional[str] = None
-
 
 class ValidateAuthZeroUserSchema(BaseModel):
     email: str
