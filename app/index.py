@@ -8,20 +8,24 @@ from celery import Celery
 from celery.result import AsyncResult
 from sqlalchemy.orm import Session
 
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.database import SessionLocal
 from app.llm import prompts, openai_wrapper
-from app.models import InitialPlaygroundQuestion, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail
-from app.pydantic_schemas import RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema
+from app.models import UserOAuth, CustomUser, InitialPlaygroundQuestion, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail
+from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema
 from app.config import settings
-from app.utils import create_anon_user_object, get_anon_custom_user_object, _get_random_initial_pg_question
+from app.utils import create_anon_user_object, get_anon_custom_user_object, _get_random_initial_pg_question, get_user_object, get_optional_token
+from app.llm.prompt_utils import _prepate_tutor_prompt
+from app.scripts.verify_auth_zero_jwt import verify_jwt
 
 
 app = FastAPI(
     docs_url="/api/py/docs",
-    openapi_url="/api/py/openapi.json"
+    openapi_url="/api/py/openapi.json",
+    debug=True
 )
 
 # Dependency for database
@@ -57,6 +61,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Security dependency for Bearer token
+bearer_scheme = HTTPBearer()
+
 
 ## Views
 
@@ -76,31 +83,14 @@ def save_landing_page_email(
     return {'success': True}
 
 
-@app.get("/get_number_of_lp_email_submissions")
+@app.post("/get_number_of_lp_email_submissions")
 def get_number_of_registered_emails(
     db: Session = Depends(get_db)
 ):
     number_of_email_submissions = db.query(LandingPageEmail).count()
-    print(f"Number of submissions:", number_of_email_submissions)
     return {
         'success': True,
         'number_of_email_submissions': number_of_email_submissions
-    }
-
-
-@app.post("/validate-anon-user")
-def validate_anon_user(
-    data: RequiredAnonUserSchema,
-    db: Session = Depends(get_db)
-):
-    anon_user_id = data.user_id
-    custom_user_object_id = create_anon_user_object(
-        anon_user_id = anon_user_id,
-        db = db
-    )
-    return {
-        'success': True,
-        'custom_user_object_dict': custom_user_object_id
     }
 
 
@@ -120,16 +110,80 @@ def create_anon_user(
     }
 
 
-@app.post("/get_random_initial_pg_question")
-def get_random_initial_playground_question(
+@app.post("/validate-anon-user")
+def validate_anon_user(
     data: RequiredAnonUserSchema,
     db: Session = Depends(get_db)
 ):
-    # Get Anon User Object
-    user_id = data.user_id
-    current_custom_user_object = get_anon_custom_user_object(
-        anon_user_id = user_id,
+    anon_user_id = data.user_id
+    custom_user_object_id = create_anon_user_object(
+        anon_user_id = anon_user_id,
         db = db
+    )
+    return {
+        'success': True,
+        'custom_user_object_dict': custom_user_object_id
+    }
+
+
+@app.post("/validate-authenticated-user")
+def validate_authenticated_user(
+    data: ValidateAuthZeroUserSchema,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db)
+):
+
+    token = credentials.credentials
+    token_info_dict = verify_jwt(
+        token = token
+    )
+    if 'error' in token_info_dict:
+        raise HTTPException(status_code=500, detail=token_info_dict['error'])
+
+    auth_zero_unique_sub_id = token_info_dict['sub']    
+    auth_user_object = db.query(UserOAuth).filter(
+        UserOAuth.auth_zero_unique_sub_id == auth_zero_unique_sub_id
+    ).first()
+
+    if auth_user_object is None:
+        auth_user_object = UserOAuth(
+            auth_zero_unique_sub_id = auth_zero_unique_sub_id,
+            given_name = data.given_name,
+            family_name = data.family_name,
+            full_name = data.full_name,
+            profile_picture_url = data.profile_picture_url,
+            email = data.email,
+            email_verified = data.email_verified,
+        )
+        db.add(auth_user_object)
+        db.commit()
+        db.refresh(auth_user_object)
+
+    custom_user_object = db.query(CustomUser).filter(
+        CustomUser.oauth_user_id == auth_zero_unique_sub_id,
+    ).first()
+
+    if custom_user_object is None:
+        custom_user_object = CustomUser(
+            oauth_user_id = auth_user_object.auth_zero_unique_sub_id,
+        )
+        db.add(custom_user_object)
+        db.commit()
+        db.refresh(custom_user_object)
+
+    return {'success': True}
+
+
+@app.post("/get_random_initial_pg_question")
+def get_random_initial_playground_question(
+    data: NotRequiredAnonUserSchema,
+    db: Session = Depends(get_db),
+    token: Optional[str] = Depends(get_optional_token)
+):
+    current_custom_user_object = get_user_object(
+        db = db,
+        user_id = data.user_id,
+        token = token
     )
     if current_custom_user_object is None:
         raise HTTPException(status_code=400, detail="User object not found.")
@@ -139,25 +193,13 @@ def get_random_initial_playground_question(
         db = db
     )
 
-    # Create New Question Object
-    new_pg_question_object = UserCreatedPlaygroundQuestion(
-        name = random_initial_question_object.name,
-        text = random_initial_question_object.text,
-        example_io_list = random_initial_question_object.example_io_list,
-        custom_user_id = current_custom_user_object.id
-    )
-    db.add(new_pg_question_object)
-    db.commit()
-    db.refresh(new_pg_question_object)
-
     to_return = {
-        'question_id': new_pg_question_object.id,
-        'name': new_pg_question_object.name,
-        'text': new_pg_question_object.text,
+        # 'question_id': random_initial_question_object.id,
+        'name': random_initial_question_object.name,
+        'text': random_initial_question_object.text,
         'starter_code': random_initial_question_object.starter_code,
         'example_io_list': ast.literal_eval(random_initial_question_object.example_io_list)
     }
-    # return response_utils.success_response(data = to_return)
     return {
         'success': True,
         'data': to_return
@@ -168,49 +210,52 @@ def get_random_initial_playground_question(
 def update_user_question(
     data: UpdateQuestionSchema,
     db: Session = Depends(get_db),
-    # openai_wrapper: get_openai_wrapper()
+    token: Optional[str] = Depends(get_optional_token),
     op_ai_wrapper: openai_wrapper.OpenAIWrapper = Depends(get_openai_wrapper)
 ):
-    # Get Anon User Object
-    user_id = data.user_id
-    current_custom_user_object = get_anon_custom_user_object(
-        anon_user_id = user_id,
-        db = db
+    anon_user_id = data.user_id
+    authenticated_user_object = get_user_object(
+        db = db,
+        user_id = anon_user_id,
+        token = token
     )
-    if current_custom_user_object is None:
-        raise HTTPException(status_code=400, detail="User object not found.")
 
-    existing_pg_question_object = db.query(UserCreatedPlaygroundQuestion).filter(
-        UserCreatedPlaygroundQuestion.id == data.question_id,
-        UserCreatedPlaygroundQuestion.custom_user_id == current_custom_user_object.id 
-    ).first()
+    pg_question_object = _get_or_create_user_question_object(
+        db = db,
+        data = SaveCodeSchema(**{
+            'user_id': None,
+            'question_id': data.question_id,
+            'question_name': data.question_name,
+            'question_text': data.question_text,
+            'example_input_output_list': data.example_input_output_list,
+            'code': ''
+        }),
+        custom_user_object = authenticated_user_object
+    )
 
-    if not existing_pg_question_object:
-        raise HTTPException(status_code=404, detail="Question object not found or unauthorized.")
-
-    # Generate AI Response
+   # Generate AI Response
     try:
         prompt = f"{prompts.GENERATE_INPUT_OUTPUT_EXAMPLE_PROMPT}Question: {data.question_text.strip()}\n\n## Output:\n"
         ai_response = op_ai_wrapper.generate_sync_response(
             prompt = prompt
         )
         ai_response_json_dict = json.loads(ai_response.choices[0].message.content)
-        example_io_list = ai_response_json_dict["input_output_example_list"]
     except (KeyError, JSONDecodeError):
         raise HTTPException(status_code=500, detail="Invalid AI response format.")
 
-
+    # Convert to JSON
     question_input_output_example_list_string = str(ai_response_json_dict['input_output_example_list'])
     question_input_output_example_list_json_representation = json.dumps(ai_response_json_dict['input_output_example_list'])
 
-    existing_pg_question_object.name = data.question_name
-    existing_pg_question_object.text = data.question_text
-    existing_pg_question_object.example_io_list = question_input_output_example_list_string
+    # Update Question Object
+    pg_question_object.name = data.question_name
+    pg_question_object.text = data.question_text
+    pg_question_object.example_io_list = question_input_output_example_list_string
     db.commit()
-    db.refresh(existing_pg_question_object)
-    
+    db.refresh(pg_question_object)
+
     final_rv = {
-        'unique_question_id': existing_pg_question_object.id,
+        'unique_question_id': pg_question_object.id,
         'question_name': data.question_name,
         'question_text': data.question_text,
         'example_io_list': question_input_output_example_list_json_representation
@@ -222,7 +267,6 @@ def update_user_question(
 
 
 ## Celery Tasks ##
-
 @celery_app.task
 def execute_code_in_container(language: str, code: str):
     """
@@ -349,20 +393,91 @@ def get_result(
     }
 
 
+def _get_or_create_user_question_object(db: Session, data: SaveCodeSchema, custom_user_object: CustomUser):
+    existing_pg_question_object = None
+    if data.question_id is not None:
+        existing_pg_question_object = db.query(UserCreatedPlaygroundQuestion).filter(
+            UserCreatedPlaygroundQuestion.id == data.question_id,
+            UserCreatedPlaygroundQuestion.custom_user_id == custom_user_object.id 
+        ).first()
+        if not existing_pg_question_object:
+            raise HTTPException(status_code=404, detail="Question object not found or unauthorized.")
+    else:
+        existing_pg_question_object = UserCreatedPlaygroundQuestion(
+            name = data.question_name,
+            text = data.question_text,
+            example_io_list = str(data.example_input_output_list),
+            custom_user_id = custom_user_object.id
+        )
+        db.add(existing_pg_question_object)
+        db.commit()
+        db.refresh(existing_pg_question_object)
+    
+    return existing_pg_question_object
+
+
+@app.post("/save_user_question")
+def save_user_question(
+    data: UpdateQuestionSchema,
+    db: Session = Depends(get_db),
+    token: Optional[str] = Depends(get_optional_token),
+):
+    custom_user_object = get_user_object(
+        db,
+        data.user_id,
+        token
+    )
+
+    pg_question_object = UserCreatedPlaygroundQuestion(
+        name = data.question_name,
+        text = data.question_text,
+        example_io_list = str(data.example_input_output_list),
+        custom_user_id = custom_user_object.id
+    )
+    db.add(pg_question_object)
+    db.commit()
+    db.refresh(pg_question_object)
+
+    return {
+        'success': True,
+        'data': {'question_id': pg_question_object.id}
+    }
+
+
+
 @app.post("/save_user_code")
 def save_user_code(
     data: SaveCodeSchema,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    token: Optional[str] = Depends(get_optional_token),
 ):
-    user_id = data.user_id
-    question_id = data.question_id
-    current_code = data.code
-    print('full data', data)
+    # TODO: need to add a verification check here to see if the user who is requesting to save the code on the question can actually do so..
 
+    custom_user_object = get_user_object(
+        db,
+        data.user_id,
+        token
+    )
+    question_object = _get_or_create_user_question_object(
+        db = db,
+        data = data,
+        custom_user_object = custom_user_object
+    )
+    # # question_object = db.query(UserCreatedPlaygroundQuestion).filter(
+    # #     UserCreatedPlaygroundQuestion.id == data.question_id,
+    # #     UserCreatedPlaygroundQuestion.custom_user_id == custom_user_object.id   
+    # # ).first()
+    # # if question_object is None:
+    # #     raise HTTPException(status_code=404, detail="Question not found.")
+
+    # user_id = data.user_id
+    # question_id = data.question_id
+
+    current_code = data.code
     pg_code_object = PlaygroundCode(
         programming_language = 'python',
         code = current_code,
-        question_object_id = question_id
+        question_object_id = question_object.id
     )
     db.add(pg_code_object)
     db.commit()
@@ -370,94 +485,8 @@ def save_user_code(
 
     return {
         'success': True,
+        'data': {'question_id': question_object.id}
     }
-
-
-
-def _prepate_tutor_prompt(user_current_problem_name, user_current_problem_text, user_question, student_code, student_chat_history):
-    prompt = """##Task:
-You will be assisting a student, who will be asking questions on a specific Python Programming Problem.
-Your will be their upbeat, encouraging tutor.
-- Even though you are encouraging and upbeat, maintain a natural conversation flow. Don't overcompliment in each message. Keep it natural like a good tutor.
-Your primary goal is to guide and mentor them, helping them solve their problem effectively, but also to become a great individual thinker. Please adhere to these guidelines. Further instructions are provided below. Also, an example is provided below.
-- In addition, if the student has correctly solved the problem, end the conversation.
-- Do not try to make the conversation going along, especially when the student has already successfully solved the problem.
-- Instead, ask the student if they have any other questions or other concepts/problems they would like to explore.
-- Please don't guide the student to using any libraries that need pip install as the remote code execution environment doesn't support those libraries.
-    - Native python libraries (ie. like math) are completely fine and are supported.
-
-##Instructions:
-- Ask or Gauge their pre-requisite knowledge:
-    - Try to understand or gauge the student's understanding of the concept or problem they have asked, before jumping in and providing them with further information or hints.
-    - By understanding the student's current understanding of the concept or problem, it will make it easier for you to determine which level of abstraction you should start with, when generating your answer.
-- No Over Information:
-    - Do not provide over information, for a student's question.
-    - Instead, focus on trying to create a conversation with the student.
-    - Do not provide the student with the answer in any way. Instead, focus on providing valuable but concise explanations, hints, and follow-up questions, forcing the student to think of the answer on their own.
-- No Direct Answers:
-    - Do not provide any direct code solutions to the students questions or challenges.
-    - Instead, focus on providing high-quality hints, with very concrete examples or detailed explanations.
-    - Your goal as a tutor is to provide concrete and detailed guidance to help the student solve the problem on their own.
-    - Thus, for questions students ask, don't simply provide the answer. Instead, provide a hint and try to ask the student a follow-up question/suggestion. Under no circumstance should you provide the student a direct answer to their problem/question.
-- Encourage Problem Solving:
-    - Always encourage the students to think through the problems themselves. Ask leading questions that guide them toward a solution, and provide feedback on their thought processes.
-    - Make sure you consider both correctness and efficiency. You want to help the student write optimal code, that is also correct for their given problem.
-- Only ask one question or offer only one suggestion at a time for the student:
-    - Wait for the students response before asking a new question or offering a new suggestion.
-- If the student has successfully answered the question in an optimal manner, don't continue "nit-picking" or continuning to suggest code improvements.
-    - Instead, tell the student they have successfully answered the question and either encourage them to ask another one or suggest code improvements or new related concepts the student can learn or might be interested in.
-
-##Example:
-
-#Example Student Question:
-#Find the total product of the list
-
-list_one = [2,23,523,1231,32,9]
-total_product = 0
-for idx in list_one:
-    total_product = idx * idx
-
-I'm confused here. I am multiplying idx and setting it to total_product but getting the wrong answer. What is wrong?
-
-##Example Bad Answer (Avoid this type of answer):
-You are correct in iterating through the list with the for loop but at the moment, your total_product is incorrectly setup. Try this instead:
-list_one = [2,23,523,1231,32,9]
-total_product = 1
-for idx in list_one:
-    total_product = total_product * idx
-
-##Example Good Answer: (this is a good answer because it identifies the mistake the student is making but instead of correcting it for the student, it asks the student a follow-up question as a hint, forcing the student to think on their own)
-You are on the right track. Pay close attention to the operation you are performing in the loop. You're currently multiplying the number with itself, but you want to find the product of all numbers. What operation should you use instead to continuously update 'total_product'?
-
-##Student Current Working Problem:
-
-Name: {user_current_problem_name}
-
-Question: {user_current_problem_text}
-
-
-##Previous Chat History:
-{student_chat_history}
-
-##Student Current Chat Message:
-{question}
-
-
-##Student Code:
-{student_code}
-
-##Your Answer:
-"""
-    
-    prompt = prompt.format(
-        question=user_question,
-        student_code=student_code,
-        student_chat_history=student_chat_history,
-        user_current_problem_name=user_current_problem_name,
-        user_current_problem_text=user_current_problem_text,
-    )
-    print(prompt)
-    return prompt
 
 
 ## Websocket 
@@ -500,7 +529,6 @@ async def websocket_handle_chat_response(
             async for text in op_ai_wrapper.generate_async_response(
                 prompt = model_prompt
             ):
-
                 if text is None:
                     await websocket.send_text('MODEL_GEN_COMPLETE')
 
@@ -525,3 +553,135 @@ async def websocket_handle_chat_response(
         print("WebSocket connection closed")
         await websocket.close()
 
+
+## Authenticated
+
+@app.post("/fetch_dashboard_data")
+def fetch_dashboard_data(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+):
+    token = credentials.credentials
+    authenticated_user_object = get_user_object(
+        db = db,
+        user_id = None,
+        token = token
+    )
+
+    question_objects = db.query(UserCreatedPlaygroundQuestion).filter(
+        UserCreatedPlaygroundQuestion.custom_user_id == authenticated_user_object.id
+    ).order_by(UserCreatedPlaygroundQuestion.created_date.desc()).all()
+
+    rv = []
+    count = 1
+    for qobject in question_objects:
+        number_of_chat_messages = db.query(PlaygroundChatConversation).filter(
+            PlaygroundChatConversation.question_object_id == qobject.id
+        ).count()
+
+        rv.append({
+            'id': qobject.id,
+            'count': count,
+            'name': qobject.name,
+            'number_of_chat_messages': number_of_chat_messages,
+            "updated_date": qobject.updated_at.strftime("%Y-%m-%d %H:%M:%S")
+            # 'created_date': qobject.created_at.date(),
+            # "updated_date": qobject.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
+        })
+        count += 1
+
+    return {
+        'success': True,
+        'playground_object_list': rv
+    }
+
+
+@app.post("/fetch_question_data")
+def fetch_question_data(
+    data: FetchQuestionDetailsSchema,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+):
+    token = credentials.credentials
+    authenticated_user_object = get_user_object(
+        db = db,
+        user_id = None,
+        token = token
+    )
+
+    question_object_id = data.question_id
+    question_object = db.query(UserCreatedPlaygroundQuestion).filter(
+        UserCreatedPlaygroundQuestion.id == question_object_id,
+        UserCreatedPlaygroundQuestion.custom_user_id == authenticated_user_object.id
+    ).first()
+
+    if question_object is None:
+        raise HTTPException(status_code=404, detail="Question object not found.")
+
+    current_code = db.query(PlaygroundCode).filter(
+        PlaygroundCode.question_object_id == question_object.id
+    ).order_by(PlaygroundCode.updated_at.desc()).first()
+
+    if current_code is None:
+        current_code_str = ""
+    else:
+        current_code_str = current_code.code
+
+    final_rv = {
+        'question_object_id': question_object_id,
+        'name': question_object.name,
+        'text': question_object.text,
+        'example_io_list':  ast.literal_eval(question_object.example_io_list),
+        'current_code': current_code_str
+    }
+
+    return {
+        'success': True,
+        'data': final_rv
+    }
+
+
+@app.post("/fetch_playground_question_chat_messages")
+def fetch_playground_question_chat(
+    data: FetchQuestionDetailsSchema,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+):
+    token = credentials.credentials
+    authenticated_user_object = get_user_object(
+        db = db,
+        user_id = None,
+        token = token
+    )
+
+    question_object_id = data.question_id
+    question_object = db.query(UserCreatedPlaygroundQuestion).filter(
+        UserCreatedPlaygroundQuestion.id == question_object_id,
+        UserCreatedPlaygroundQuestion.custom_user_id == authenticated_user_object.id
+    ).first()
+
+    if question_object is None:
+        raise HTTPException(status_code=404, detail="Question object not found.")
+
+    pg_conversation_objects = db.query(PlaygroundChatConversation).filter(
+        PlaygroundChatConversation.question_object_id == question_object.id
+    )
+
+    final_rv = []
+    for pg_chat_obj in pg_conversation_objects:
+        final_rv.append({
+            "parent_question_object_id": question_object.id,
+            'text':  pg_chat_obj.question,
+            'sender': 'user'
+        })
+
+        final_rv.append({
+            "parent_question_object_id": question_object.id,
+            'text':  pg_chat_obj.response,
+            'sender': 'ai'
+        })
+    
+    return {
+        'success': True,
+        'data': final_rv
+    }

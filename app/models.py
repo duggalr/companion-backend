@@ -70,9 +70,9 @@ class QuestionBaseModel(Base):  # Base Model
     __abstract__ = True
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, nullable=False)
-    text = Column(String, nullable=False)
-    example_io_list = Column(String, nullable=False)
+    name = Column(String, nullable=False)   # TODO: change this to nullable = True (blank question)?
+    text = Column(String, nullable=False)   # TODO: change this to nullable = True?
+    example_io_list = Column(String, nullable=False)  # TODO: change this to nullable = True?
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
