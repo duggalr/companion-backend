@@ -3,9 +3,6 @@ import requests
 from fastapi import HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import func
-
-import sys
-sys.path.append('/Users/rahulduggal/Documents/new_projects/new_companion/companion_backend')
 from app.models import AnonUser, UserOAuth, CustomUser, InitialPlaygroundQuestion
 from app.scripts.verify_auth_zero_jwt import verify_jwt
 from app.pydantic_schemas import SaveCodeSchema
@@ -51,7 +48,6 @@ def get_anon_custom_user_object(anon_user_id: str, db: Session) -> CustomUser:
 
 def _get_authenticated_custom_object(token: str, db: Session) -> Tuple[Optional[Dict[str, Union[bool, int, str]]], Optional[CustomUser]]:
     decoded_token_response = verify_jwt(token)
-    print('DECODED TOKEN RESPONSE:', decoded_token_response)
 
     if 'error' in decoded_token_response:
         raise HTTPException(
@@ -74,14 +70,10 @@ def _get_authenticated_custom_object(token: str, db: Session) -> Tuple[Optional[
     if custom_user_object is None:
         return None, None
 
-    print(f'CUSTOM USER OBJECT: {custom_user_object}')
-
     return None, custom_user_object
 
 
 def get_user_object(db: Session, user_id: Optional[str], token: Optional[str]):
-
-    print('user-id-new:', user_id, token)
 
     if token:
         _, user_object = _get_authenticated_custom_object(token=token, db=db)
@@ -119,4 +111,3 @@ async def get_optional_token(request: Request) -> Optional[str]:
         if scheme.lower() == "bearer":
             return token
     return None
-
