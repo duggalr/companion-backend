@@ -264,24 +264,47 @@ def update_user_question(
         token = token
     )
 
+    print('auth user object:', authenticated_user_object)
+
     pg_question_object = _get_or_create_user_question_object(
         db = db,
-        data = {
+        data = SaveCodeSchema(**{
             'user_id': None,
             'question_id': data.question_id,
             'question_name': data.question_name,
             'question_text': data.question_text,
             'example_input_output_list': data.example_input_output_list,
-            'code': None
-        },
+            'code': ''
+        }),
         custom_user_object = authenticated_user_object
     )
+
+   # Generate AI Response
+    try:
+        prompt = f"{prompts.GENERATE_INPUT_OUTPUT_EXAMPLE_PROMPT}Question: {data.question_text.strip()}\n\n## Output:\n"
+        ai_response = op_ai_wrapper.generate_sync_response(
+            prompt = prompt
+        )
+        ai_response_json_dict = json.loads(ai_response.choices[0].message.content)
+    except (KeyError, JSONDecodeError):
+        raise HTTPException(status_code=500, detail="Invalid AI response format.")
+
+    # Convert to JSON
+    question_input_output_example_list_string = str(ai_response_json_dict['input_output_example_list'])
+    question_input_output_example_list_json_representation = json.dumps(ai_response_json_dict['input_output_example_list'])
+
+    # Update Question Object
+    pg_question_object.name = data.question_name
+    pg_question_object.text = data.question_text
+    pg_question_object.example_io_list = question_input_output_example_list_string
+    db.commit()
+    db.refresh(pg_question_object)
 
     final_rv = {
         'unique_question_id': pg_question_object.id,
         'question_name': data.question_name,
         'question_text': data.question_text,
-        'example_io_list': ast.literal_eval(pg_question_object.example_io_list)
+        'example_io_list': question_input_output_example_list_json_representation
     }
     return {
         'success': True,
@@ -642,17 +665,22 @@ def get_result(
 
 
 def _get_or_create_user_question_object(db: Session, data: SaveCodeSchema, custom_user_object: CustomUser):
+    
+    print('GET OR CREATE QOBJ:', data, custom_user_object)
+    
     existing_pg_question_object = None
     if data.question_id is not None:
+        print('asdlkjd')
         existing_pg_question_object = db.query(UserCreatedPlaygroundQuestion).filter(
             UserCreatedPlaygroundQuestion.id == data.question_id,
             UserCreatedPlaygroundQuestion.custom_user_id == custom_user_object.id 
         ).first()
 
+        print('existing_pg_question_object', existing_pg_question_object)
+
         if not existing_pg_question_object:
             raise HTTPException(status_code=404, detail="Question object not found or unauthorized.")
     else:
-
         print(type(data.example_input_output_list), data.example_input_output_list)
         existing_pg_question_object = UserCreatedPlaygroundQuestion(
             name = data.question_name,
@@ -726,6 +754,7 @@ def save_user_code(
 
     # user_id = data.user_id
     # question_id = data.question_id
+
     current_code = data.code
     print('full data', data)
     print('QID:', question_object.id)
@@ -743,7 +772,7 @@ def save_user_code(
 
     return {
         'success': True,
-        'data': {'question_object_id': question_object.id}
+        'data': {'question_id': question_object.id}
     }
 
 
@@ -828,9 +857,12 @@ def fetch_dashboard_data(
         token = token
     )
 
+    # question_objects = db.query(UserCreatedPlaygroundQuestion).filter(
+    #     UserCreatedPlaygroundQuestion.custom_user_id == authenticated_user_object.id
+    # ).all()
     question_objects = db.query(UserCreatedPlaygroundQuestion).filter(
         UserCreatedPlaygroundQuestion.custom_user_id == authenticated_user_object.id
-    ).all()
+    ).order_by(UserCreatedPlaygroundQuestion.created_date.desc()).all()
 
     rv = []
     count = 1
@@ -850,7 +882,7 @@ def fetch_dashboard_data(
         })
         count += 1
 
-    rv.reverse()
+    # rv.reverse()
 
     return {
         'success': True,
@@ -877,6 +909,8 @@ def fetch_question_data(
         UserCreatedPlaygroundQuestion.custom_user_id == authenticated_user_object.id
     ).first()
 
+    print('question-object:', question_object)
+
     if question_object is None:
         raise HTTPException(status_code=404, detail="Question object not found.")
 
@@ -888,23 +922,28 @@ def fetch_question_data(
         PlaygroundCode.question_object_id == question_object.id
     ).order_by(PlaygroundCode.updated_at.desc()).first()
 
-    # TODO:
-        # only save code that has been created by the user
-        # if none here --> get default starter code
+    # # TODO:
+    #     # only save code that has been created by the user
+    #     # if none here --> get default starter code
 
-    if current_code is None:
-        initial_pg_question_object = db.query(InitialPlaygroundQuestion).filter(
-            InitialPlaygroundQuestion.id == question_object.id
-        ).first()
+    # if current_code is None:
+    #     initial_pg_question_object = db.query(InitialPlaygroundQuestion).filter(
+    #         InitialPlaygroundQuestion.id == question_object.id
+    #     ).first()
 
     # TODO: 
+
+    if current_code is None:
+        current_code_str = ""
+    else:
+        current_code_str = current_code.code
 
     final_rv = {
         'question_object_id': question_object_id,
         'name': question_object.name,
         'text': question_object.text,
         'example_io_list':  ast.literal_eval(question_object.example_io_list),
-        'current_code': current_code.code
+        'current_code': current_code_str
     }
 
     return {
@@ -946,43 +985,15 @@ def fetch_playground_question_chat(
             "parent_question_object_id": question_object.id,
             'text':  pg_chat_obj.question,
             'sender': 'user'
-            # 'id': pg_chat_obj.id,
-            # 'question': pg_chat_obj.question,
-            # 'response': pg_chat_obj.response,
-
-            # //     parent_question_object_id: state.question_id,
-            # //     current_problem_name: state.name,
-            # //     current_problem_question: state.question,
-            # //     text: current_user_message,
-            # //     user_code: user_current_code,
-            # //     all_user_messages_str: all_chat_messages_str,
-            # //     sender: 'user',
-            # //     type: 'user_message',
-
         })
 
         final_rv.append({
             "parent_question_object_id": question_object.id,
             'text':  pg_chat_obj.response,
             'sender': 'ai'
-
-            # 'id': pg_chat_obj.id,
-            # 'question': pg_chat_obj.question,
-            # 'response': pg_chat_obj.response,
-
-            # //     parent_question_object_id: state.question_id,
-            # //     current_problem_name: state.name,
-            # //     current_problem_question: state.question,
-            # //     text: current_user_message,
-            # //     user_code: user_current_code,
-            # //     all_user_messages_str: all_chat_messages_str,
-            # //     sender: 'user',
-            # //     type: 'user_message',
-
         })
     
     return {
         'success': True,
         'data': final_rv
     }
-
