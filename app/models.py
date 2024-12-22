@@ -94,6 +94,35 @@ class UserCreatedPlaygroundQuestion(QuestionBaseModel):
     custom_user = relationship("CustomUser")
 
 
+## MIT Course Models
+
+class LectureQuestion(QuestionBaseModel):
+    """
+    """
+    __tablename__ = 'lecture_question'
+    lecture_name = Column(String, nullable=True)
+    lecture_video_url = Column(String, nullable=True)
+    lecture_notes_url = Column(String, nullable=True)
+    correct_solution = Column(String, nullable=True)
+
+class UserCreatedLectureQuestion(Base):
+    """
+    """
+    __tablename__ = 'user_created_lecture_question'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    lecture_question_object_id = Column(UUID, ForeignKey('lecture_question.id'))
+    lecture_question = relationship("LectureQuestion")
+
+    custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
+    custom_user = relationship("CustomUser")
+
+    created_date = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+
 ## Code Models ##
 
 class PlaygroundCode(Base):

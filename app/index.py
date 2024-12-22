@@ -14,8 +14,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.database import SessionLocal
 from app.llm import prompts, openai_wrapper
-from app.models import UserOAuth, CustomUser, InitialPlaygroundQuestion, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail
-from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema
+from app.models import UserOAuth, CustomUser, InitialPlaygroundQuestion, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion
+from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema, FetchLessonQuestionDetailSchema
 from app.config import settings
 from app.utils import create_anon_user_object, get_anon_custom_user_object, _get_random_initial_pg_question, get_user_object, get_optional_token
 from app.llm.prompt_utils import _prepate_tutor_prompt
@@ -444,7 +444,6 @@ def save_user_question(
     }
 
 
-
 @app.post("/save_user_code")
 def save_user_code(
     data: SaveCodeSchema,
@@ -685,3 +684,89 @@ def fetch_playground_question_chat(
         'success': True,
         'data': final_rv
     }
+
+
+
+## MIT OCW Course Related
+
+# TODO: start here and get playground stuff going (first just question rendering and ensuring everything works; then submission)
+@app.post("/fetch_lesson_question_data")
+def fetch_lesson_question_data(
+    data: FetchLessonQuestionDetailSchema,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+):
+    lesson_qid = data.initial_lesson_question_id
+    print('lesson_qid:', lesson_qid)
+
+    token = credentials.credentials
+    authenticated_user_object = get_user_object(
+        db = db,
+        user_id = None,
+        token = token
+    )
+
+    print('authenticated_user_object:', authenticated_user_object)
+
+    lecture_question_object = db.query(LectureQuestion).filter(
+        LectureQuestion.id == lesson_qid
+    ).first()
+
+    print('lecture-QOBJECT:', lecture_question_object)
+
+    num_user_created_lecture_q_objects = db.query(UserCreatedLectureQuestion).filter(
+        UserCreatedLectureQuestion.lecture_question_object_id == lecture_question_object.id,
+        UserCreatedLectureQuestion.custom_user_id == authenticated_user_object.id
+    ).count()
+
+    print('num_user_created_lecture_q_objects-new:', num_user_created_lecture_q_objects)
+
+    if num_user_created_lecture_q_objects > 0:
+        user_l_question_obj = num_user_created_lecture_q_objects[0]
+    else:
+        user_l_question_obj = UserCreatedLectureQuestion(
+            lecture_question_object_id = lecture_question_object.id,
+            custom_user_id = authenticated_user_object.id
+        )
+        db.add(user_l_question_obj)
+        db.commit()
+        db.refresh(user_l_question_obj)
+
+
+    print('USER LS Q OBJECT:', user_l_question_obj)
+
+    question_dict = {
+        "name": "Finger Exercise Lecture 1",
+        "exercise": "Assume three variables are already defined for you: a, b, and c. Create a variable called total that adds a and b then multiplies the result by c. Include a last line in your code to print the value: print(total)",
+        "mit_correct_solution": """total = (a + b) * c
+print(total)""",
+        "lecture_name": "Introduction to Python",
+        "lecture_video_url": "https://www.youtube.com/watch?v=xAcTmDO6NTI&ab_channel=MITOpenCourseWare",
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec01_pdf/",
+        "input_output_list": """[
+            {
+                "input": "a = 2, b = 3, c = 4",
+                "output": "20",
+                "explanation": "First, add a and b: 2 + 3 = 5. Then, multiply the result by c: 5 * 4 = 20. The value of total is 20."
+            },
+            {
+                "input": "a = 5, b = 5, c = 2",
+                "output": "20",
+                "explanation": "First, add a and b: 5 + 5 = 10. Then, multiply the result by c: 10 * 2 = 20. The value of total is 20."
+            },
+            {
+                "input": "a = 1, b = 6, c = 3",
+                "output": "21",
+                "explanation": "First, add a and b: 1 + 6 = 7. Then, multiply the result by c: 7 * 3 = 21. The value of total is 21."
+            }
+        ]""",
+        "starter_code": "# TODO: write your code here"
+    }
+
+    return {
+        'success': True,
+        'data': question_dict,
+        'user_question_lecture_object_id': user_l_question_obj.id
+    }
+
+

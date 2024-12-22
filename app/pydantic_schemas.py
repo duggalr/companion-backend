@@ -39,3 +39,6 @@ class SaveLandingPageEmailSchema(BaseModel):
 
 class FetchQuestionDetailsSchema(BaseModel):
     question_id: str
+
+class FetchLessonQuestionDetailSchema(BaseModel):
+    initial_lesson_question_id: str
