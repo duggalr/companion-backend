@@ -14,7 +14,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.database import SessionLocal
 from app.llm import prompts, openai_wrapper
-from app.models import UserOAuth, CustomUser, InitialPlaygroundQuestion, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion
+from app.models import UserOAuth, CustomUser, InitialPlaygroundQuestion, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion, UserPlaygroundLectureCode, LecturePlaygroundChatConversation
 from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema, FetchLessonQuestionDetailSchema
 from app.config import settings
 from app.utils import create_anon_user_object, get_anon_custom_user_object, _get_random_initial_pg_question, get_user_object, get_optional_token
@@ -450,18 +450,49 @@ def save_user_code(
     db: Session = Depends(get_db),
     token: Optional[str] = Depends(get_optional_token),
 ):
-    # TODO: need to add a verification check here to see if the user who is requesting to save the code on the question can actually do so..
+    print('save-code-data:', data)
 
+    # TODO: need to add a verification check here to see if the user who is requesting to save the code on the question can actually do so..
     custom_user_object = get_user_object(
         db,
         data.user_id,
         token
     )
-    question_object = _get_or_create_user_question_object(
-        db = db,
-        data = data,
-        custom_user_object = custom_user_object
-    )
+
+    current_code = data.code
+
+    if data.lecture_question is True:
+        question_object = db.query(UserCreatedLectureQuestion).filter(
+            UserCreatedLectureQuestion.id == data.question_id
+        ).first()
+        print('QUESTION OBJECT:', question_object)
+    
+        lecture_pg_code_object = UserPlaygroundLectureCode(
+            programming_language = 'python',
+            code = current_code,
+            lecture_question_object_id = question_object.id
+        )
+        db.add(lecture_pg_code_object)
+        db.commit()
+        db.refresh(lecture_pg_code_object)
+        print('LECTURE PG CODE OBJECT:', lecture_pg_code_object)
+
+    else:
+        question_object = _get_or_create_user_question_object(
+            db = db,
+            data = data,
+            custom_user_object = custom_user_object
+        )
+        
+        pg_code_object = PlaygroundCode(
+            programming_language = 'python',
+            code = current_code,
+            question_object_id = question_object.id
+        )
+        db.add(pg_code_object)
+        db.commit()
+        db.refresh(pg_code_object)
+
     # # question_object = db.query(UserCreatedPlaygroundQuestion).filter(
     # #     UserCreatedPlaygroundQuestion.id == data.question_id,
     # #     UserCreatedPlaygroundQuestion.custom_user_id == custom_user_object.id   
@@ -471,17 +502,7 @@ def save_user_code(
 
     # user_id = data.user_id
     # question_id = data.question_id
-
-    current_code = data.code
-    pg_code_object = PlaygroundCode(
-        programming_language = 'python',
-        code = current_code,
-        question_object_id = question_object.id
-    )
-    db.add(pg_code_object)
-    db.commit()
-    db.refresh(pg_code_object)
-
+        
     return {
         'success': True,
         'data': {'question_id': question_object.id}
@@ -507,9 +528,19 @@ async def websocket_handle_chat_response(
             user_current_problem_name, user_current_problem_text = data['current_problem_name'], data['current_problem_question']
 
             parent_question_object_id = data['parent_question_object_id']
-            parent_question_object = db.query(UserCreatedPlaygroundQuestion).filter(
-                UserCreatedPlaygroundQuestion.id == parent_question_object_id
-            ).first()
+            is_lecture_question = data['lecture_question']
+
+            print(f"IS LECTURE QUESTION: {is_lecture_question} | {parent_question_object_id}")
+
+            if is_lecture_question is True:
+                parent_question_object = db.query(UserCreatedLectureQuestion).filter(
+                    UserCreatedLectureQuestion.id == parent_question_object_id
+                ).first()
+
+            else:
+                parent_question_object = db.query(UserCreatedPlaygroundQuestion).filter(
+                    UserCreatedPlaygroundQuestion.id == parent_question_object_id
+                ).first()
 
             if parent_question_object is None:
                 return {'success': False, 'message': "Question object not found.", "status_code": 404}
@@ -528,20 +559,33 @@ async def websocket_handle_chat_response(
             async for text in op_ai_wrapper.generate_async_response(
                 prompt = model_prompt
             ):
+                # Fetch conversation messagess
                 if text is None:
                     await websocket.send_text('MODEL_GEN_COMPLETE')
 
-                    pg_chat_conversation_object = PlaygroundChatConversation(
-                        question = user_question,
-                        prompt = model_prompt,
-                        response = full_response_message,
-                        code = user_code,
-                        question_object_id = parent_question_object_id
-                        # playground_parent_object_id = parent_pg_object.id
-                    )
-                    db.add(pg_chat_conversation_object)
-                    db.commit()
-                    db.refresh(pg_chat_conversation_object)
+                    if is_lecture_question:
+                        lecture_chat_conversation_object = LecturePlaygroundChatConversation(
+                            question = user_question,
+                            prompt = model_prompt,
+                            response = full_response_message,
+                            user_lecture_question_object_id = parent_question_object.id
+                        )
+                        db.add(lecture_chat_conversation_object)
+                        db.commit()
+                        db.refresh(lecture_chat_conversation_object)
+
+                    else:
+                        pg_chat_conversation_object = PlaygroundChatConversation(
+                            question = user_question,
+                            prompt = model_prompt,
+                            response = full_response_message,
+                            code = user_code,
+                            question_object_id = parent_question_object_id
+                            # playground_parent_object_id = parent_pg_object.id
+                        )
+                        db.add(pg_chat_conversation_object)
+                        db.commit()
+                        db.refresh(pg_chat_conversation_object)
 
                     break  # stop sending further text; just in case
                 else:
@@ -654,17 +698,32 @@ def fetch_playground_question_chat(
     )
 
     question_object_id = data.question_id
-    question_object = db.query(UserCreatedPlaygroundQuestion).filter(
-        UserCreatedPlaygroundQuestion.id == question_object_id,
-        UserCreatedPlaygroundQuestion.custom_user_id == authenticated_user_object.id
-    ).first()
+
+    print(f"Input Data:", authenticated_user_object, data.lecture_question)
+
+    if data.lecture_question is True:
+        question_object = db.query(UserCreatedLectureQuestion).filter(
+            UserCreatedLectureQuestion.lecture_question_object_id == question_object_id,
+            UserCreatedLectureQuestion.custom_user_id == authenticated_user_object.id
+        ).first()
+        print('QUESTION OBJECT CHAT:', question_object)
+    else:
+        question_object = db.query(UserCreatedPlaygroundQuestion).filter(
+            UserCreatedPlaygroundQuestion.id == question_object_id,
+            UserCreatedPlaygroundQuestion.custom_user_id == authenticated_user_object.id
+        ).first()
 
     if question_object is None:
         raise HTTPException(status_code=404, detail="Question object not found.")
 
-    pg_conversation_objects = db.query(PlaygroundChatConversation).filter(
-        PlaygroundChatConversation.question_object_id == question_object.id
-    )
+    if data.lecture_question is True:
+        pg_conversation_objects = db.query(LecturePlaygroundChatConversation).filter(
+            LecturePlaygroundChatConversation.user_lecture_question_object_id == question_object.id
+        ).all()
+    else:
+        pg_conversation_objects = db.query(PlaygroundChatConversation).filter(
+            PlaygroundChatConversation.question_object_id == question_object.id
+        ).all()
 
     final_rv = []
     for pg_chat_obj in pg_conversation_objects:
@@ -680,6 +739,9 @@ def fetch_playground_question_chat(
             'sender': 'ai'
         })
     
+    # TODO: fix this and go from there
+    print('final-msg-list:', final_rv)
+
     return {
         'success': True,
         'data': final_rv
@@ -696,7 +758,7 @@ def fetch_lesson_question_data(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ):
-    lesson_qid = data.initial_lesson_question_id
+    lesson_qid = data.lesson_question_id
     print('lesson_qid:', lesson_qid)
 
     token = credentials.credentials
@@ -706,7 +768,7 @@ def fetch_lesson_question_data(
         token = token
     )
 
-    print('authenticated_user_object:', authenticated_user_object)
+    print('authenticated_user_object:', authenticated_user_object, authenticated_user_object.id)
 
     lecture_question_object = db.query(LectureQuestion).filter(
         LectureQuestion.id == lesson_qid
@@ -721,8 +783,17 @@ def fetch_lesson_question_data(
 
     print('num_user_created_lecture_q_objects-new:', num_user_created_lecture_q_objects)
 
+    current_code_object = None
     if num_user_created_lecture_q_objects > 0:
-        user_l_question_obj = num_user_created_lecture_q_objects[0]
+        user_l_question_obj = db.query(UserCreatedLectureQuestion).filter(
+            UserCreatedLectureQuestion.lecture_question_object_id == lecture_question_object.id,
+            UserCreatedLectureQuestion.custom_user_id == authenticated_user_object.id
+        ).first()
+
+        current_code_object = db.query(UserPlaygroundLectureCode).filter(
+            UserPlaygroundLectureCode.lecture_question_object_id == user_l_question_obj.id
+        ).order_by(UserPlaygroundLectureCode.created_at.desc()).first()
+
     else:
         user_l_question_obj = UserCreatedLectureQuestion(
             lecture_question_object_id = lecture_question_object.id,
@@ -732,41 +803,19 @@ def fetch_lesson_question_data(
         db.commit()
         db.refresh(user_l_question_obj)
 
+    print('USER LS Q OBJECT AND CODE:', user_l_question_obj, current_code_object)
 
-    print('USER LS Q OBJECT:', user_l_question_obj)
-
-    question_dict = {
-        "name": "Finger Exercise Lecture 1",
-        "exercise": "Assume three variables are already defined for you: a, b, and c. Create a variable called total that adds a and b then multiplies the result by c. Include a last line in your code to print the value: print(total)",
-        "mit_correct_solution": """total = (a + b) * c
-print(total)""",
-        "lecture_name": "Introduction to Python",
-        "lecture_video_url": "https://www.youtube.com/watch?v=xAcTmDO6NTI&ab_channel=MITOpenCourseWare",
-        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec01_pdf/",
-        "input_output_list": """[
-            {
-                "input": "a = 2, b = 3, c = 4",
-                "output": "20",
-                "explanation": "First, add a and b: 2 + 3 = 5. Then, multiply the result by c: 5 * 4 = 20. The value of total is 20."
-            },
-            {
-                "input": "a = 5, b = 5, c = 2",
-                "output": "20",
-                "explanation": "First, add a and b: 5 + 5 = 10. Then, multiply the result by c: 10 * 2 = 20. The value of total is 20."
-            },
-            {
-                "input": "a = 1, b = 6, c = 3",
-                "output": "21",
-                "explanation": "First, add a and b: 1 + 6 = 7. Then, multiply the result by c: 7 * 3 = 21. The value of total is 21."
-            }
-        ]""",
-        "starter_code": "# TODO: write your code here"
+    rv_dict = {
+        'question_object_id': user_l_question_obj.id,
+        'name': lecture_question_object.name,
+        'exercise': lecture_question_object.text,
+        'input_output_list': lecture_question_object.example_io_list,
+        'user_code': lecture_question_object.starter_code if current_code_object is None else current_code_object.code
     }
 
     return {
         'success': True,
-        'data': question_dict,
-        'user_question_lecture_object_id': user_l_question_obj.id
+        'data': rv_dict,
+        # 'user_question_lecture_object_id': user_l_question_obj.id
     }
-
 

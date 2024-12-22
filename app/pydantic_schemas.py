@@ -33,12 +33,14 @@ class CodeExecutionRequestSchema(BaseModel):
 
 class SaveCodeSchema(UpdateQuestionSchema):
     code: str
+    lecture_question: bool
 
 class SaveLandingPageEmailSchema(BaseModel):
     email: str
 
 class FetchQuestionDetailsSchema(BaseModel):
     question_id: str
+    lecture_question: Optional[bool] = None
 
 class FetchLessonQuestionDetailSchema(BaseModel):
-    initial_lesson_question_id: str
+    lesson_question_id: str

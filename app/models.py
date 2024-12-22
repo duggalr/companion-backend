@@ -103,6 +103,7 @@ class LectureQuestion(QuestionBaseModel):
     lecture_name = Column(String, nullable=True)
     lecture_video_url = Column(String, nullable=True)
     lecture_notes_url = Column(String, nullable=True)
+    starter_code = Column(String, nullable=True)
     correct_solution = Column(String, nullable=True)
 
 class UserCreatedLectureQuestion(Base):
@@ -121,6 +122,19 @@ class UserCreatedLectureQuestion(Base):
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
+class UserPlaygroundLectureCode(Base):
+    """
+    """
+    __tablename__ = 'user_playground_lecture_code'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    programming_language = Column(String, nullable=False, default='python')
+    code = Column(String, nullable=False)
+    lecture_question_object_id = Column(UUID, ForeignKey('user_created_lecture_question.id'), nullable=False)
+    lecture_question_object =relationship("UserCreatedLectureQuestion")
+
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
 
 ## Code Models ##
@@ -165,3 +179,15 @@ class PlaygroundChatConversation(TutorConversationBaseModel):
     code = Column(String, nullable=True)
     question_object_id = Column(UUID, ForeignKey('user_created_playground_question.id'), nullable=False)
     parent_question_object = relationship("UserCreatedPlaygroundQuestion")
+
+class LecturePlaygroundChatConversation(TutorConversationBaseModel):
+    """
+    """
+    __tablename__ = 'lecture_playground_chat_conversation'
+
+    code = Column(String, nullable=True)
+    user_lecture_question_object_id = Column(UUID, ForeignKey('user_created_lecture_question.id'), nullable=False)
+    user_lecture_question_object = relationship("UserCreatedLectureQuestion")
+
+    # question_object_id = Column(UUID, ForeignKey('user_created_playground_question.id'), nullable=False)
+    # parent_question_object = relationship("UserCreatedPlaygroundQuestion")    

@@ -56,16 +56,16 @@ print(total)""",
         "starter_code": "# TODO: write your code here"
     }
 
-lq_object = LectureQuestion(
-    name = question_dict['name'],
-    text = question_dict['exercise'],
-    example_io_list = question_dict['input_output_list'],
-    lecture_name = question_dict['lecture_name'],
-    lecture_video_url = question_dict['lecture_video_url'],
-    lecture_notes_url = question_dict['lecture_notes_url'],
-    correct_solution = question_dict['mit_correct_solution']
-)
-db.add(lq_object)
-db.commit()
-db.refresh(lq_object)
+# lq_object = LectureQuestion(
+#     name = question_dict['name'],
+#     text = question_dict['exercise'],
+#     example_io_list = question_dict['input_output_list'],
+#     lecture_name = question_dict['lecture_name'],
+#     lecture_video_url = question_dict['lecture_video_url'],
+#     lecture_notes_url = question_dict['lecture_notes_url'],
+#     correct_solution = question_dict['mit_correct_solution']
+# )
+# db.add(lq_object)
+# db.commit()
+# db.refresh(lq_object)
 
