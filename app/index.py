@@ -14,8 +14,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.database import SessionLocal
 from app.llm import prompts, openai_wrapper
-from app.models import UserOAuth, CustomUser, InitialPlaygroundQuestion, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion, UserPlaygroundLectureCode, LecturePlaygroundChatConversation
-from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema, FetchLessonQuestionDetailSchema
+from app.models import UserOAuth, CustomUser, InitialPlaygroundQuestion, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion, UserPlaygroundLectureCode, LecturePlaygroundChatConversation, LectureMain
+from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema, FetchLessonQuestionDetailSchema, FetchLectureDetailSchema
 from app.config import settings
 from app.utils import create_anon_user_object, get_anon_custom_user_object, _get_random_initial_pg_question, get_user_object, get_optional_token
 from app.llm.prompt_utils import _prepate_tutor_prompt
@@ -611,6 +611,8 @@ def fetch_dashboard_data(
         token = token
     )
 
+    ## Playground User Created Code
+
     question_objects = db.query(UserCreatedPlaygroundQuestion).filter(
         UserCreatedPlaygroundQuestion.custom_user_id == authenticated_user_object.id
     ).order_by(UserCreatedPlaygroundQuestion.created_date.desc()).all()
@@ -633,9 +635,25 @@ def fetch_dashboard_data(
         })
         count += 1
 
+
+    ## Lecture Objects
+
+    lecture_main_objects = db.query(LectureMain).all()
+    lecture_objects_rv = []
+    for lm_obj in lecture_main_objects:
+        lecture_objects_rv.append({
+            'id': lm_obj.id,
+            'number': lm_obj.number,
+            'name': lm_obj.name,
+            'description': lm_obj.description,
+            'video_url': lm_obj.video_url,
+            'notes_url': lm_obj.notes_url,
+        })
+
     return {
         'success': True,
-        'playground_object_list': rv
+        'playground_object_list': rv,
+        'lecture_objects_list': lecture_objects_rv
     }
 
 
@@ -748,6 +766,50 @@ def fetch_playground_question_chat(
     }
 
 
+@app.post("/fetch_lecture_data")
+def fetch_lecture_data(
+    data: FetchLectureDetailSchema,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+):
+    # TODO: pass lecture number and retrieve and display in FE
+    lecture_number = data.lecture_number
+    print(f"lecture-number: {lecture_number}")
+
+    lm_object = db.query(LectureMain).filter(
+        LectureMain.number == lecture_number
+    ).first()
+    print("LM OBJECT:", lm_object)
+
+    lecture_associated_exercise_object = db.query(LectureQuestion).filter(
+        LectureQuestion.lecture_main_object_id == lm_object.id
+    ).first()
+
+    exercise_data_rv = {
+        'id': lecture_associated_exercise_object.id,
+        'name': lecture_associated_exercise_object.name,
+        # 'question': lecture_associated_exercise_object.text,
+        # 'example_io_list': lecture_associated_exercise_object.example_io_list,
+        # 'starter_code': lecture_associated_exercise_object.starter_code,
+    }
+
+    return {
+        'success': True,
+        'lecture_data': {
+            'number': lm_object.number,
+            'name': lm_object.name,
+            'description': lm_object.description,
+            'video_url': lm_object.video_url,
+            'embed_video_url': lm_object.embed_video_url,
+            'thumbnail_image_url': lm_object.thumbnail_image_url,
+            'notes_url': lm_object.notes_url,
+            'code_url': lm_object.code_url,
+        },
+        'exercise_data': exercise_data_rv
+    }
+
+
+
 
 ## MIT OCW Course Related
 
@@ -809,7 +871,7 @@ def fetch_lesson_question_data(
         'question_object_id': user_l_question_obj.id,
         'name': lecture_question_object.name,
         'exercise': lecture_question_object.text,
-        'input_output_list': lecture_question_object.example_io_list,
+        'input_output_list': ast.literal_eval(lecture_question_object.example_io_list),
         'user_code': lecture_question_object.starter_code if current_code_object is None else current_code_object.code
     }
 

@@ -1,11 +1,21 @@
 [
+
     {
         "name": "Finger Exercise Lecture 1",
         "exercise": "Assume three variables are already defined for you: a, b, and c. Create a variable called total that adds a and b then multiplies the result by c. Include a last line in your code to print the value: print(total)",
+        "starter_code": "#TODO: implement your here code",
         "mit_correct_solution": "total = (a + b) * c\nprint(total)",
+        
+        "lecture_number": 1,
         "lecture_name": "Introduction to Python",
-        "lecture_video_url": "https://www.youtube.com/watch?v=xAcTmDO6NTI&ab_channel=MITOpenCourseWare",
+        "lecture_description": "Introduction to Python: knowledge, machines, objects, types, variables, bindings, IDEs",
+        "lecture_video_url": "https://www.youtube.com/watch?v=xAcTmDO6NTI",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/xAcTmDO6NTI",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/xAcTmDO6NTI/maxresdefault.jpg",
+
         "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec01_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec01_code_py/",
+
         "input_output_list": [
             {
                 "input": "a = 2, b = 3, c = 4",
@@ -22,26 +32,246 @@
                 "output": "21",
                 "explanation": "First, add a and b: 1 + 6 = 7. Then, multiply the result by c: 7 * 3 = 21. The value of total is 21."
             }
+        ],
+        "test_case_list": [
+            {"a": 1, "b": 2, "c": 3, "expected_output": 9},
+            {"a": -1, "b": 2, "c": 3, "expected_output": 3},
+            {"a": -1, "b": -2, "c": -3, "expected_output": 9},
+            {"a": 0, "b": 0, "c": 5, "expected_output": 0},
+            {"a": 5, "b": 10, "c": 0, "expected_output": 0},
+            {"a": 1000000, "b": 2000000, "c": 3000000, "expected_output": 9000000000000},
+            {"a": 1.5, "b": 2.5, "c": 2, "expected_output": 8.0},
+            {"a": 1, "b": 2.5, "c": 2, "expected_output": 7.0},
+            {"a": 1, "b": 1, "c": 1, "expected_output": 2}
         ]
     },
+
     {
-        "exercise": "Assume you are given a variable named number (has a numerical value). Write a piece of Python code that prints out one of the following strings: \npositive if the variable number is positive\nnegative if the variable number is negative\nzero if the variable number is equal to zero",
-        "mit_correct_solution": "if number > 0:\n  print('positive')\nelif number < 0:\n  print('negative')\nelse:\n  print('zero')"
+        "name": "Finger Exercise Lecture 2",
+        "exercise": "Assume you are given a variable named number (has a numerical value). Write a piece of Python code that prints out one of the following strings: positive if the variable number is positive, negative if the variable number is negative, zero if the variable number is equal to zero",
+        "starter_code": "#TODO: implement your here code",
+        "mit_correct_solution": "if number > 0:\n  print('positive')\nelif number < 0:\n  print('negative')\nelse:\n  print('zero')",
+
+        "lecture_number": 2,
+        "lecture_name": "Strings, Input/Output, Branching",
+        "lecture_description": "Core Elements of Programs: strings, input/output, f-strings, operators, branching, indentation",
+        "lecture_video_url": "https://www.youtube.com/watch?v=UdEX0E9lIQM",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/UdEX0E9lIQM",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/UdEX0E9lIQM/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec02_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec02_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "number = 5",
+                "output": "positive",
+                "explanation": "The value of number is greater than 0, so the output is 'positive'."
+            },
+            {
+                "input": "number = -3",
+                "output": "negative",
+                "explanation": "The value of number is less than 0, so the output is 'negative'."
+            },
+            {
+                "input": "number = 0",
+                "output": "zero",
+                "explanation": "The value of number is equal to 0, so the output is 'zero'."
+            }
+        ],
+        "test_case_list": [
+            {"number": 10, "expected_output": "positive"},
+            {"number": -1, "expected_output": "negative"},
+            {"number": 0, "expected_output": "zero"},
+            {"number": 100, "expected_output": "positive"},
+            {"number": -100, "expected_output": "negative"},
+            {"number": 1.5, "expected_output": "positive"},
+            {"number": -1.5, "expected_output": "negative"},
+            {"number": 0.00001, "expected_output": "positive"},
+            {"number": -0.00001, "expected_output": "negative"},
+            {"number": 0.0, "expected_output": "zero"}
+        ]
     },
+    
     {
+        "name": "Finger Exercise Lecture 3",
         "exercise": "Assume you are given a positive integer variable named N. Write a piece of Python code that prints hello world on separate lines, N times. You can use either a while loop or a for loop.",
-        "mit_correct_solution": "for i in range(N):\n  print('hello world')"
+        "starter_code": "#TODO: implement your here code",
+        "mit_correct_solution": "for i in range(N):\n  print('hello world')",
+
+        "lecture_number": 3,
+        "lecture_name": "Iteration",
+        "lecture_description": "Program Flow: control flow, loops",
+        "lecture_video_url": "https://www.youtube.com/watch?v=lzYrMcI92kw",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/lzYrMcI92kw",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/lzYrMcI92kw/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec03_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec03_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "N = 3",
+                "output": "hello world\nhello world\nhello world",
+                "explanation": "The value of N is 3, so the string 'hello world' is printed 3 times, each on a new line."
+            },
+            {
+                "input": "N = 1",
+                "output": "hello world",
+                "explanation": "The value of N is 1, so the string 'hello world' is printed once."
+            },
+            {
+                "input": "N = 0",
+                "output": "",
+                "explanation": "The value of N is 0, so nothing is printed."
+            }
+        ],
+        "test_case_list": [
+            {"N": 5, "expected_output": "hello world\nhello world\nhello world\nhello world\nhello world"},
+            {"N": 2, "expected_output": "hello world\nhello world"},
+            {"N": 10, "expected_output": "hello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world"},
+            {"N": 0, "expected_output": ""},
+            {"N": 1, "expected_output": "hello world"}
+        ]
+
     },
+
     {
-        "exercise": "Assume you are given a positive integer variable named N. Write a piece of Python code that finds the cube root of N. The code prints the cube root if N is a perfect cube or it prints error if N is not a perfect cube. Hint: use a loop that increments a counter—you decide when the counter should stop.",
-        "mit_correct_solution": "i = 1\nwhile i**3 < N:\n  i += 1\nif i**3 == N:\n  print(i)\nelse:\n  print('error')"
+        "name": "Finger Exercise Lecture 4",
+        "exercise": "Assume you are given a positive integer variable named N. Write a piece of Python code that finds the cube root of N. The code prints the cube root if N is a perfect cube or it prints error if N is not a perfect cube.",
+        "starter_code": "#TODO: implement your here code",
+        "mit_correct_solution": "i = 1\nwhile i**3 < N:\n    i += 1\nif i**3 == N:\n    print(i)\nelse:\n    print('error')",
+
+        "lecture_number": 4,
+        "lecture_name": "Loops over Strings, Guess-and-Check, Binary",
+        "lecture_description": "Iteration, Simple Programs: guess and check, binary, fractions",
+        "lecture_video_url": "https://www.youtube.com/watch?v=fWNZAw5Bmco",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/fWNZAw5Bmco",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/fWNZAw5Bmco/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec04_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec04_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "N = 27",
+                "output": "3",
+                "explanation": "The cube root of 27 is 3 because 3^3 = 27. The code correctly identifies 27 as a perfect cube and prints 3."
+            },
+            {
+                "input": "N = 64",
+                "output": "4",
+                "explanation": "The cube root of 64 is 4 because 4^3 = 64. The code correctly identifies 64 as a perfect cube and prints 4."
+            },
+            {
+                "input": "N = 10",
+                "output": "error",
+                "explanation": "The value 10 is not a perfect cube because no integer raised to the power of 3 equals 10. The code prints 'error'."
+            }
+        ],
+        "test_case_list": [
+            {"N": 1, "expected_output": 1},
+            {"N": 8, "expected_output": 2},
+            {"N": 125, "expected_output": 5},
+            {"N": 1000, "expected_output": 10},
+            {"N": 2, "expected_output": "error"},
+            {"N": 15, "expected_output": "error"},
+            {"N": 729, "expected_output": 9},
+            {"N": 216, "expected_output": 6},
+            {"N": 50, "expected_output": "error"}
+        ]
     },
+
     {
-        "exercise": "Assume you are given a string variable named my_str. Write a piece of Python code that prints out a new string containing the even indexed characters of my_str. For example, if my_str ='abcdefg' then your code should print out aceg.",
-        "mit_correct_solution": "s = ''\nfor i in range(0,len(my_str),2):\n  s += my_str[i]\nprint(s)"
+        "name": "Finger Exercise Lecture 5",
+        "exercise": "Assume you are given a string variable named my_str. Write a piece of Python code that prints out a new string containing the even indexed characters of my_str. For example, if my_str = 'abcdefg' then your code should print out aceg.",
+        "starter_code": "#TODO: implement your here code",
+        "mit_correct_solution": "s = ''\nfor i in range(0,len(my_str),2):\n    s += my_str[i]\nprint(s)",
+
+        "lecture_number": 5,
+        "lecture_name": "Floats and Approximation Methods",
+        "lecture_description": "Simple Algorithms: approximation method, floats",
+        "lecture_video_url": "https://www.youtube.com/watch?v=OF2sr5e7PrY",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/OF2sr5e7PrY",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/OF2sr5e7PrY/maxresdefault.jpg",
+        
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec05_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec05_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "my_str = 'abcdefg'",
+                "output": "aceg",
+                "explanation": "The even-indexed characters in 'abcdefg' are at indices 0, 2, 4, and 6, resulting in the string 'aceg'."
+            },
+            {
+                "input": "my_str = 'python'",
+                "output": "pto",
+                "explanation": "The even-indexed characters in 'python' are at indices 0, 2, and 4, resulting in the string 'pto'."
+            },
+            {
+                "input": "my_str = '12345'",
+                "output": "135",
+                "explanation": "The even-indexed characters in '12345' are at indices 0, 2, and 4, resulting in the string '135'."
+            }
+        ],
+        "test_case_list": [
+            {"my_str": "hello", "expected_output": "hlo"},
+            {"my_str": "MIT", "expected_output": "MT"},
+            {"my_str": "abcdef", "expected_output": "ace"},
+            {"my_str": "a", "expected_output": "a"},
+            {"my_str": "", "expected_output": ""},
+            {"my_str": "evenindices", "expected_output": "eeidcs"},
+            {"my_str": "longlonglonglonglong", "expected_output": "lnlnlnlnln"},
+            {"my_str": "testcase", "expected_output": "tscs"}
+        ]
     },
+
     {
+        "name": "Finger Exercise Lecture 6",
         "exercise": "Assume you are given an integer 0 <= N <= 1000. Write a piece of Python code that uses bisection search to guess N. The code prints two lines: count: with how many guesses it took to find N, and answer: with the value of N. Hints: If the halfway value is exactly in between two integers, choose the smaller one.",
-        "mit_correct_solution": "low = 0\nhigh = 1001\nguess = (high+low)//2\ncount = 1\nwhile guess != N:\n   if guess < N:\n      low = guess\n   elif guess > N:\n      high = guess\n   guess = (high+low)//2\n   count += 1\nprint('count:',count)\nprint('answer:',guess)"
+        "starter_code": "#TODO: implement your here code",
+        "mit_correct_solution": "low = 0\nhigh = 1001\nguess = (high+low)//2\ncount = 1\nwhile guess != N:\n   if guess < N:\n      low = guess\n   elif guess > N:\n      high = guess\n   guess = (high+low)//2\n   count += 1\nprint('count:',count)\nprint('answer:',guess)",
+
+        "lecture_number": 6,
+        "lecture_name": "Bisection Search",
+        "lecture_description": "Simple Algorithms: bisection search, Newton-Raphson",
+        "lecture_video_url": "https://www.youtube.com/watch?v=PJ_5VNvJGtA",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/PJ_5VNvJGtA",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/PJ_5VNvJGtA/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec06_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec05_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "N = 500",
+                "output": "count: 1\nanswer: 500",
+                "explanation": "The initial guess of 500 matches N, so the bisection search ends in 1 step."
+            },
+            {
+                "input": "N = 250",
+                "output": "count: 2\nanswer: 250",
+                "explanation": "First guess is 500 (too high), then 250 (correct) in 2 guesses."
+            },
+            {
+                "input": "N = 125",
+                "output": "count: 3\nanswer: 125",
+                "explanation": "First guess is 500 (too high), then 250 (too high), and finally 125 (correct) in 3 guesses."
+            }
+        ],
+        "test_case_list": [
+            {"N": 0, "expected_output": "count: 10\nanswer: 0"},
+            {"N": 1000, "expected_output": "count: 10\nanswer: 1000"},
+            {"N": 512, "expected_output": "count: 10\nanswer: 512"},
+            {"N": 255, "expected_output": "count: 9\nanswer: 255"},
+            {"N": 1, "expected_output": "count: 9\nanswer: 1"},
+            {"N": 999, "expected_output": "count: 9\nanswer: 999"},
+            {"N": 500, "expected_output": "count: 1\nanswer: 500"},
+            {"N": 123, "expected_output": "count: 9\nanswer: 123"},
+            {"N": 875, "expected_output": "count: 3\nanswer: 875"},
+            {"N": 600, "expected_output": "count: 10\nanswer: 600"}
+        ]
     }
+
 ]

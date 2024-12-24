@@ -96,15 +96,36 @@ class UserCreatedPlaygroundQuestion(QuestionBaseModel):
 
 ## MIT Course Models
 
+class LectureMain(Base):
+    """
+    """
+    __tablename__ = 'lecture_main'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    number = Column(Integer, nullable=True)
+    name = Column(String, nullable=True)
+    description = Column(String, nullable=True)
+    # video_url = Column(String, nullable=True)
+    notes_url = Column(String, nullable=True)
+    video_url = Column(String, nullable=True)
+    embed_video_url = Column(String, nullable=True)
+    thumbnail_image_url = Column(String, nullable=True)
+    code_url = Column(String, nullable=True)
+    created_date = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
 class LectureQuestion(QuestionBaseModel):
     """
     """
     __tablename__ = 'lecture_question'
-    lecture_name = Column(String, nullable=True)
-    lecture_video_url = Column(String, nullable=True)
-    lecture_notes_url = Column(String, nullable=True)
+
     starter_code = Column(String, nullable=True)
     correct_solution = Column(String, nullable=True)
+    lecture_main_object_id = Column(UUID, ForeignKey('lecture_main.id'))
+    lecture_main_object = relationship("LectureMain")
+
 
 class UserCreatedLectureQuestion(Base):
     """
