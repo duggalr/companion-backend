@@ -189,10 +189,13 @@ def get_random_initial_playground_question(
     if current_custom_user_object is None:
         raise HTTPException(status_code=400, detail="User object not found.")
 
+    print('CURRENT CUSTOM USER OBEJCT:', current_custom_user_object)
+
     # Get Random Question Object
     random_initial_question_object = _get_random_initial_pg_question(
         db = db
     )
+    print('RANDOM INITIAL QUESTION OBJECT:', random_initial_question_object)
 
     to_return = {
         # 'question_id': random_initial_question_object.id,
@@ -221,6 +224,8 @@ def update_user_question(
         token = token
     )
 
+    print('CUSTOM AUTH USER:', authenticated_user_object)
+
     pg_question_object = _get_or_create_user_question_object(
         db = db,
         data = SaveCodeSchema(**{
@@ -229,10 +234,13 @@ def update_user_question(
             'question_name': data.question_name,
             'question_text': data.question_text,
             'example_input_output_list': data.example_input_output_list,
-            'code': ''
+            'code': '',
+            'lecture_question': False
         }),
         custom_user_object = authenticated_user_object
     )
+
+    print('PG QUESTION OBJECT:', pg_question_object)
 
    # Generate AI Response
     try:
@@ -396,6 +404,7 @@ def get_result(
 
 
 def _get_or_create_user_question_object(db: Session, data: SaveCodeSchema, custom_user_object: CustomUser):
+    print('DATA - G/C QUESTION:', data)
     existing_pg_question_object = None
     if data.question_id is not None:
         existing_pg_question_object = db.query(UserCreatedPlaygroundQuestion).filter(
@@ -601,6 +610,43 @@ async def websocket_handle_chat_response(
 
 ## Authenticated
 
+@app.post("/fetch_course_dashboard_home_data")
+def fetch_course_dashboard_home_data(
+    data: NotRequiredAnonUserSchema,
+    token: Optional[str] = Depends(get_optional_token),
+    db: Session = Depends(get_db),
+):
+    current_custom_user_object = get_user_object(
+        db = db,
+        user_id = data.user_id,
+        token = token
+    )
+    if current_custom_user_object is None:
+        raise HTTPException(status_code=400, detail="User object not found.")
+
+    print('CURRENT CUSTOM USER OBEJCT:', current_custom_user_object)
+
+    ## Lecture Objects
+    lecture_main_objects = db.query(LectureMain).all()
+    lecture_objects_rv = []
+    for lm_obj in lecture_main_objects:
+        lecture_objects_rv.append({
+            'id': lm_obj.id,
+            'number': lm_obj.number,
+            'name': lm_obj.name,
+            'description': lm_obj.description,
+            'video_url': lm_obj.video_url,
+            'notes_url': lm_obj.notes_url,
+        })
+
+    return {
+        'success': True,
+        'lecture_objects_list': lecture_objects_rv
+    }
+
+
+
+
 @app.post("/fetch_dashboard_data")
 def fetch_dashboard_data(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
@@ -639,7 +685,6 @@ def fetch_dashboard_data(
 
 
     ## Lecture Objects
-
     lecture_main_objects = db.query(LectureMain).all()
     lecture_objects_rv = []
     for lm_obj in lecture_main_objects:
@@ -771,7 +816,8 @@ def fetch_playground_question_chat(
 @app.post("/fetch_lecture_data")
 def fetch_lecture_data(
     data: FetchLectureDetailSchema,
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    # credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    token: Optional[str] = Depends(get_optional_token),
     db: Session = Depends(get_db),
 ):
     # TODO: pass lecture number and retrieve and display in FE
@@ -819,20 +865,23 @@ def fetch_lecture_data(
 @app.post("/fetch_lesson_question_data")
 def fetch_lesson_question_data(
     data: FetchLessonQuestionDetailSchema,
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    token: Optional[str] = Depends(get_optional_token),
+    # credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ):
     lesson_qid = data.lesson_question_id
     print('lesson_qid:', lesson_qid)
 
-    token = credentials.credentials
-    authenticated_user_object = get_user_object(
-        db = db,
-        user_id = None,
-        token = token
-    )
+    authenticated_user_object = None
+    if (token):
+        # token = credentials.credentials
+        authenticated_user_object = get_user_object(
+            db = db,
+            user_id = None,
+            token = token
+        )
 
-    print('authenticated_user_object:', authenticated_user_object, authenticated_user_object.id)
+    # print('authenticated_user_object:', authenticated_user_object, authenticated_user_object.id)
 
     lecture_question_object = db.query(LectureQuestion).filter(
         LectureQuestion.id == lesson_qid
@@ -840,37 +889,41 @@ def fetch_lesson_question_data(
 
     print('lecture-QOBJECT:', lecture_question_object)
 
-    num_user_created_lecture_q_objects = db.query(UserCreatedLectureQuestion).filter(
-        UserCreatedLectureQuestion.lecture_question_object_id == lecture_question_object.id,
-        UserCreatedLectureQuestion.custom_user_id == authenticated_user_object.id
-    ).count()
+    if authenticated_user_object is not None:
 
-    print('num_user_created_lecture_q_objects-new:', num_user_created_lecture_q_objects)
-
-    current_code_object = None
-    if num_user_created_lecture_q_objects > 0:
-        user_l_question_obj = db.query(UserCreatedLectureQuestion).filter(
+        num_user_created_lecture_q_objects = db.query(UserCreatedLectureQuestion).filter(
             UserCreatedLectureQuestion.lecture_question_object_id == lecture_question_object.id,
             UserCreatedLectureQuestion.custom_user_id == authenticated_user_object.id
-        ).first()
+        ).count()
 
-        current_code_object = db.query(UserPlaygroundLectureCode).filter(
-            UserPlaygroundLectureCode.lecture_question_object_id == user_l_question_obj.id
-        ).order_by(UserPlaygroundLectureCode.created_at.desc()).first()
+        print('num_user_created_lecture_q_objects-new:', num_user_created_lecture_q_objects)
+
+        current_code_object = None
+        if num_user_created_lecture_q_objects > 0:
+            user_l_question_obj = db.query(UserCreatedLectureQuestion).filter(
+                UserCreatedLectureQuestion.lecture_question_object_id == lecture_question_object.id,
+                UserCreatedLectureQuestion.custom_user_id == authenticated_user_object.id
+            ).first()
+
+            current_code_object = db.query(UserPlaygroundLectureCode).filter(
+                UserPlaygroundLectureCode.lecture_question_object_id == user_l_question_obj.id
+            ).order_by(UserPlaygroundLectureCode.created_at.desc()).first()
+
+        else:
+            user_l_question_obj = UserCreatedLectureQuestion(
+                lecture_question_object_id = lecture_question_object.id,
+                custom_user_id = authenticated_user_object.id
+            )
+            db.add(user_l_question_obj)
+            db.commit()
+            db.refresh(user_l_question_obj)
+
+        print('USER LS Q OBJECT AND CODE:', user_l_question_obj, current_code_object)
 
     else:
-        user_l_question_obj = UserCreatedLectureQuestion(
-            lecture_question_object_id = lecture_question_object.id,
-            custom_user_id = authenticated_user_object.id
-        )
-        db.add(user_l_question_obj)
-        db.commit()
-        db.refresh(user_l_question_obj)
+        current_code_object = None
 
-    print('USER LS Q OBJECT AND CODE:', user_l_question_obj, current_code_object)
-
-    # TODO: test case
-
+    ## Fetching test cases list
     test_case_list_literal = ast.literal_eval(lecture_question_object.test_case_list)
     print('test_case_list_literal:', test_case_list_literal)
 
@@ -894,41 +947,37 @@ def fetch_lesson_question_data(
 
     print('tc-result-list-rv:', test_case_rv_list)
 
-    user_code_submission_history_objects = db.query(LectureCodeSubmissionHistory).filter(
-        LectureCodeSubmissionHistory.user_created_lecture_question_object_id == user_l_question_obj.id
-    ).all()
-
-
-    # # Example string
-    # created_at = "2024-12-24T23:36:39.898797"
-
-    # # Parse the datetime string
-    # parsed_datetime = datetime.fromisoformat(created_at)
-
-    # # Extract the date
-    # date_only = parsed_datetime.date()
-
-    # print(date_only)
-
+    user_code_submission_history_objects = []
     user_code_submission_history_object_rv = []
-    for sub_hist_obj in user_code_submission_history_objects:
-        user_code_submission_history_object_rv.append({
-            'lc_submission_history_object_id': sub_hist_obj.id,
-            'lc_submission_history_object_boolean_result': sub_hist_obj.test_case_boolean_result,
-            'lc_submission_history_code': sub_hist_obj.code,
-            'lc_submission_history_object_created': sub_hist_obj.created_at
-        })
+    if authenticated_user_object is not None:
+        user_code_submission_history_objects = db.query(LectureCodeSubmissionHistory).filter(
+            LectureCodeSubmissionHistory.user_created_lecture_question_object_id == user_l_question_obj.id
+        ).all()
 
-    rv_dict = {
-        'question_object_id': user_l_question_obj.id,
+        for sub_hist_obj in user_code_submission_history_objects:
+            user_code_submission_history_object_rv.append({
+                'lc_submission_history_object_id': sub_hist_obj.id,
+                'lc_submission_history_object_boolean_result': sub_hist_obj.test_case_boolean_result,
+                'lc_submission_history_code': sub_hist_obj.code,
+                'lc_submission_history_object_created': sub_hist_obj.created_at
+            })
+
+    rv_dict = {}
+    if authenticated_user_object is not None:
+        rv_dict['question_object_id'] = str(user_l_question_obj.id)
+    else:
+        rv_dict['question_object_id'] = str(lecture_question_object.id)
+
+    print("TMP TESTING:", rv_dict)
+
+    rv_dict.update({
         'name': lecture_question_object.name,
         'exercise': lecture_question_object.text,
         'input_output_list': ast.literal_eval(lecture_question_object.example_io_list),
         'user_code': lecture_question_object.starter_code if current_code_object is None else current_code_object.code,
-        # 'test_case_list': ast.literal_eval(lecture_question_object.test_case_list)
         'test_case_list': test_case_rv_list,
         'user_code_submission_history_objects': user_code_submission_history_object_rv
-    }
+    })
 
     return {
         'success': True,
@@ -1035,7 +1084,3 @@ def handle_lecture_question_submission(
             'ai_response': ai_response_string
         }
     }
-
-    # # TODO: save in submission history and then, return to user (return submission object ID to user to show on table)
-
-
