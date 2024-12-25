@@ -167,8 +167,12 @@ class LectureCodeSubmissionHistory(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     code = Column(String, nullable=False)
-    result = Column(Boolean, default=False)
+    test_case_boolean_result = Column(Boolean, default=False)
     program_output_list = Column(String, nullable=False)
+    ai_feedback_response_string = Column(String, nullable=False)
+    user_created_lecture_question_object_id = Column(UUID, ForeignKey('user_created_lecture_question.id'), nullable=False)
+    user_created_lecture_question_object =relationship("UserCreatedLectureQuestion")
+
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
 
 

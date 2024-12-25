@@ -1,6 +1,7 @@
 import os
 from typing import Optional, Generator
 import ast
+from datetime import datetime
 import json
 from json import JSONDecodeError
 import docker
@@ -893,6 +894,31 @@ def fetch_lesson_question_data(
 
     print('tc-result-list-rv:', test_case_rv_list)
 
+    user_code_submission_history_objects = db.query(LectureCodeSubmissionHistory).filter(
+        LectureCodeSubmissionHistory.user_created_lecture_question_object_id == user_l_question_obj.id
+    ).all()
+
+
+    # # Example string
+    # created_at = "2024-12-24T23:36:39.898797"
+
+    # # Parse the datetime string
+    # parsed_datetime = datetime.fromisoformat(created_at)
+
+    # # Extract the date
+    # date_only = parsed_datetime.date()
+
+    # print(date_only)
+
+    user_code_submission_history_object_rv = []
+    for sub_hist_obj in user_code_submission_history_objects:
+        user_code_submission_history_object_rv.append({
+            'lc_submission_history_object_id': sub_hist_obj.id,
+            'lc_submission_history_object_boolean_result': sub_hist_obj.test_case_boolean_result,
+            'lc_submission_history_code': sub_hist_obj.code,
+            'lc_submission_history_object_created': sub_hist_obj.created_at
+        })
+
     rv_dict = {
         'question_object_id': user_l_question_obj.id,
         'name': lecture_question_object.name,
@@ -900,7 +926,8 @@ def fetch_lesson_question_data(
         'input_output_list': ast.literal_eval(lecture_question_object.example_io_list),
         'user_code': lecture_question_object.starter_code if current_code_object is None else current_code_object.code,
         # 'test_case_list': ast.literal_eval(lecture_question_object.test_case_list)
-        'test_case_list': test_case_rv_list
+        'test_case_list': test_case_rv_list,
+        'user_code_submission_history_objects': user_code_submission_history_object_rv
     }
 
     return {
@@ -954,7 +981,6 @@ def handle_lecture_question_submission(
     tc_results = run_test_cases(
         language = 'python',
         code = user_code,
-
         test_cases = tc_return_list
     )
     print("Results:", tc_results)
@@ -963,20 +989,7 @@ def handle_lecture_question_submission(
     for rslt in tc_results:
         if rslt['correct'] != 'yes':
             all_tests_passed = False
-
-    # tc_results_string = ""
-    # for rslt_dict in tc_results:
-    #     # tc_results_string += str(rslt_dict)
-    #     # tc_results_string += '\n'
-    #     tc_results_string = ", ".join(f"{key}: {value}" for key, value in rslt_dict.items())
-    #     tc_results_string += '\n'
-
-    # tc_results_string = ""
-    # for rslt_dict in tc_results:
-    #     tc_results_string += ", ".join(f"{key}: {str(value)}" for key, value in rslt_dict.items())
-    #     tc_results_string += '\n'
-
-    # print(tc_results_string)
+            break
 
     print("PROMPT")
     solution_fb_prompt = _prepare_solution_feedback_prompt(
@@ -987,6 +1000,8 @@ def handle_lecture_question_submission(
     )
     print(solution_fb_prompt)
 
+
+    # TODO: uncomment the ai_response
     # ai_response = op_ai_wrapper.generate_sync_response(
     #     prompt = solution_fb_prompt,
     #     return_in_json = False
@@ -994,22 +1009,33 @@ def handle_lecture_question_submission(
     # ai_response_string = ai_response.choices[0].message.content
     # print('AI Response String:', ai_response_string)
 
+    ai_response_string = "testing..."
+
+    lc_submission_history_object = LectureCodeSubmissionHistory(
+        code = user_code,
+        test_case_boolean_result = all_tests_passed,
+        program_output_list = str(tc_results),
+        ai_feedback_response_string = ai_response_string,
+        user_created_lecture_question_object_id = user_created_lecture_question_object.id
+    )
+    db.add(lc_submission_history_object)
+    db.commit()
+    db.refresh(lc_submission_history_object)
+
     return {
         'success': True,
         'data': {
+            'lc_submission_history_object_id': lc_submission_history_object.id,
+            'lc_submission_history_object_created': lc_submission_history_object.created_at,
+            'lc_submission_history_object_boolean_result': lc_submission_history_object.test_case_boolean_result,
+            'lc_submission_history_code': lc_submission_history_object.code,
+
             'result_list': tc_results,
             'all_tests_passed': all_tests_passed,
-            # 'ai_response': ai_response_string
-            'ai_response': "testing..."
+            'ai_response': ai_response_string
         }
     }
 
     # # TODO: save in submission history and then, return to user (return submission object ID to user to show on table)
-
-    # LectureCodeSubmissionHistory(
-    #     code = user_code
-    #     result = 
-    #     program_output_list = ?
-    # )
 
 
