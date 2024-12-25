@@ -14,11 +14,11 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.database import SessionLocal
 from app.llm import prompts, openai_wrapper
-from app.models import UserOAuth, CustomUser, InitialPlaygroundQuestion, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion, UserPlaygroundLectureCode, LecturePlaygroundChatConversation, LectureMain
-from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema, FetchLessonQuestionDetailSchema, FetchLectureDetailSchema
+from app.models import UserOAuth, CustomUser, InitialPlaygroundQuestion, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion, UserPlaygroundLectureCode, LecturePlaygroundChatConversation, LectureMain, LectureCodeSubmissionHistory
+from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema, FetchLessonQuestionDetailSchema, FetchLectureDetailSchema, LectureQuestionSubmissionSchema
 from app.config import settings
 from app.utils import create_anon_user_object, get_anon_custom_user_object, _get_random_initial_pg_question, get_user_object, get_optional_token
-from app.llm.prompt_utils import _prepate_tutor_prompt
+from app.llm.prompt_utils import _prepate_tutor_prompt, _prepare_solution_feedback_prompt
 from app.scripts.verify_auth_zero_jwt import verify_jwt
 
 
@@ -237,7 +237,8 @@ def update_user_question(
     try:
         prompt = f"{prompts.GENERATE_INPUT_OUTPUT_EXAMPLE_PROMPT}Question: {data.question_text.strip()}\n\n## Output:\n"
         ai_response = op_ai_wrapper.generate_sync_response(
-            prompt = prompt
+            prompt = prompt,
+            return_in_json = True
         )
         ai_response_json_dict = json.loads(ai_response.choices[0].message.content)
     except (KeyError, JSONDecodeError):
@@ -867,12 +868,39 @@ def fetch_lesson_question_data(
 
     print('USER LS Q OBJECT AND CODE:', user_l_question_obj, current_code_object)
 
+    # TODO: test case
+
+    test_case_list_literal = ast.literal_eval(lecture_question_object.test_case_list)
+    print('test_case_list_literal:', test_case_list_literal)
+
+    test_case_rv_list = []
+    for di in test_case_list_literal:
+        print('tmp-di:', di)
+        input_values_dict = di['input']
+        input_values_str = ""
+        for inp_k in input_values_dict:
+            input_values_str += f"{inp_k} = {input_values_dict[inp_k]}, "
+        
+        print(input_values_str)
+        test_case_rv_list.append({
+            'input': input_values_str.strip()[:-1],
+            'output': di['expected_output']
+        })
+
+        # input_tc_list = ", ".join([[k, di['input'][k]] for k in di['input']])
+        # print('inp', input_tc_list)
+        # # test_case_rv_list.append()
+
+    print('tc-result-list-rv:', test_case_rv_list)
+
     rv_dict = {
         'question_object_id': user_l_question_obj.id,
         'name': lecture_question_object.name,
         'exercise': lecture_question_object.text,
         'input_output_list': ast.literal_eval(lecture_question_object.example_io_list),
-        'user_code': lecture_question_object.starter_code if current_code_object is None else current_code_object.code
+        'user_code': lecture_question_object.starter_code if current_code_object is None else current_code_object.code,
+        # 'test_case_list': ast.literal_eval(lecture_question_object.test_case_list)
+        'test_case_list': test_case_rv_list
     }
 
     return {
@@ -880,4 +908,108 @@ def fetch_lesson_question_data(
         'data': rv_dict,
         # 'user_question_lecture_object_id': user_l_question_obj.id
     }
+
+
+from app.scripts.handle_test_case_submission import run_test_cases
+
+@app.post("/handle_lecture_question_submission")
+def handle_lecture_question_submission(
+    data: LectureQuestionSubmissionSchema,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+    op_ai_wrapper: openai_wrapper.OpenAIWrapper = Depends(get_openai_wrapper)
+):
+    user_created_question_id = data.lecture_question_id
+    print('lesson_qid:', user_created_question_id)
+
+    token = credentials.credentials
+    authenticated_user_object = get_user_object(
+        db = db,
+        user_id = None,
+        token = token
+    )
+    print('authenticated_user_object:', authenticated_user_object, authenticated_user_object.id)
+
+
+    user_created_lecture_question_object = db.query(UserCreatedLectureQuestion).filter(
+        UserCreatedLectureQuestion.id == user_created_question_id
+    ).first()
+    print('user_created_lecture_question_object-new:', user_created_lecture_question_object)
+
+    parent_lecture_question_object = db.query(LectureQuestion).filter(
+        LectureQuestion.id == user_created_lecture_question_object.lecture_question_object_id
+    ).first()
+    print('parent-lecture-QOBJECT:', parent_lecture_question_object)
+
+    user_code = data.code
+
+    # lecture_question_object.test_case_list
+    question_literal_tc_list = ast.literal_eval(parent_lecture_question_object.test_case_list)
+    tc_return_list = []
+    for tc_di in question_literal_tc_list:
+        input_tc_dict = tc_di['input']
+        tc_return_list.append({'input': input_tc_dict,  "expected_output": tc_di["expected_output"]})
+
+    # TODO: test this function first before FE test
+    tc_results = run_test_cases(
+        language = 'python',
+        code = user_code,
+
+        test_cases = tc_return_list
+    )
+    print("Results:", tc_results)
+
+    all_tests_passed = True
+    for rslt in tc_results:
+        if rslt['correct'] != 'yes':
+            all_tests_passed = False
+
+    # tc_results_string = ""
+    # for rslt_dict in tc_results:
+    #     # tc_results_string += str(rslt_dict)
+    #     # tc_results_string += '\n'
+    #     tc_results_string = ", ".join(f"{key}: {value}" for key, value in rslt_dict.items())
+    #     tc_results_string += '\n'
+
+    # tc_results_string = ""
+    # for rslt_dict in tc_results:
+    #     tc_results_string += ", ".join(f"{key}: {str(value)}" for key, value in rslt_dict.items())
+    #     tc_results_string += '\n'
+
+    # print(tc_results_string)
+
+    print("PROMPT")
+    solution_fb_prompt = _prepare_solution_feedback_prompt(
+        user_code = user_code,
+        correct_solution = parent_lecture_question_object.correct_solution,
+        test_case_result_boolean = all_tests_passed,
+        test_case_result_list_str = str(tc_results)
+    )
+    print(solution_fb_prompt)
+
+    # ai_response = op_ai_wrapper.generate_sync_response(
+    #     prompt = solution_fb_prompt,
+    #     return_in_json = False
+    # )
+    # ai_response_string = ai_response.choices[0].message.content
+    # print('AI Response String:', ai_response_string)
+
+    return {
+        'success': True,
+        'data': {
+            'result_list': tc_results,
+            'all_tests_passed': all_tests_passed,
+            # 'ai_response': ai_response_string
+            'ai_response': "testing..."
+        }
+    }
+
+    # # TODO: save in submission history and then, return to user (return submission object ID to user to show on table)
+
+    # LectureCodeSubmissionHistory(
+    #     code = user_code
+    #     result = 
+    #     program_output_list = ?
+    # )
+
 

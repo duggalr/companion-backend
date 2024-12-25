@@ -33,16 +33,17 @@
                 "explanation": "First, add a and b: 1 + 6 = 7. Then, multiply the result by c: 7 * 3 = 21. The value of total is 21."
             }
         ],
+        
         "test_case_list": [
-            {"a": 1, "b": 2, "c": 3, "expected_output": 9},
-            {"a": -1, "b": 2, "c": 3, "expected_output": 3},
-            {"a": -1, "b": -2, "c": -3, "expected_output": 9},
-            {"a": 0, "b": 0, "c": 5, "expected_output": 0},
-            {"a": 5, "b": 10, "c": 0, "expected_output": 0},
-            {"a": 1000000, "b": 2000000, "c": 3000000, "expected_output": 9000000000000},
-            {"a": 1.5, "b": 2.5, "c": 2, "expected_output": 8.0},
-            {"a": 1, "b": 2.5, "c": 2, "expected_output": 7.0},
-            {"a": 1, "b": 1, "c": 1, "expected_output": 2}
+            {"input": {"a": 1, "b": 2, "c": 3}, "expected_output": 9},
+            {"input": {"a": -1, "b": 2, "c": 3}, "expected_output": 3},
+            {"input": {"a": -1, "b": -2, "c": -3}, "expected_output": 9},
+            {"input": {"a": 0, "b": 0, "c": 5}, "expected_output": 0},
+            {"input": {"a": 5, "b": 10, "c": 0}, "expected_output": 0},
+            {"input": {"a": 1000000, "b": 2000000, "c": 3000000}, "expected_output": 9000000000000},
+            {"input": {"a": 1.5, "b": 2.5, "c": 2}, "expected_output": 8.0},
+            {"input": {"a": 1, "b": 2.5, "c": 2}, "expected_output": 7.0},
+            {"input": {"a": 1, "b": 1, "c": 1}, "expected_output": 2}
         ]
     },
 
@@ -79,17 +80,18 @@
                 "explanation": "The value of number is equal to 0, so the output is 'zero'."
             }
         ],
+
         "test_case_list": [
-            {"number": 10, "expected_output": "positive"},
-            {"number": -1, "expected_output": "negative"},
-            {"number": 0, "expected_output": "zero"},
-            {"number": 100, "expected_output": "positive"},
-            {"number": -100, "expected_output": "negative"},
-            {"number": 1.5, "expected_output": "positive"},
-            {"number": -1.5, "expected_output": "negative"},
-            {"number": 0.00001, "expected_output": "positive"},
-            {"number": -0.00001, "expected_output": "negative"},
-            {"number": 0.0, "expected_output": "zero"}
+            {"input": {"number": 10}, "expected_output": "positive"},
+            {"input": {"number": -1}, "expected_output": "negative"},
+            {"input": {"number": 0}, "expected_output": "zero"},
+            {"input": {"number": 100}, "expected_output": "positive"},
+            {"input": {"number": -100}, "expected_output": "negative"},
+            {"input": {"number": 1.5}, "expected_output": "positive"},
+            {"input": {"number": -1.5}, "expected_output": "negative"},
+            {"input": {"number": 0.00001}, "expected_output": "positive"},
+            {"input": {"number": -0.00001}, "expected_output": "negative"},
+            {"input": {"number": 0.0}, "expected_output": "zero"}
         ]
     },
     
@@ -126,12 +128,13 @@
                 "explanation": "The value of N is 0, so nothing is printed."
             }
         ],
+
         "test_case_list": [
-            {"N": 5, "expected_output": "hello world\nhello world\nhello world\nhello world\nhello world"},
-            {"N": 2, "expected_output": "hello world\nhello world"},
-            {"N": 10, "expected_output": "hello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world"},
-            {"N": 0, "expected_output": ""},
-            {"N": 1, "expected_output": "hello world"}
+            {"input": {"N": 5}, "expected_output": "hello world\nhello world\nhello world\nhello world\nhello world"},
+            {"input": {"N": 2}, "expected_output": "hello world\nhello world"},
+            {"input": {"N": 10}, "expected_output": "hello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world"},
+            {"input": {"N": 0}, "expected_output": ""},
+            {"input": {"N": 1}, "expected_output": "hello world"}
         ]
 
     },
@@ -170,15 +173,15 @@
             }
         ],
         "test_case_list": [
-            {"N": 1, "expected_output": 1},
-            {"N": 8, "expected_output": 2},
-            {"N": 125, "expected_output": 5},
-            {"N": 1000, "expected_output": 10},
-            {"N": 2, "expected_output": "error"},
-            {"N": 15, "expected_output": "error"},
-            {"N": 729, "expected_output": 9},
-            {"N": 216, "expected_output": 6},
-            {"N": 50, "expected_output": "error"}
+            {"input": {"N": 1}, "expected_output": 1},
+            {"input": {"N": 8}, "expected_output": 2},
+            {"input": {"N": 125}, "expected_output": 5},
+            {"input": {"N": 1000}, "expected_output": 10},
+            {"input": {"N": 2}, "expected_output": "error"},
+            {"input": {"N": 15}, "expected_output": "error"},
+            {"input": {"N": 729}, "expected_output": 9},
+            {"input": {"N": 216}, "expected_output": 6},
+            {"input": {"N": 50}, "expected_output": "error"}
         ]
     },
 
@@ -216,14 +219,14 @@
             }
         ],
         "test_case_list": [
-            {"my_str": "hello", "expected_output": "hlo"},
-            {"my_str": "MIT", "expected_output": "MT"},
-            {"my_str": "abcdef", "expected_output": "ace"},
-            {"my_str": "a", "expected_output": "a"},
-            {"my_str": "", "expected_output": ""},
-            {"my_str": "evenindices", "expected_output": "eeidcs"},
-            {"my_str": "longlonglonglonglong", "expected_output": "lnlnlnlnln"},
-            {"my_str": "testcase", "expected_output": "tscs"}
+            {"input": {"my_str": "hello"}, "expected_output": "hlo"},
+            {"input": {"my_str": "MIT"}, "expected_output": "MT"},
+            {"input": {"my_str": "abcdef"}, "expected_output": "ace"},
+            {"input": {"my_str": "a"}, "expected_output": "a"},
+            {"input": {"my_str": ""}, "expected_output": ""},
+            {"input": {"my_str": "evenindices"}, "expected_output": "eeidcs"},
+            {"input": {"my_str": "longlonglonglonglong"}, "expected_output": "lnlnlnlnln"},
+            {"input": {"my_str": "testcase"}, "expected_output": "tscs"}
         ]
     },
 
@@ -261,16 +264,16 @@
             }
         ],
         "test_case_list": [
-            {"N": 0, "expected_output": "count: 10\nanswer: 0"},
-            {"N": 1000, "expected_output": "count: 10\nanswer: 1000"},
-            {"N": 512, "expected_output": "count: 10\nanswer: 512"},
-            {"N": 255, "expected_output": "count: 9\nanswer: 255"},
-            {"N": 1, "expected_output": "count: 9\nanswer: 1"},
-            {"N": 999, "expected_output": "count: 9\nanswer: 999"},
-            {"N": 500, "expected_output": "count: 1\nanswer: 500"},
-            {"N": 123, "expected_output": "count: 9\nanswer: 123"},
-            {"N": 875, "expected_output": "count: 3\nanswer: 875"},
-            {"N": 600, "expected_output": "count: 10\nanswer: 600"}
+            {"input": {"N": 0}, "expected_output": "count: 10\nanswer: 0"},
+            {"input": {"N": 1000}, "expected_output": "count: 10\nanswer: 1000"},
+            {"input": {"N": 512}, "expected_output": "count: 10\nanswer: 512"},
+            {"input": {"N": 255}, "expected_output": "count: 9\nanswer: 255"},
+            {"input": {"N": 1}, "expected_output": "count: 9\nanswer: 1"},
+            {"input": {"N": 999}, "expected_output": "count: 9\nanswer: 999"},
+            {"input": {"N": 500}, "expected_output": "count: 1\nanswer: 500"},
+            {"input": {"N": 123}, "expected_output": "count: 9\nanswer: 123"},
+            {"input": {"N": 875}, "expected_output": "count: 3\nanswer: 875"},
+            {"input": {"N": 600}, "expected_output": "count: 10\nanswer: 600"}
         ]
     }
 

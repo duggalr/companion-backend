@@ -123,6 +123,7 @@ class LectureQuestion(QuestionBaseModel):
 
     starter_code = Column(String, nullable=True)
     correct_solution = Column(String, nullable=True)
+    test_case_list = Column(String, nullable=True)
     lecture_main_object_id = Column(UUID, ForeignKey('lecture_main.id'))
     lecture_main_object = relationship("LectureMain")
 
@@ -143,6 +144,7 @@ class UserCreatedLectureQuestion(Base):
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
+
 class UserPlaygroundLectureCode(Base):
     """
     """
@@ -156,6 +158,18 @@ class UserPlaygroundLectureCode(Base):
 
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class LectureCodeSubmissionHistory(Base):
+    """
+    """
+    __tablename__ = "lecture_code_submission_history"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    code = Column(String, nullable=False)
+    result = Column(Boolean, default=False)
+    program_output_list = Column(String, nullable=False)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
 
 
 ## Code Models ##

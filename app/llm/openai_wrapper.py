@@ -10,24 +10,40 @@ class OpenAIWrapper(object):
         self.api_key = api_key
         self.model = model
 
-    def generate_sync_response(self, prompt):
+    def generate_sync_response(self, prompt, return_in_json=True):
         """
         """
         client = OpenAI(
             api_key=self.api_key
         )
-        response = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                    ],
-                }
-            ],
-            model=self.model,
-            response_format={ "type": "json_object" }
-        )
+
+        if return_in_json:
+            response = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                        ],
+                    }
+                ],
+                model=self.model,
+                response_format={ "type": "json_object" }
+            )
+
+        else:
+            response = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                        ],
+                    }
+                ],
+                model=self.model
+            )
+
         return response
 
     async def generate_async_response(self, prompt):

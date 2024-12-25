@@ -36,6 +36,7 @@ for rw in data:
         example_io_list = str(rw['input_output_list']),
         starter_code = rw['starter_code'],
         correct_solution = rw['mit_correct_solution'],
+        test_case_list = str(rw['test_case_list']),
         lecture_main_object_id = lm_object.id,
     )
     db.add(lq_object)

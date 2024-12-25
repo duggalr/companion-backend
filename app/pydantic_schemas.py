@@ -47,3 +47,7 @@ class FetchLessonQuestionDetailSchema(BaseModel):
 
 class FetchLectureDetailSchema(BaseModel):
     lecture_number: str
+
+class LectureQuestionSubmissionSchema(BaseModel):
+    lecture_question_id: str
+    code: str
