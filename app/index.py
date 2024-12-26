@@ -7,6 +7,7 @@ from json import JSONDecodeError
 import docker
 from celery import Celery
 from celery.result import AsyncResult
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
@@ -950,9 +951,18 @@ def fetch_lesson_question_data(
     user_code_submission_history_objects = []
     user_code_submission_history_object_rv = []
     if authenticated_user_object is not None:
-        user_code_submission_history_objects = db.query(LectureCodeSubmissionHistory).filter(
-            LectureCodeSubmissionHistory.user_created_lecture_question_object_id == user_l_question_obj.id
-        ).all()
+        # user_code_submission_history_objects = db.query(LectureCodeSubmissionHistory).filter(
+        #     LectureCodeSubmissionHistory.user_created_lecture_question_object_id == user_l_question_obj.id
+        # ).all()
+        user_code_submission_history_objects = (
+            db.query(LectureCodeSubmissionHistory)
+            .filter(
+                LectureCodeSubmissionHistory.user_created_lecture_question_object_id
+                == user_l_question_obj.id
+            )
+            .order_by(desc(LectureCodeSubmissionHistory.created_at))  # Replace `created_at` with your desired column
+            .all()
+        )
 
         for sub_hist_obj in user_code_submission_history_objects:
             user_code_submission_history_object_rv.append({
@@ -1051,14 +1061,14 @@ def handle_lecture_question_submission(
 
 
     # TODO: uncomment the ai_response
-    # ai_response = op_ai_wrapper.generate_sync_response(
-    #     prompt = solution_fb_prompt,
-    #     return_in_json = False
-    # )
-    # ai_response_string = ai_response.choices[0].message.content
-    # print('AI Response String:', ai_response_string)
+    ai_response = op_ai_wrapper.generate_sync_response(
+        prompt = solution_fb_prompt,
+        return_in_json = False
+    )
+    ai_response_string = ai_response.choices[0].message.content
+    print('AI Response String:', ai_response_string)
 
-    ai_response_string = "testing..."
+    # ai_response_string = "testing..."
 
     lc_submission_history_object = LectureCodeSubmissionHistory(
         code = user_code,

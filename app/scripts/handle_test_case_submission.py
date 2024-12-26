@@ -93,17 +93,24 @@ def run_test_cases(language: str, code: str, test_cases: list):
     """
     results = []
     for test in test_cases:
-        # Prepare the test inputs as Python variables
-        input_code = "\n".join([
-    f"{key} = {repr(value)}" for key, value in test.items() if key != "expected_output"
-])
+        input_dict = test['input']
+        input_code = "\n".join([f"{key} = {repr(value)}" for key, value in input_dict.items()])
+        print(input_code)
+
+#         # Prepare the test inputs as Python variables
+#         input_code = "\n".join([
+#     f"{key} = {repr(value)}" for key, value in test.items() if key != "expected_output"
+# ])
 
         # Combine the test inputs with the solution code
         full_code = input_code + "\n" + code
 
+        print(f"FULL CODE:", full_code)
+
         # Execute the code in the container
         execution_result = execute_code_in_container(language, full_code)
-        
+        print('exec-result:', execution_result)
+
         rv_dict = {}
         if execution_result["success"]:
             # Extract the output and compare with the expected output
@@ -118,7 +125,7 @@ def run_test_cases(language: str, code: str, test_cases: list):
                     actual_output = float(actual_output)  # Try converting to float
                 except ValueError:
                     pass  # If it's not a number, leave as string
-            
+
             expected_output = test["expected_output"]
 
             rv_dict['program_output'] = actual_output
@@ -162,11 +169,11 @@ def run_test_cases(language: str, code: str, test_cases: list):
     return results
 
 
-# code_str = """a = 5
-# b = 10
-# c = 0
+# total = (a + b) * c\nprint(total)
+# code_str = """
 # print((a * b) + c)
 # """
+# print('code-string:', code_str)
 
 # question_literal_tc_list = [
 #     {"input": {"a": 1, "b": 2, "c": 3}, "expected_output": 9},
@@ -192,4 +199,3 @@ def run_test_cases(language: str, code: str, test_cases: list):
 #     test_cases = tc_return_list
 # )
 # print(output)
-
