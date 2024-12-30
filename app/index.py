@@ -631,6 +631,28 @@ def fetch_course_dashboard_home_data(
     lecture_main_objects = db.query(LectureMain).all()
     lecture_objects_rv = []
     for lm_obj in lecture_main_objects:
+        # TODO:
+            # fetch user and determine if complete
+
+        lecture_passed = False
+        lecture_question_object = db.query(LectureQuestion).filter(
+            LectureQuestion.lecture_main_object_id == lm_obj.id
+        ).first()
+                
+        if token is not None:
+            user_created_lecture_question_object = db.query(UserCreatedLectureQuestion).filter(
+                UserCreatedLectureQuestion.lecture_question_object_id == lecture_question_object.id,
+                UserCreatedLectureQuestion.custom_user_id == current_custom_user_object.id
+            ).first()
+
+            if user_created_lecture_question_object is not None:
+                passed_test_cases_count = db.query(LectureCodeSubmissionHistory).filter(
+                    LectureCodeSubmissionHistory.user_created_lecture_question_object_id == user_created_lecture_question_object.id,
+                    LectureCodeSubmissionHistory.test_case_boolean_result == True
+                ).all()
+                if passed_test_cases_count > 0:
+                    lecture_passed = True
+
         lecture_objects_rv.append({
             'id': lm_obj.id,
             'number': lm_obj.number,
@@ -638,6 +660,7 @@ def fetch_course_dashboard_home_data(
             'description': lm_obj.description,
             'video_url': lm_obj.video_url,
             'notes_url': lm_obj.notes_url,
+            'lecture_passed': lecture_passed
         })
 
     return {

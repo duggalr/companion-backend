@@ -87,7 +87,7 @@ def execute_code_in_container(language: str, code: str):
         return {"success": False, "output": logs}
 
 
-def run_test_cases(language: str, code: str, test_cases: list):
+def run_test_cases_without_function(language: str, code: str, test_cases: list):
     """
     Run test cases for the given code and return results as a list of 'yes' or 'no'.
     """
@@ -169,33 +169,51 @@ def run_test_cases(language: str, code: str, test_cases: list):
     return results
 
 
-# total = (a + b) * c\nprint(total)
-# code_str = """
-# print((a * b) + c)
-# """
-# print('code-string:', code_str)
+def run_test_cases_for_functions(language: str, function_name: str, code: str, test_cases: list):
+    """
+    Run test cases for a function and return results as a list of 'yes' or 'no'.
+    """
+    results = []
+    for test in test_cases:
+        input_dict = test['input']
+        expected_output = test['expected_output']
+        
+        # Prepare the input as variables in the code context
+        input_code = "\n".join([f"{key} = {repr(value)}" for key, value in input_dict.items()])
+        
+        # Combine the test inputs with the user's function code
+        full_code = input_code + "\n" + code
 
-# question_literal_tc_list = [
-#     {"input": {"a": 1, "b": 2, "c": 3}, "expected_output": 9},
-#     {"input": {"a": -1, "b": 2, "c": 3}, "expected_output": 3},
-#     {"input": {"a": -1, "b": -2, "c": -3}, "expected_output": 9},
-#     {"input": {"a": 0, "b": 0, "c": 5}, "expected_output": 0},
-#     {"input": {"a": 5, "b": 10, "c": 0}, "expected_output": 0},
-#     {"input": {"a": 1000000, "b": 2000000, "c": 3000000}, "expected_output": 9000000000000},
-#     {"input": {"a": 1.5, "b": 2.5, "c": 2}, "expected_output": 8.0},
-#     {"input": {"a": 1, "b": 2.5, "c": 2}, "expected_output": 7.0},
-#     {"input": {"a": 1, "b": 1, "c": 1}, "expected_output": 2}
-# ]
-# tc_return_list = []
-# for tc_di in question_literal_tc_list:
-#     input_tc_dict = tc_di['input']
-#     tc_return_list.append({'input': input_tc_dict, "expected_output": tc_di["expected_output"]})
+        # Wrap the function call in a string
+        function_call = f"{function_name}({', '.join(input_dict.keys())})"
 
-# # print(tc_return_list)
+        # Combine the input code, function code, and function call
+        full_code_with_call = full_code + "\n" + f"result = {function_call}"
 
-# output = run_test_cases(
-#     language = 'python',
-#     code = code_str,
-#     test_cases = tc_return_list
-# )
-# print(output)
+        # Execute the code in the container
+        execution_result = execute_code_in_container(language, full_code_with_call)
+
+        if execution_result["success"]:
+            # Extract the actual output from the execution
+            actual_output = execution_result["output"].strip()
+
+            # Try to convert the actual output to a numeric type first (integer or float)
+            try:
+                actual_output = int(actual_output)  # Try converting to int
+            except ValueError:
+                try:
+                    actual_output = float(actual_output)  # Try converting to float
+                except ValueError:
+                    pass  # If it's not a number, leave as string
+
+            # Compare the actual output to the expected output
+            if actual_output == expected_output:
+                results.append({"input": input_dict, "expected_output": expected_output, "actual_output": actual_output, "result": "yes"})
+            else:
+                results.append({"input": input_dict, "expected_output": expected_output, "actual_output": actual_output, "result": "no"})
+        else:
+            # If execution failed, mark the test as failed
+            results.append({"input": input_dict, "expected_output": expected_output, "actual_output": "Error in execution", "result": "no"})
+
+    return results
+
