@@ -37,9 +37,9 @@ for rw in data:
         starter_code = rw['starter_code'],
         correct_solution = rw['mit_correct_solution'],
         test_case_list = str(rw['test_case_list']),
+        test_function_name = rw['test_function_name'],
         lecture_main_object_id = lm_object.id,
     )
     db.add(lq_object)
     db.commit()
     db.refresh(lq_object)
-

@@ -67,4 +67,3 @@ for rw in data:
                             total_correct += 1
 
                     print(f"For Class: {class_name} | Results: {total_correct / total_count}")
-

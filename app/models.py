@@ -124,6 +124,7 @@ class LectureQuestion(QuestionBaseModel):
     starter_code = Column(String, nullable=True)
     correct_solution = Column(String, nullable=True)
     test_case_list = Column(String, nullable=True)
+    test_function_name = Column(String, nullable=True)
     lecture_main_object_id = Column(UUID, ForeignKey('lecture_main.id'))
     lecture_main_object = relationship("LectureMain")
 

@@ -45,7 +45,8 @@
             {"input": {"a": 1.5, "b": 2.5, "c": 2}, "expected_output": 8.0},
             {"input": {"a": 1, "b": 2.5, "c": 2}, "expected_output": 7.0},
             {"input": {"a": 1, "b": 1, "c": 1}, "expected_output": 2}
-        ]
+        ],
+        "test_function_name": "run_test_cases_without_function"
     },
 
     {
@@ -94,7 +95,8 @@
             {"input": {"number": 0.00001}, "expected_output": "positive"},
             {"input": {"number": -0.00001}, "expected_output": "negative"},
             {"input": {"number": 0.0}, "expected_output": "zero"}
-        ]
+        ],
+        "test_function_name": "run_test_cases_without_function"
     },
     
     {
@@ -138,8 +140,8 @@
             {"input": {"N": 10}, "expected_output": "hello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world"},
             {"input": {"N": 0}, "expected_output": ""},
             {"input": {"N": 1}, "expected_output": "hello world"}
-        ]
-
+        ],
+        "test_function_name": "run_test_cases_without_function"
     },
 
     {
@@ -186,7 +188,8 @@
             {"input": {"N": 729}, "expected_output": 9},
             {"input": {"N": 216}, "expected_output": 6},
             {"input": {"N": 50}, "expected_output": "error"}
-        ]
+        ],
+        "test_function_name": "run_test_cases_without_function"
     },
 
     {
@@ -232,7 +235,8 @@
             {"input": {"my_str": "evenindices"}, "expected_output": "eeidcs"},
             {"input": {"my_str": "longlonglonglonglong"}, "expected_output": "lnlnlnlnln"},
             {"input": {"my_str": "testcase"}, "expected_output": "tscs"}
-        ]
+        ],
+        "test_function_name": "run_test_cases_without_function"
     },
 
     {
@@ -280,7 +284,8 @@
             {"input": {"N": 123}, "expected_output": "count: 9\nanswer: 123"},
             {"input": {"N": 875}, "expected_output": "count: 3\nanswer: 875"},
             {"input": {"N": 600}, "expected_output": "count: 10\nanswer: 600"}
-        ]
+        ],
+        "test_function_name": "run_test_cases_without_function"
     },
 
     {
@@ -323,8 +328,8 @@
             {"input": {"a": 0, "b": 0, "c": 0, "x": 0}, "expected_output": 0},
             {"input": {"a": 1, "b": 0, "c": -1, "x": 0}, "expected_output": -1},
             {"input": {"a": 3, "b": 2, "c": 1, "x": -1}, "expected_output": 2}
-        ]
-
+        ],
+        "test_function_name": "run_test_cases_with_function"
     },
 
     {
@@ -366,8 +371,8 @@
             {"input": {"a1": 0, "b1": 0, "c1": 0, "x1": 0, "a2": 0, "b2": 0, "c2": 0, "x2": 0}, "expected_output": 0},
             {"input": {"a1": 1, "b1": -1, "c1": 1, "x1": -1, "a2": 2, "b2": 1, "c2": -1, "x2": 1}, "expected_output": 5},
             {"input": {"a1": 3, "b1": 2, "c1": 1, "x1": -1, "a2": 0, "b2": 0, "c2": 0, "x2": 0}, "expected_output": 2}
-        ]
-
+        ],
+        "test_function_name": "run_test_cases_with_function"
     },
 
     {
@@ -409,8 +414,8 @@
             {"input": {"s1": "xyz", "s2": "zyx"}, "expected_output": true},
             {"input": {"s1": "python", "s2": "pythons"}, "expected_output": false},
             {"input": {"s1": "", "s2": ""}, "expected_output": true}
-        ]
-
+        ],
+        "test_function_name": "run_test_cases_with_function"
     },
 
     {
@@ -454,7 +459,8 @@
             {"input": {"tA": "(1000, 2000)", "tB": "(3000, 4000)"}, "expected_output": "(2, 11000000)"},
             {"input": {"tA": "(1.5, 2.5)", "tB": "(3.5, 4.5)"}, "expected_output": "(2, 16.5)"},
             {"input": {"tA": "(-1, -2)", "tB": "(-3, -4)"}, "expected_output": "(2, 11)"}
-        ]
+        ],
+        "test_function_name": "run_test_cases_with_function"
     },
 
     {
@@ -490,7 +496,7 @@
                 "output": "True",
                 "explanation": "All functions in Lf return True when applied to n: -2 < 0 and -2 % 2 == 0. Thus, the result is True."
             }
-        ]        
+        ]
     },
 
     {
@@ -539,7 +545,8 @@
             {"input": {"Lin": [], "k": 0}, "expected_output": []},
             {"input": {"Lin": [10, 20, 30], "k": 0}, "expected_output": [10, 20, 30]},
             {"input": {"Lin": [100, 50, 75], "k": 2}, "expected_output": [75]}
-        ]
+        ],
+        "test_function_name": "run_test_cases_with_function"
     },
 
     {
@@ -583,8 +590,8 @@
             {"input": {"nums_list": [1, 2, 3]}, "expected_output": 1},
             {"input": {"nums_list": [2, 4, 16, 25]}, "expected_output": 2},
             {"input": {"nums_list": [10, 20, 25]}, "expected_output": 0}
-        ]
-
+        ],
+        "test_function_name": "run_test_cases_with_function"
     },
 
     {
@@ -633,8 +640,8 @@
             {"input": {"L": ["a", ["b", "c"]]}, "expected_output": 3},
             {"input": {"L": [["sublist"], "word"]}, "expected_output": 11},
             {"input": {"L": ["short", ["longer", "word"], "mid"]}, "expected_output": 18}
-        ]
-
+        ],
+        "test_function_name": "run_test_cases_with_function"
     },
 
     {
@@ -683,7 +690,8 @@
             {"input": {"aDict": {"x": 1, "y": 1, "z": 2}, "target": 1}, "expected_output": ["x", "y"]},
             {"input": {"aDict": {"key1": 10, "key2": 20, "key3": 10}, "target": 10}, "expected_output": ["key1", "key3"]},
             {"input": {"aDict": {"first": "apple", "second": "banana", "third": "apple"}, "target": "apple"}, "expected_output": ["first", "third"]}
-        ]
+        ],
+        "test_function_name": "run_test_cases_with_function"
 
     },
 
@@ -733,8 +741,8 @@
             {"input": {"d": {"a": [0], "b": [0], "c": [1, -1]}}, "expected_output": []},
             {"input": {"d": {"a": [1], "b": [0], "c": [-1]}}, "expected_output": ["a"]},
             {"input": {"d": {"x": [1, 1], "y": [-1, -1], "z": [0, 0]}}, "expected_output": ["x"]}
-        ]
-
+        ],
+        "test_function_name": "run_test_cases_with_function"
     },
 
     {
@@ -783,8 +791,8 @@
             {"input": {"base": 3, "exp": 4}, "expected_output": 81},
             {"input": {"base": 7, "exp": 1}, "expected_output": 7},
             {"input": {"base": 1, "exp": 5}, "expected_output": 1}
-        ]
-
+        ],
+        "test_function_name": "run_test_cases_with_function"
     },
 
     {
@@ -831,8 +839,8 @@
             {"input": {"L": [1, 2, [3, 4, [5, 6]], 7]}, "expected_output": [1, 2, 3, 4, 5, 6, 7]},
             {"input": {"L": [1, [2, [3, [4]]], 5]}, "expected_output": [1, 2, 3, 4, 5]},
             {"input": {"L": [[1, 2], [3, 4], [5, 6]]}, "expected_output": [1, 2, 3, 4, 5, 6]}
-        ]
-
+        ],
+        "test_function_name": "run_test_cases_with_function"
     },
 
     {
@@ -890,8 +898,8 @@
                 "input": {},
                 "expected_output": 113.04
             }
-        ]
-
+        ],
+        "test_function_name": "run_test_cases_with_class"
     },
 
     {
@@ -967,8 +975,8 @@
                 "input": {"a": 12},
                 "expected_output": 13
             }
-        ]
-
+        ],
+        "test_function_name": "run_test_cases_with_class"
     },
 
     {

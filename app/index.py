@@ -1019,7 +1019,8 @@ def fetch_lesson_question_data(
     }
 
 
-from app.scripts.handle_test_case_submission import run_test_cases
+# from app.scripts.handle_test_case_submission import run_test_cases
+from app.code_execution_utils import run_test_cases_without_function, run_test_cases_with_function, run_test_cases_with_class
 
 @app.post("/handle_lecture_question_submission")
 def handle_lecture_question_submission(
@@ -1038,7 +1039,6 @@ def handle_lecture_question_submission(
         token = token
     )
     print('authenticated_user_object:', authenticated_user_object, authenticated_user_object.id)
-
 
     user_created_lecture_question_object = db.query(UserCreatedLectureQuestion).filter(
         UserCreatedLectureQuestion.id == user_created_question_id
@@ -1059,12 +1059,16 @@ def handle_lecture_question_submission(
         input_tc_dict = tc_di['input']
         tc_return_list.append({'input': input_tc_dict,  "expected_output": tc_di["expected_output"]})
 
-    # TODO: test this function first before FE test
-    tc_results = run_test_cases(
-        language = 'python',
-        code = user_code,
-        test_cases = tc_return_list
-    )
+    # # TODO: test this function first before FE test
+    # tc_results = run_test_cases(
+    #     language = 'python',
+    #     code = user_code,
+    #     test_cases = tc_return_list
+    # )
+    # print("Results:", tc_results)
+
+    tc_function_name = parent_lecture_question_object.test_function_name
+    tc_results = globals()[tc_function_name]()
     print("Results:", tc_results)
 
     all_tests_passed = True
@@ -1081,7 +1085,6 @@ def handle_lecture_question_submission(
         test_case_result_list_str = str(tc_results)
     )
     print(solution_fb_prompt)
-
 
     # TODO: uncomment the ai_response
     ai_response = op_ai_wrapper.generate_sync_response(
@@ -1117,3 +1120,4 @@ def handle_lecture_question_submission(
             'ai_response': ai_response_string
         }
     }
+
