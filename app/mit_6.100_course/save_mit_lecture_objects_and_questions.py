@@ -30,14 +30,21 @@ for rw in data:
     db.refresh(lm_object)
 
     print(f"Saving question {rw['name']}")
+    if 'test_case_list' in rw:
+        test_case_list = str(rw['test_case_list'])
+        test_function_name = rw['test_function_name']
+    else:
+        test_case_list = str([])
+        test_function_name = ""
+
     lq_object = LectureQuestion(
         name = rw['name'],
         text = rw['exercise'],
         example_io_list = str(rw['input_output_list']),
         starter_code = rw['starter_code'],
         correct_solution = rw['mit_correct_solution'],
-        test_case_list = str(rw['test_case_list']),
-        test_function_name = rw['test_function_name'],
+        test_case_list = test_case_list,
+        test_function_name = test_function_name,
         lecture_main_object_id = lm_object.id,
     )
     db.add(lq_object)

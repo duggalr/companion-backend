@@ -628,30 +628,35 @@ def fetch_course_dashboard_home_data(
     print('CURRENT CUSTOM USER OBEJCT:', current_custom_user_object)
 
     ## Lecture Objects
-    lecture_main_objects = db.query(LectureMain).all()
+    # lecture_main_objects = db.query(LectureMain).all()
+    lecture_main_objects = db.query(LectureMain).distinct(LectureMain.number).all()
     lecture_objects_rv = []
     for lm_obj in lecture_main_objects:
         # TODO:
             # fetch user and determine if complete
 
         lecture_passed = False
-        lecture_question_object = db.query(LectureQuestion).filter(
+
+        # lecture_question_object = db.query(LectureQuestion).filter(
+        #     LectureQuestion.lecture_main_object_id == lm_obj.id
+        # ).first()
+        lecture_question_objects_list = db.query(LectureQuestion).filter(
             LectureQuestion.lecture_main_object_id == lm_obj.id
         ).first()
-                
         if token is not None:
-            user_created_lecture_question_object = db.query(UserCreatedLectureQuestion).filter(
-                UserCreatedLectureQuestion.lecture_question_object_id == lecture_question_object.id,
-                UserCreatedLectureQuestion.custom_user_id == current_custom_user_object.id
-            ).first()
+            for lec_q_obj in lecture_question_objects_list:
+                user_created_lecture_question_object = db.query(UserCreatedLectureQuestion).filter(
+                    UserCreatedLectureQuestion.lecture_question_object_id == lec_q_obj.id,
+                    UserCreatedLectureQuestion.custom_user_id == current_custom_user_object.id
+                ).first()
 
-            if user_created_lecture_question_object is not None:
-                passed_test_cases_count = db.query(LectureCodeSubmissionHistory).filter(
-                    LectureCodeSubmissionHistory.user_created_lecture_question_object_id == user_created_lecture_question_object.id,
-                    LectureCodeSubmissionHistory.test_case_boolean_result == True
-                ).all()
-                if passed_test_cases_count > 0:
-                    lecture_passed = True
+                if user_created_lecture_question_object is not None:
+                    passed_test_cases_count = db.query(LectureCodeSubmissionHistory).filter(
+                        LectureCodeSubmissionHistory.user_created_lecture_question_object_id == user_created_lecture_question_object.id,
+                        LectureCodeSubmissionHistory.test_case_boolean_result == True
+                    ).all()
+                    if passed_test_cases_count > 0:
+                        lecture_passed = True
 
         lecture_objects_rv.append({
             'id': lm_obj.id,
@@ -709,9 +714,11 @@ def fetch_dashboard_data(
 
 
     ## Lecture Objects
-    lecture_main_objects = db.query(LectureMain).all()
+    lecture_main_objects = db.query(LectureMain).distinct(LectureMain.number).all()
+    print(f"Number of lecture main objects: {len(lecture_main_objects)}")
     lecture_objects_rv = []
     for lm_obj in lecture_main_objects:
+        print(f"number: {lm_obj.number}")
         lecture_objects_rv.append({
             'id': lm_obj.id,
             'number': lm_obj.number,
@@ -853,17 +860,30 @@ def fetch_lecture_data(
     ).first()
     print("LM OBJECT:", lm_object)
 
-    lecture_associated_exercise_object = db.query(LectureQuestion).filter(
-        LectureQuestion.lecture_main_object_id == lm_object.id
-    ).first()
+    # lecture_associated_exercise_object = db.query(LectureQuestion).filter(
+    #     LectureQuestion.lecture_main_object_id == lm_object.id
+    # ).first()
 
-    exercise_data_rv = {
-        'id': lecture_associated_exercise_object.id,
-        'name': lecture_associated_exercise_object.name,
-        # 'question': lecture_associated_exercise_object.text,
-        # 'example_io_list': lecture_associated_exercise_object.example_io_list,
-        # 'starter_code': lecture_associated_exercise_object.starter_code,
-    }
+    # lecture_associated_exercise_objects = db.query(LectureQuestion).filter(
+    #     LectureQuestion.lecture_main_object_id == lm_object.id
+    # ).all()
+    
+    all_associated_lm_objects_for_lec_number = db.query(LectureMain).filter(
+        LectureMain.number == lecture_number
+    ).all()
+
+    exercise_data_list_rv = []
+    for tmp_lm_obj in all_associated_lm_objects_for_lec_number:
+        lecture_associated_exercise_object = db.query(LectureQuestion).filter(
+            LectureQuestion.lecture_main_object_id == tmp_lm_obj.id
+        ).first()
+        exercise_data_list_rv.append({
+            'id': lecture_associated_exercise_object.id,
+            'name': lecture_associated_exercise_object.name,
+            # 'question': lecture_associated_exercise_object.text,
+            # 'example_io_list': lecture_associated_exercise_object.example_io_list,
+            # 'starter_code': lecture_associated_exercise_object.starter_code,
+        })
 
     return {
         'success': True,
@@ -877,7 +897,7 @@ def fetch_lecture_data(
             'notes_url': lm_object.notes_url,
             'code_url': lm_object.code_url,
         },
-        'exercise_data': exercise_data_rv
+        'exercise_data': exercise_data_list_rv
     }
 
 
