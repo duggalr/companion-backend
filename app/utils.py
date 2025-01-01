@@ -8,7 +8,7 @@ from app.scripts.verify_auth_zero_jwt import verify_jwt
 from app.pydantic_schemas import SaveCodeSchema
 
 
-def _check_if_anon_user_exists(anon_user_id: str,db: Session) -> bool:
+def _check_if_anon_user_exists(anon_user_id: str, db: Session) -> bool:
     anon_user_object = db.query(CustomUser).filter(
         CustomUser.anon_user_id == anon_user_id
     ).first()

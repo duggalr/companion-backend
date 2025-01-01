@@ -35,7 +35,7 @@ def get_db() -> Generator[Session, None, None]:
     try:
         db = SessionLocal()
         yield db
-    except Exception as e:
+    except Exception as _:
         raise HTTPException(status_code=500, detail="Database connection failed")
     finally:
         db.close()
@@ -190,16 +190,11 @@ def get_random_initial_playground_question(
     if current_custom_user_object is None:
         raise HTTPException(status_code=400, detail="User object not found.")
 
-    print('CURRENT CUSTOM USER OBEJCT:', current_custom_user_object)
-
     # Get Random Question Object
     random_initial_question_object = _get_random_initial_pg_question(
         db = db
     )
-    print('RANDOM INITIAL QUESTION OBJECT:', random_initial_question_object)
-
     to_return = {
-        # 'question_id': random_initial_question_object.id,
         'name': random_initial_question_object.name,
         'text': random_initial_question_object.text,
         'starter_code': random_initial_question_object.starter_code,
@@ -462,23 +457,24 @@ def save_user_code(
     db: Session = Depends(get_db),
     token: Optional[str] = Depends(get_optional_token),
 ):
-    print('save-code-data:', data)
-
-    # TODO: need to add a verification check here to see if the user who is requesting to save the code on the question can actually do so..
+    current_code = data.code
     custom_user_object = get_user_object(
         db,
         data.user_id,
         token
     )
 
-    current_code = data.code
-
     if data.lecture_question is True:
         question_object = db.query(UserCreatedLectureQuestion).filter(
-            UserCreatedLectureQuestion.id == data.question_id
+            UserCreatedLectureQuestion.id == data.question_id,
+            UserCreatedLectureQuestion.custom_user_id == custom_user_object.id
         ).first()
-        print('QUESTION OBJECT:', question_object)
-    
+        if question_object is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Question object not found or unauthorized."
+            )
+
         lecture_pg_code_object = UserPlaygroundLectureCode(
             programming_language = 'python',
             code = current_code,
@@ -487,15 +483,13 @@ def save_user_code(
         db.add(lecture_pg_code_object)
         db.commit()
         db.refresh(lecture_pg_code_object)
-        print('LECTURE PG CODE OBJECT:', lecture_pg_code_object)
-
     else:
         question_object = _get_or_create_user_question_object(
             db = db,
             data = data,
             custom_user_object = custom_user_object
         )
-        
+
         pg_code_object = PlaygroundCode(
             programming_language = 'python',
             code = current_code,
@@ -505,16 +499,6 @@ def save_user_code(
         db.commit()
         db.refresh(pg_code_object)
 
-    # # question_object = db.query(UserCreatedPlaygroundQuestion).filter(
-    # #     UserCreatedPlaygroundQuestion.id == data.question_id,
-    # #     UserCreatedPlaygroundQuestion.custom_user_id == custom_user_object.id   
-    # # ).first()
-    # # if question_object is None:
-    # #     raise HTTPException(status_code=404, detail="Question not found.")
-
-    # user_id = data.user_id
-    # question_id = data.question_id
-        
     return {
         'success': True,
         'data': {'question_id': question_object.id}

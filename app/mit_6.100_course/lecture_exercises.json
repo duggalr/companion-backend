@@ -3,7 +3,7 @@
     {
         "name": "Finger Exercise Lecture 1",
         "exercise": "Assume three variables are already defined for you: a, b, and c. Create a variable called total that adds a and b then multiplies the result by c. Include a last line in your code to print the value: print(total)",
-        "starter_code": "# The values of a, b, and c will be provided by the system during testing.\n# Do NOT assign any values to these variables in your code.\n\n# TODO: Create the 'total' variable and calculate the result\n\n# TODO: Print the value of 'total'\n",
+        "starter_code": "# The values of a, b, and c will be provided by the system during testing.\n# Do NOT assign any values to these variables in your code when submitting your solution.\n\n# TODO: Create the 'total' variable and calculate the result\n# TODO: Print the value of 'total'\n",
         "mit_correct_solution": "total = (a + b) * c\nprint(total)",
         "function_name": "",
 
