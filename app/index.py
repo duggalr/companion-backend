@@ -32,13 +32,16 @@ app = FastAPI(
 
 # Dependency for database
 def get_db() -> Generator[Session, None, None]:
-    try:
-        db = SessionLocal()
-        yield db
-    except Exception as _:
-        raise HTTPException(status_code=500, detail="Database connection failed")
-    finally:
-        db.close()
+    db = SessionLocal()
+    yield db
+    # try:
+    #     db = SessionLocal()
+    #     yield db
+    # except Exception as e:
+    #     print(f"Database connection error: {e}")
+    #     raise HTTPException(status_code=500, detail="Database connection failed")
+    # finally:
+    #     db.close()
 
 # Open Wrapper
 def get_openai_wrapper() -> openai_wrapper.OpenAIWrapper:
@@ -696,13 +699,11 @@ def fetch_dashboard_data(
         })
         count += 1
 
-
     ## Lecture Objects
     lecture_main_objects = db.query(LectureMain).distinct(LectureMain.number).all()
     print(f"Number of lecture main objects: {len(lecture_main_objects)}")
     lecture_objects_rv = []
     for lm_obj in lecture_main_objects:
-        print(f"number: {lm_obj.number}")
         lecture_objects_rv.append({
             'id': lm_obj.id,
             'number': lm_obj.number,
@@ -719,6 +720,19 @@ def fetch_dashboard_data(
     }
 
 
+@app.post("/test_404")
+def test_404(db: Session = Depends(get_db)):
+    try:
+        print('DB:', db)
+        question_object = None  # Simulate no result from the database
+        if question_object is None:
+            raise HTTPException(status_code=404, detail="Item not found.")
+    except Exception as e:
+        print(f"Test exception: {e}")
+        raise
+
+
+
 @app.post("/fetch_question_data")
 def fetch_question_data(
     data: FetchQuestionDetailsSchema,
@@ -731,15 +745,19 @@ def fetch_question_data(
         user_id = None,
         token = token
     )
-
+    
     question_object_id = data.question_id
-    question_object = db.query(UserCreatedPlaygroundQuestion).filter(
-        UserCreatedPlaygroundQuestion.id == question_object_id,
-        UserCreatedPlaygroundQuestion.custom_user_id == authenticated_user_object.id
-    ).first()
+
+    try:
+        question_object = db.query(UserCreatedPlaygroundQuestion).filter(
+            UserCreatedPlaygroundQuestion.id == question_object_id,
+            UserCreatedPlaygroundQuestion.custom_user_id == authenticated_user_object.id
+        ).first()
+    except:
+        raise HTTPException(status_code=500, detail="Invalid data")
 
     if question_object is None:
-        raise HTTPException(status_code=404, detail="Question object not found.")
+        raise HTTPException(status_code=404, detail="Item not found")
 
     current_code = db.query(PlaygroundCode).filter(
         PlaygroundCode.question_object_id == question_object.id
