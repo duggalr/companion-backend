@@ -112,6 +112,9 @@ class LectureMain(Base):
     embed_video_url = Column(String, nullable=True)
     thumbnail_image_url = Column(String, nullable=True)
     code_url = Column(String, nullable=True)
+
+    lecture_complete = Column(Boolean, nullable=True)
+
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 

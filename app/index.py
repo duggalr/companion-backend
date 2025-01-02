@@ -679,7 +679,6 @@ def fetch_dashboard_data(
     )
 
     ## Playground User Created Code
-
     question_objects = db.query(UserCreatedPlaygroundQuestion).filter(
         UserCreatedPlaygroundQuestion.custom_user_id == authenticated_user_object.id
     ).order_by(UserCreatedPlaygroundQuestion.created_date.desc()).all()
@@ -706,7 +705,8 @@ def fetch_dashboard_data(
     lecture_main_objects = db.query(LectureMain).distinct(LectureMain.number).all()
     print(f"Number of lecture main objects: {len(lecture_main_objects)}")
     lecture_objects_rv = []
-    for lm_obj in lecture_main_objects:
+    for lm_obj in lecture_main_objects:        
+
         lecture_objects_rv.append({
             'id': lm_obj.id,
             'number': lm_obj.number,
@@ -714,7 +714,44 @@ def fetch_dashboard_data(
             'description': lm_obj.description,
             'video_url': lm_obj.video_url,
             'notes_url': lm_obj.notes_url,
+            'lecture_completed': lm_obj.lecture_complete
         })
+
+        # # TODO:
+        #     # count those with a submission where all test cases passed
+        
+        # # fetch all lm objects with lec-number (since I'm using distinct above...)
+        # all_current_lm_objects = db.query(LectureMain).filter(
+        #     LectureMain.number == lm_obj.number
+        # ).all()
+
+        # # fetch lecture questions for lm object
+        # total_questions_passed = 0
+        # total_questions_count = len(all_current_lm_objects)
+        # for current_lm_obj in all_current_lm_objects:
+        #     tmp_lq_object = db.query(LectureQuestion).filter(
+        #         LectureQuestion.lecture_main_object_id == current_lm_obj.id
+        #     ).first()
+
+        #     user_created_q_for_lq_objects = db.query(UserCreatedLectureQuestion).filter(
+        #         UserCreatedLectureQuestion.lecture_question_object_id == tmp_lq_object.id
+        #     ).all()
+
+        #     for user_created_q_obj in user_created_q_for_lq_objects:
+        #         success_code_submission_count_for_lq = db.query(LectureCodeSubmissionHistory).filter(
+        #             LectureCodeSubmissionHistory.user_created_lecture_question_object_id == user_created_q_obj.id,
+        #             (LectureCodeSubmissionHistory.test_case_boolean_result) == True
+        #         ).count()
+        #         # print(f'success-submissions-count for lect-number {lm_obj.number} is {success_code_submission_count_for_lq}')
+        #         if success_code_submission_count_for_lq > 0:
+        #             # question_passed = True
+        #             total_questions_passed += 1
+
+        # print(f"Total: {total_questions_count} | Total Passed: {total_questions_passed} | Lecture: {lm_obj.number}")
+        
+        # current_lecture_completed = False
+        # if (total_questions_passed == total_questions_count):
+        #     current_lecture_completed = True
 
     return {
         'success': True,
@@ -1205,6 +1242,49 @@ def handle_lecture_question_submission(
     db.commit()
     db.refresh(lc_submission_history_object)
 
+    # if true --> update
+    if all_tests_passed:
+        parent_lm_object = db.query(LectureMain).filter(
+            LectureMain.id == parent_lecture_question_object.lecture_main_object_id
+        )
+        # fetch all lm objects with lec-number
+        all_current_lm_objects = db.query(LectureMain).filter(
+            LectureMain.number == parent_lm_object.number
+        ).all()
+
+        # fetch lecture questions for lm object
+        total_questions_passed = 0
+        total_questions_count = len(all_current_lm_objects)
+        for current_lm_obj in all_current_lm_objects:
+            tmp_lq_object = db.query(LectureQuestion).filter(
+                LectureQuestion.lecture_main_object_id == current_lm_obj.id
+            ).first()
+
+            user_created_q_for_lq_objects = db.query(UserCreatedLectureQuestion).filter(
+                UserCreatedLectureQuestion.lecture_question_object_id == tmp_lq_object.id
+            ).all()
+
+            for user_created_q_obj in user_created_q_for_lq_objects:
+                success_code_submission_count_for_lq = db.query(LectureCodeSubmissionHistory).filter(
+                    LectureCodeSubmissionHistory.user_created_lecture_question_object_id == user_created_q_obj.id,
+                    (LectureCodeSubmissionHistory.test_case_boolean_result) == True
+                ).count()
+                # print(f'success-submissions-count for lect-number {lm_obj.number} is {success_code_submission_count_for_lq}')
+                if success_code_submission_count_for_lq > 0:
+                    # question_passed = True
+                    total_questions_passed += 1
+
+        print(f"Total: {total_questions_count} | Total Passed: {total_questions_passed} | Lecture: {parent_lm_object.number}")
+
+        current_lecture_completed = False
+        if (total_questions_count == total_questions_count):
+            current_lecture_completed = True
+
+        parent_lm_object.lecture_complete = current_lecture_completed
+        db.add(parent_lm_object)
+        db.commit()
+        db.refresh(parent_lm_object)
+
     return {
         'success': True,
         'data': {
@@ -1217,5 +1297,27 @@ def handle_lecture_question_submission(
             'all_tests_passed': all_tests_passed,
             'ai_response': ai_response_string
         }
+    }
+
+
+
+@app.post("/fetch_course_progress")
+def fetch_course_progress(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+):
+    completed_lecture_objects = db.query(LectureMain).filter(
+        LectureMain.lecture_complete == True
+    ).count()
+
+    total_lecture_objects = db.query(LectureMain).count()
+
+    percent_complete = (completed_lecture_objects / total_lecture_objects) * 100
+
+    return {
+        'success': True,
+        'percent_complete': percent_complete,
+        'completed': completed_lecture_objects,
+        'total': total_lecture_objects
     }
 
