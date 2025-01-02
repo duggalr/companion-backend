@@ -1246,7 +1246,7 @@ def handle_lecture_question_submission(
     if all_tests_passed:
         parent_lm_object = db.query(LectureMain).filter(
             LectureMain.id == parent_lecture_question_object.lecture_main_object_id
-        )
+        ).first()
         # fetch all lm objects with lec-number
         all_current_lm_objects = db.query(LectureMain).filter(
             LectureMain.number == parent_lm_object.number
@@ -1312,12 +1312,13 @@ def fetch_course_progress(
 
     total_lecture_objects = db.query(LectureMain).count()
 
-    percent_complete = (completed_lecture_objects / total_lecture_objects) * 100
+    percent_complete = round((completed_lecture_objects / total_lecture_objects) * 100, 0)
 
     return {
         'success': True,
         'percent_complete': percent_complete,
         'completed': completed_lecture_objects,
-        'total': total_lecture_objects
+        'total': total_lecture_objects,
+        'remaining': (total_lecture_objects - completed_lecture_objects)
     }
 

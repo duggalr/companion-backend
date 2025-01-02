@@ -83,12 +83,12 @@ Question: {user_current_problem_text}
 
 
 def _prepare_solution_feedback_prompt(user_code, correct_solution, test_case_result_boolean, test_case_result_list_str):
-    prompt = f"""You are a programming tutor providing feedback on a student's code. 
+    prompt = f"""You are a programming tutor providing feedback on a student's code.
 
 The student's solution is as follows:
 {user_code}
 
-The correct solution (reference code) is:
+The correct solution (reference code) is (only you have access to this. the student does not have access to this and this code/solution should not be directly mentioned or provided to the student. this is for you only.):
 {correct_solution}
 
 Did all the test cases pass (boolean):
@@ -111,6 +111,9 @@ The test cases results list for the student's code are:
    - Offer tips on how the student can improve the clarity, structure, and performance of their code.
 
 Your task is to provide detailed feedback to the student based on the points above.
+- Do not mention the reference / correct solution that has been provided to you above, in your detailed feedback response.
+- The correct solution which is only provided to you, is to help you know what the correct solution to the problem would be, and to provide a point of reference when providing your feedback to the student.
+- The correct solution is never accessible to the student and you should never directly mention it, or provide it to the student.
 
 Be constructive and clear, making sure to offer actionable suggestions that the student can use to improve their coding skills.
 
