@@ -181,7 +181,7 @@ def run_test_cases_without_function(user_code: str, test_case_list: list):
             code_expected_output=code_expected_output,
             function_params_string=code_input_string
         )
-        results.append(rv_dict)        
+        results.append(rv_dict)
 
     return results
 
@@ -207,16 +207,34 @@ def run_test_cases_with_function(user_code: str, function_name: str, test_case_l
             'python',
             full_code_to_call
         )
+
         rv_dict = _compute_eval_result_dict(
             execution_result=execution_result,
             code_expected_output=code_expected_output,
             function_params_string=function_call
         )
         results.append(rv_dict)
-        break
 
     return results
 
+# user_code = """def eval_quadratic(a, b, c, x):
+#     """
+#     Evaluates a quadratic equation at a given value.
+
+#     Args:
+#         a (float): Coefficient of the quadratic term (x^2).
+
+#     # Your code here
+#     """
+
+#     return a * (x**2) + b * (x) + c
+# """
+# test_case_list = [{'input': {'a': 1, 'b': 1, 'c': 1, 'x': 1}, 'expected_output': 3}, {'input': {'a': 2, 'b': -4, 'c': 0, 'x': 2}, 'expected_output': 0}, {'input': {'a': 0, 'b': 0, 'c': 0, 'x': 0}, 'expected_output': 0}, {'input': {'a': 1, 'b': 0, 'c': -1, 'x': 0}, 'expected_output': -1}, {'input': {'a': 3, 'b': 2, 'c': 1, 'x': -1}, 'expected_output': 2}]
+# run_test_cases_with_function(
+#     user_code = user_code,
+#     function_name = 'eval_quadratic',
+#     test_case_list = test_case_list
+# )
 
 def run_test_cases_with_class(user_code: str, class_name: str, test_case_list: list):
     results = []

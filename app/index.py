@@ -311,7 +311,7 @@ def execute_code_in_container(language: str, code: str):
     # The code will be placed in the /app directory inside the container
     container_code_file = f"/app/{code_file_name}"
 
-    MAX_EXECUTION_TIME_IN_SECONDS = 10
+    MAX_EXECUTION_TIME_IN_SECONDS = 25
 
     # Initialize Docker client
     client = docker.from_env()
@@ -1159,6 +1159,7 @@ def handle_lecture_question_submission(
     print('parent-lecture-QOBJECT:', parent_lecture_question_object)
 
     user_code = data.code
+    print(f"User CODE:\n{user_code}")
 
     # lecture_question_object.test_case_list
     question_literal_tc_list = ast.literal_eval(parent_lecture_question_object.test_case_list)
@@ -1191,15 +1192,15 @@ def handle_lecture_question_submission(
 
     elif tc_function_name == 'run_test_cases_with_function':
         tc_results = run_test_cases_with_function(
-            user_code = user_code,             
-            function_name = "",
+            user_code = user_code,
+            function_name = parent_lecture_question_object.function_name,
             test_case_list = ast.literal_eval(parent_lecture_question_object.test_case_list)
         )
     
     elif tc_function_name == 'run_test_cases_with_class':
         run_test_cases_with_class(
             user_code = user_code,
-            class_name = "",
+            class_name = parent_lecture_question_object.class_name,
             test_case_list = ast.literal_eval(parent_lecture_question_object.test_case_list)
         )
 

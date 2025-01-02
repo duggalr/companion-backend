@@ -291,7 +291,7 @@
     {
         "name": "Finger Exercise Lecture 7 - A",
         "exercise": "Implement the function that meets the specifications mentioned in the starter code",
-        "starter_code": "def eval_quadratic(a, b, c, x):\n    \"\"\"\n    Evaluates a quadratic equation at a given value.\n\n    Args:\n        a (float): Coefficient of the quadratic term (x^2).\n\n    # Your code here",
+        "starter_code": "def eval_quadratic(a, b, c, x):\n    \"\"\"\n    Evaluates a quadratic equation at a given value.\n\n    Args:\n        a (float): Coefficient of the quadratic term (x^2).\"\"\"\n    # Your code here\n",
         "mit_correct_solution": "def eval_quadratic(a,b,c,x):\n    return a*x*x + b*x + c",
         "function_name": "eval_quadratic",
 
@@ -335,7 +335,7 @@
     {
         "name": "Finger Exercise Lecture 7 - B",
         "exercise": "Implement the function that meets the specifications mentioned in the starter code",
-        "starter_code": "def two_quadratics(a1, b1, c1, x1, a2, b2, c2, x2):\n    \"\"\"\na1, b1, c1: one set of coefficients of a quadratic equation\n    a2, b2, c2: another set of coefficients of a quadratic equation\n    x1, x2: values at which to evaluate the quadratics\n    Evaluates one quadratic with coefficients a1, b1, c1, at x1.\n    Evaluates another quadratic with coefficients a2, b2, c2, at x2.\n     Prints the sum of the two evaluations. Does not return anything.\"\"\"\n    # Your code here",
+        "starter_code": "def two_quadratics(a1, b1, c1, x1, a2, b2, c2, x2):\n    \"\"\"\na1, b1, c1: one set of coefficients of a quadratic equation\n    a2, b2, c2: another set of coefficients of a quadratic equation\n    x1, x2: values at which to evaluate the quadratics\n    Evaluates one quadratic with coefficients a1, b1, c1, at x1.\n    Evaluates another quadratic with coefficients a2, b2, c2, at x2.\n     Prints the sum of the two evaluations. Does not return anything.\"\"\"\n    # Your code here\n",
         "mit_correct_solution": "def eval_quadratic(a,b,c,x):\n    return a*x*x + b*x + c\n\ndef two_quadratics(a1, b1, c1, x1, a2, b2, c2, x2):\n    return(eval_quadratic(a1, b1, c1, x1) + eval_quadratic(a2, b2, c2, x2))",
         "function_name": "two_quadratics",
 
