@@ -32,8 +32,11 @@ app = FastAPI(
 
 # Dependency for database
 def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
-    yield db
+    try:
+        db = SessionLocal()
+        yield db
+    finally:
+        db.close()
     # try:
     #     db = SessionLocal()
     #     yield db
@@ -932,7 +935,6 @@ def fetch_lesson_question_data(
     lecture_question_object = db.query(LectureQuestion).filter(
         LectureQuestion.id == lesson_qid
     ).first()
-
     print('lecture-QOBJECT:', lecture_question_object)
 
     if authenticated_user_object is not None:
@@ -1014,14 +1016,61 @@ def fetch_lesson_question_data(
                 'lc_submission_history_object_id': sub_hist_obj.id,
                 'lc_submission_history_object_boolean_result': sub_hist_obj.test_case_boolean_result,
                 'lc_submission_history_code': sub_hist_obj.code,
-                'lc_submission_history_object_created': sub_hist_obj.created_at
+                'lc_submission_history_object_created': sub_hist_obj.created_at,
+
+                'ai_tutor_submission_feedback': sub_hist_obj.ai_feedback_response_string
             })
 
     rv_dict = {}
+    lecture_main_object = db.query(LectureMain).filter(
+        LectureMain.id == lecture_question_object.lecture_main_object_id
+    ).first()
+    rv_dict['next_lecture_number'] = lecture_main_object.number
+
     if authenticated_user_object is not None:
         rv_dict['question_object_id'] = str(user_l_question_obj.id)
     else:
         rv_dict['question_object_id'] = str(lecture_question_object.id)
+
+
+    # ## TODO: order-by all questions retrieval
+    # ## next question
+    # all_questions_for_current_lecture_objects = db.query(LectureQuestion).filter(
+    #     LectureQuestion.lecture_main_object_id == lecture_main_object.id
+    # ).all()
+
+    next_q = True
+    all_lm_objects = db.query(LectureMain).filter(
+        LectureMain.number == lecture_main_object.number
+    ).all()
+    for lm_obj in all_lm_objects:
+        current_question_for_lm_object = db.query(LectureQuestion).filter(
+            LectureQuestion.lecture_main_object_id == lm_obj.id,
+            LectureQuestion.created_date > lecture_question_object.created_date
+        ).first()
+        if current_question_for_lm_object is not None:
+            if current_question_for_lm_object.id != lecture_question_object.id:
+                rv_dict['next_question_object_id'] = current_question_for_lm_object.id
+                next_q = False
+                break
+
+    # if len(all_questions_for_current_lecture_objects) > 1:
+    #     last_question = all_questions_for_current_lecture_objects[len(all_questions_for_current_lecture_objects)-1]
+    #     if last_question.id != lecture_question_object.id:
+    #         rv_dict['next_question_object_id'] = last_question.id
+
+    if next_q is True:
+        next_lecture_main_object = db.query(LectureMain).filter(
+            LectureMain.number == (lecture_main_object.number + 1)
+        ).first()
+        print("next_lecture_main_object:", next_lecture_main_object)
+        if (next_lecture_main_object is None):
+            rv_dict['next_question_object_id'] = None
+        else:
+            next_lecture_qst_object = db.query(LectureQuestion).filter(
+                LectureQuestion.lecture_main_object_id == next_lecture_main_object.id
+            ).first()
+            rv_dict['next_question_object_id'] = next_lecture_qst_object.id
 
     print("TMP TESTING:", rv_dict)
 
@@ -1079,7 +1128,10 @@ def handle_lecture_question_submission(
     tc_return_list = []
     for tc_di in question_literal_tc_list:
         input_tc_dict = tc_di['input']
-        tc_return_list.append({'input': input_tc_dict,  "expected_output": tc_di["expected_output"]})
+        tc_return_list.append({
+            'input': input_tc_dict,
+            "expected_output": tc_di["expected_output"]
+        })
 
     # # TODO: test this function first before FE test
     # tc_results = run_test_cases(
@@ -1090,7 +1142,31 @@ def handle_lecture_question_submission(
     # print("Results:", tc_results)
 
     tc_function_name = parent_lecture_question_object.test_function_name
-    tc_results = globals()[tc_function_name]()
+
+    tc_results = None
+    if tc_function_name == 'run_test_cases_without_function':
+        tc_results = run_test_cases_without_function(
+            user_code = user_code,
+            test_case_list = ast.literal_eval(parent_lecture_question_object.test_case_list)
+        )
+
+    # TODO: add function and class name to the lecture question + update the initial todo's
+
+    elif tc_function_name == 'run_test_cases_with_function':
+        tc_results = run_test_cases_with_function(
+            user_code = user_code,             
+            function_name = "",
+            test_case_list = ast.literal_eval(parent_lecture_question_object.test_case_list)
+        )
+    
+    elif tc_function_name == 'run_test_cases_with_class':
+        run_test_cases_with_class(
+            user_code = user_code,
+            class_name = "",
+            test_case_list = ast.literal_eval(parent_lecture_question_object.test_case_list)
+        )
+
+    # tc_results = globals()[tc_function_name]()
     print("Results:", tc_results)
 
     all_tests_passed = True

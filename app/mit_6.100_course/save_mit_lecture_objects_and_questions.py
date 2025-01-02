@@ -6,13 +6,18 @@ from app.models import LectureMain, LectureQuestion
 
 db = SessionLocal()
 
-with open('lecture_exercises.json', 'r') as file:
+# TODO:
+    # re-adjust the comments in the code (mainly for the first 6 questions)
+    # test everything
+    # add all problem sets today**
+
+with open('lecture_exercises.json', 'r', encoding='utf-8') as file:
     data = json.load(file)
 
 print(f"Number of Examples: {len(data)}")
 for rw in data:
     lec_num, lec_name = rw['lecture_number'], rw['lecture_name']
-    
+
     print(f"Saving lecture {lec_num} with name {lec_name}")
     lm_object = LectureMain(
         number = rw['lecture_number'],
@@ -43,6 +48,10 @@ for rw in data:
         example_io_list = str(rw['input_output_list']),
         starter_code = rw['starter_code'],
         correct_solution = rw['mit_correct_solution'],
+
+        function_name = rw.get('function_name', None),
+        class_name = rw.get('class_name', None),
+
         test_case_list = test_case_list,
         test_function_name = test_function_name,
         lecture_main_object_id = lm_object.id,

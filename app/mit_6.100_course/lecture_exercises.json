@@ -3,7 +3,7 @@
     {
         "name": "Finger Exercise Lecture 1",
         "exercise": "Assume three variables are already defined for you: a, b, and c. Create a variable called total that adds a and b then multiplies the result by c. Include a last line in your code to print the value: print(total)",
-        "starter_code": "# The values of a, b, and c will be provided by the system during testing.\n# Do NOT assign any values to these variables in your code when submitting your solution.\n\n# TODO: Create the 'total' variable and calculate the result\n# TODO: Print the value of 'total'\n",
+        "starter_code": "# Write your code for the question shown on the right.\n# When submitting your solution ('submit solution' button), do not include any pre-defined variables (ie. a = 2, b = 3, c = 4). This is completely fine to do when testing and running your code but please comment these lines out during submission or your solution will not pass the test cases!",
         "mit_correct_solution": "total = (a + b) * c\nprint(total)",
         "function_name": "",
 
@@ -52,7 +52,7 @@
     {
         "name": "Finger Exercise Lecture 2",
         "exercise": "Assume you are given a variable named number (has a numerical value). Write a piece of Python code that prints out one of the following strings: positive if the variable number is positive, negative if the variable number is negative, zero if the variable number is equal to zero",
-        "starter_code": "#TODO: implement your here code",
+        "starter_code": "# Write your code for the question below.\n# When submitting the solution, do not include any variables, simply the logic and the print(total) statement at the end.",
         "mit_correct_solution": "if number > 0:\n  print('positive')\nelif number < 0:\n  print('negative')\nelse:\n  print('zero')",
         "function_name": "",
 
@@ -1054,8 +1054,8 @@
         "lecture_embed_video_url": "https://www.youtube.com/embed/wyc5FwzkcM",
         "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/wyc5FwzkcM/maxresdefault.jpg",
 
-        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec19_pdf/",
-        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec19_code_py/",
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec20_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec20_code_zip/",
 
         "input_output_list": [
             {
