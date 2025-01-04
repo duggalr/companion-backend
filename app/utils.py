@@ -111,3 +111,29 @@ async def get_optional_token(request: Request) -> Optional[str]:
         if scheme.lower() == "bearer":
             return token
     return None
+
+
+# ## For Lecture and Problem Set Questions
+def _make_list_renderable_for_frontend(li: list, type):
+    """
+    type --> test_case or example_input_output
+    """
+    rv = []
+    for di in li:
+        input_value = di['input']
+        di['input'] = str(input_value)
+        if type == 'test_case':
+            output_value = di['expected_output']
+            di['output'] = str(output_value)
+        else:
+            output_value = di['output']
+            di['output'] = str(output_value)
+        rv.append(di)
+    return rv
+
+def clean_question_input_output_list(input_output_list: list):
+    return _make_list_renderable_for_frontend(input_output_list, type='example_input_output')
+
+def clean_question_test_case_list(test_case_list: list):
+    return _make_list_renderable_for_frontend(test_case_list, type='test_case')
+

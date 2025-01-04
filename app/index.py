@@ -19,7 +19,7 @@ from app.llm import prompts, openai_wrapper
 from app.models import UserOAuth, CustomUser, InitialPlaygroundQuestion, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion, UserPlaygroundLectureCode, LecturePlaygroundChatConversation, LectureMain, LectureCodeSubmissionHistory, ProblemSetQuestion, PlaygroundProblemSetChatConversation
 from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema, FetchLessonQuestionDetailSchema, FetchLectureDetailSchema, LectureQuestionSubmissionSchema, ProblemSetFetchSchema
 from app.config import settings
-from app.utils import create_anon_user_object, get_anon_custom_user_object, _get_random_initial_pg_question, get_user_object, get_optional_token
+from app.utils import create_anon_user_object, get_anon_custom_user_object, _get_random_initial_pg_question, get_user_object, get_optional_token, clean_question_input_output_list, clean_question_test_case_list
 from app.llm.prompt_utils import _prepate_tutor_prompt, _prepare_solution_feedback_prompt
 from app.scripts.verify_auth_zero_jwt import verify_jwt
 
@@ -1150,12 +1150,25 @@ def fetch_lesson_question_data(
 
     print("TMP TESTING:", rv_dict)
 
+    cleaned_io_list = clean_question_input_output_list(
+        input_output_list = ast.literal_eval(lecture_question_object.example_io_list)
+    )
+    cleaned_tc_list = clean_question_test_case_list(
+        test_case_list = ast.literal_eval(lecture_question_object.test_case_list)
+    )
+
     rv_dict.update({
         'name': lecture_question_object.name,
         'exercise': lecture_question_object.text,
-        'input_output_list': ast.literal_eval(lecture_question_object.example_io_list),
+        
+        # 'input_output_list': ast.literal_eval(lecture_question_object.example_io_list),
+        'input_output_list': cleaned_io_list,
+
         'user_code': lecture_question_object.starter_code if current_code_object is None else current_code_object.code,
-        'test_case_list': test_case_rv_list,
+        
+        # 'test_case_list': test_case_rv_list,
+        'test_case_list': cleaned_tc_list,
+
         'user_code_submission_history_objects': user_code_submission_history_object_rv
     })
 
@@ -1272,6 +1285,8 @@ def handle_lecture_question_submission(
         eval_dict['expected_output'] = expected_output
         tc_results_output_list.append(eval_dict)
 
+    print('tc_results_output_list-NEW-NEW:', tc_results_output_list)
+
     # TODO: uncomment the ai_response
     ai_response = op_ai_wrapper.generate_sync_response(
         prompt = solution_fb_prompt,
@@ -1377,11 +1392,9 @@ def fetch_course_progress(
 @app.post("/fetch_problem_set_question_data")
 def fetch_problem_set_question_data(
     data: ProblemSetFetchSchema,
-    # credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     token: Optional[str] = Depends(get_optional_token),
     db: Session = Depends(get_db)
 ):
-
     authenticated_user_object = None
     if (token):
         # token = credentials.credentials
@@ -1420,20 +1433,35 @@ def fetch_problem_set_question_data(
         next_lecture_qst_object = db.query(LectureQuestion).filter(
             LectureQuestion.lecture_main_object_id == next_lecture_main_object.id
         ).first()
-        next_question_object_id = next_lecture_qst_object.id
+        if next_lecture_qst_object is not None:
+            next_question_object_id = next_lecture_qst_object.id
+        else:  # TODO: verify here
+            next_question_object_id = None
 
     ## Preparing Return Dictionary
     final_return_dict = {}
     user_created_lecture_question_list = []
     for idx, lec_q_object in enumerate(problem_set_lec_question_objects):
+
+        # print("INPUT OUTPUT LITERAL:", ast.literal_eval(lec_q_object.example_io_list))
+
+        cleaned_io_list = clean_question_input_output_list(
+            input_output_list = ast.literal_eval(lec_q_object.example_io_list)
+        )
+        cleaned_tc_list = clean_question_test_case_list(
+            test_case_list = ast.literal_eval(lec_q_object.test_case_list)
+        )
+
         tmp_dict = {
             "name": lec_q_object.name,
             "question": lec_q_object.text,
-            "input_output_list": ast.literal_eval(lec_q_object.example_io_list),
+            # "input_output_list": ast.literal_eval(lec_q_object.example_io_list),
+            "input_output_list": cleaned_io_list,
             "code": lec_q_object.starter_code,
 
             "lecture_question": True,
             # "test_case_list": ast.literal_eval(lec_q_object.test_case_list),
+            "test_case_list": cleaned_tc_list,
 
             "next_lecture_number": None,
             "next_question_object_id": None,
@@ -1446,7 +1474,7 @@ def fetch_problem_set_question_data(
 
         ## Fetching test cases list for specific question
         test_case_list_literal = ast.literal_eval(lec_q_object.test_case_list)
-        print('test_case_list_literal:', test_case_list_literal)
+        # print('test_case_list_literal:', test_case_list_literal)
 
         test_case_rv_list = []
         for di in test_case_list_literal:
@@ -1466,20 +1494,21 @@ def fetch_problem_set_question_data(
             else:
                 output_values_str = output_value
 
-
             print("OUTPUT VALUE STRING NEW:", output_values_str)
             test_case_rv_list.append({
                 'input': input_values_str.strip()[:-1],
                 'output': output_values_str
             })
 
-        tmp_dict['test_case_list'] = test_case_rv_list
+        # tmp_dict['test_case_list'] = test_case_rv_list
 
         if idx == (len(problem_set_lec_question_objects)-1):
             tmp_dict['next_lecture_number'] = lecture_main_object.number
             tmp_dict['next_question_object_id'] = next_question_object_id
             tmp_dict['problem_set_next_part'] = None
 
+
+        user_created_lec_q_object = None
         if authenticated_user_object is not None:
             user_created_lec_q_object = db.query(UserCreatedLectureQuestion).filter(
                 UserCreatedLectureQuestion.lecture_question_object_id == lec_q_object.id,
@@ -1509,6 +1538,37 @@ def fetch_problem_set_question_data(
 
         else:
             tmp_dict["question_id"] = lec_q_object.id
+
+
+        ## Fetching Submission History
+        user_code_submission_history_objects = []
+        user_code_submission_history_object_rv = []
+        if authenticated_user_object is not None:
+            # user_code_submission_history_objects = db.query(LectureCodeSubmissionHistory).filter(
+            #     LectureCodeSubmissionHistory.user_created_lecture_question_object_id == user_l_question_obj.id
+            # ).all()
+
+            user_code_submission_history_objects = (
+                db.query(LectureCodeSubmissionHistory)
+                .filter(
+                    LectureCodeSubmissionHistory.user_created_lecture_question_object_id
+                    == user_created_lec_q_object.id
+                )
+                .order_by(desc(LectureCodeSubmissionHistory.created_at))  # Replace `created_at` with your desired column
+                .all()
+            )
+
+            for sub_hist_obj in user_code_submission_history_objects:
+                user_code_submission_history_object_rv.append({
+                    'lc_submission_history_object_id': sub_hist_obj.id,
+                    'lc_submission_history_object_boolean_result': sub_hist_obj.test_case_boolean_result,
+                    'lc_submission_history_code': sub_hist_obj.code,
+                    'lc_submission_history_object_created': sub_hist_obj.created_at,
+
+                    'ai_tutor_submission_feedback': sub_hist_obj.ai_feedback_response_string
+                })
+    
+        tmp_dict["user_code_submission_history_objects"] = user_code_submission_history_object_rv
 
         final_return_dict[idx] = tmp_dict
 
