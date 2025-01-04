@@ -119,6 +119,22 @@ class LectureMain(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
 
+class ProblemSetQuestion(Base):
+    """
+    """
+    __tablename__ = 'problem_set_question'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ps_number = Column(Integer, nullable=True, unique=True)
+    ps_name = Column(String, nullable=True, unique=True)
+
+    lecture_main_object_id = Column(UUID, ForeignKey('lecture_main.id'))
+    lecture_main_object = relationship("LectureMain")
+
+    created_date = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
 class LectureQuestion(QuestionBaseModel):
     """
     """
@@ -130,6 +146,12 @@ class LectureQuestion(QuestionBaseModel):
     function_name = Column(String, nullable=True)
     class_name = Column(String, nullable=True)
     test_function_name = Column(String, nullable=True)
+
+    question_type = Column(String, nullable=True)  # TODO: question_type (lecture_exercise or problem_set)
+    problem_set_part = Column(String, nullable=True)
+    problem_set_number = Column(Integer, ForeignKey('problem_set_question.ps_number'), nullable=True)
+    problem_set_object = relationship("ProblemSetQuestion")
+
     lecture_main_object_id = Column(UUID, ForeignKey('lecture_main.id'))
     lecture_main_object = relationship("LectureMain")
 
@@ -236,3 +258,18 @@ class LecturePlaygroundChatConversation(TutorConversationBaseModel):
 
     # question_object_id = Column(UUID, ForeignKey('user_created_playground_question.id'), nullable=False)
     # parent_question_object = relationship("UserCreatedPlaygroundQuestion")    
+
+
+# TODO: set ps object id in state
+class PlaygroundProblemSetChatConversation(TutorConversationBaseModel):
+    """
+    """
+    __tablename__ = "lecture_playground_problem_set_chat_conversation"
+
+    code = Column(String, nullable=True)
+    problem_set_object_id = Column(UUID, ForeignKey('problem_set_question.id'), nullable=False)
+    problem_set_object = relationship("ProblemSetQuestion")
+
+# TODO: 
+    # start here and get chat setup with this now table to handle it
+    # proceed from there to testing

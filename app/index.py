@@ -16,8 +16,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.database import SessionLocal
 from app.llm import prompts, openai_wrapper
-from app.models import UserOAuth, CustomUser, InitialPlaygroundQuestion, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion, UserPlaygroundLectureCode, LecturePlaygroundChatConversation, LectureMain, LectureCodeSubmissionHistory
-from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema, FetchLessonQuestionDetailSchema, FetchLectureDetailSchema, LectureQuestionSubmissionSchema
+from app.models import UserOAuth, CustomUser, InitialPlaygroundQuestion, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion, UserPlaygroundLectureCode, LecturePlaygroundChatConversation, LectureMain, LectureCodeSubmissionHistory, ProblemSetQuestion, PlaygroundProblemSetChatConversation
+from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema, FetchLessonQuestionDetailSchema, FetchLectureDetailSchema, LectureQuestionSubmissionSchema, ProblemSetFetchSchema
 from app.config import settings
 from app.utils import create_anon_user_object, get_anon_custom_user_object, _get_random_initial_pg_question, get_user_object, get_optional_token
 from app.llm.prompt_utils import _prepate_tutor_prompt, _prepare_solution_feedback_prompt
@@ -470,6 +470,10 @@ def save_user_code(
         token
     )
 
+    print('question_ID:', data.question_id)
+
+    # TODO: need to update here to handle problem set for saving code and other stuff; finish and proceed from there
+
     if data.lecture_question is True:
         question_object = db.query(UserCreatedLectureQuestion).filter(
             UserCreatedLectureQuestion.id == data.question_id,
@@ -524,6 +528,11 @@ async def websocket_handle_chat_response(
         while True:  # Keep receiving messages in a loop
             data = await websocket.receive_json()
 
+            problem_set_question = data.get('problem_set_question', None)
+            problem_set_object_id = data.get('problem_set_object_id', None)
+
+            # TODO: start here
+
             user_question = data['text'].strip()
             user_code = data['user_code']
             all_user_messages_str = data['all_user_messages_str']
@@ -534,7 +543,13 @@ async def websocket_handle_chat_response(
 
             print(f"IS LECTURE QUESTION: {is_lecture_question} | {parent_question_object_id}")
 
-            if is_lecture_question is True:
+            if problem_set_question is True:
+                parent_question_object = db.query(ProblemSetQuestion).filter(
+                    ProblemSetQuestion.id == problem_set_object_id
+                ).first()
+                print('PS Object:', parent_question_object)
+
+            elif is_lecture_question is True:
                 parent_question_object = db.query(UserCreatedLectureQuestion).filter(
                     UserCreatedLectureQuestion.id == parent_question_object_id
                 ).first()
@@ -564,8 +579,21 @@ async def websocket_handle_chat_response(
                 # Fetch conversation messagess
                 if text is None:
                     await websocket.send_text('MODEL_GEN_COMPLETE')
+                    
+                    # TODO:
+                    if problem_set_question:
+                        problem_set_chat_conversation_object = PlaygroundProblemSetChatConversation(
+                            question = user_question,
+                            prompt = model_prompt,
+                            response = full_response_message,
+                            code = user_code,
+                            problem_set_object_id = problem_set_object_id,
+                        )
+                        db.add(problem_set_chat_conversation_object)
+                        db.commit()
+                        db.refresh(problem_set_chat_conversation_object)
 
-                    if is_lecture_question:
+                    elif is_lecture_question:
                         lecture_chat_conversation_object = LecturePlaygroundChatConversation(
                             question = user_question,
                             prompt = model_prompt,
@@ -836,10 +864,16 @@ def fetch_playground_question_chat(
     )
 
     question_object_id = data.question_id
+    is_problem_set_question = data.problem_set_question
 
     print(f"Input Data:", authenticated_user_object, data.lecture_question)
 
-    if data.lecture_question is True:
+    if is_problem_set_question is True:
+        question_object = db.query(ProblemSetQuestion).filter(
+            ProblemSetQuestion.id == question_object_id
+        ).first()
+
+    elif data.lecture_question is True:
         question_object = db.query(UserCreatedLectureQuestion).filter(
             UserCreatedLectureQuestion.lecture_question_object_id == question_object_id,
             UserCreatedLectureQuestion.custom_user_id == authenticated_user_object.id
@@ -854,7 +888,12 @@ def fetch_playground_question_chat(
     if question_object is None:
         raise HTTPException(status_code=404, detail="Question object not found.")
 
-    if data.lecture_question is True:
+    if is_problem_set_question is True:
+        pg_conversation_objects = db.query(PlaygroundProblemSetChatConversation).filter(
+            PlaygroundProblemSetChatConversation.problem_set_object_id == question_object.id
+        ).all()
+
+    elif data.lecture_question is True:
         pg_conversation_objects = db.query(LecturePlaygroundChatConversation).filter(
             LecturePlaygroundChatConversation.user_lecture_question_object_id == question_object.id
         ).all()
@@ -1301,7 +1340,6 @@ def handle_lecture_question_submission(
     }
 
 
-
 @app.post("/fetch_course_progress")
 def fetch_course_progress(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
@@ -1323,3 +1361,206 @@ def fetch_course_progress(
         'remaining': (total_lecture_objects - completed_lecture_objects)
     }
 
+
+@app.post("/fetch_problem_set_question_data")
+def fetch_problem_set_question_data(
+    data: ProblemSetFetchSchema,
+    # credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    token: Optional[str] = Depends(get_optional_token),
+    db: Session = Depends(get_db)
+):
+
+    authenticated_user_object = None
+    if (token):
+        # token = credentials.credentials
+        authenticated_user_object = get_user_object(
+            db = db,
+            user_id = None,
+            token = token
+        )
+
+    ps_object_id = data.problem_set_object_id
+    ps_question_object = db.query(ProblemSetQuestion).filter(
+        ProblemSetQuestion.id == ps_object_id
+    ).first()
+    
+    if ps_question_object is None:
+        raise HTTPException(status_code=404, detail="Problem Set Not Found.")
+
+    problem_set_lec_question_objects = db.query(LectureQuestion).filter(
+        LectureQuestion.problem_set_number == ps_question_object.ps_number
+    ).all()
+
+    ## TODO: Fetching next question
+    lecture_main_object = db.query(LectureMain).filter(
+        LectureMain.id == problem_set_lec_question_objects[0].lecture_main_object_id
+    ).first()
+
+    next_lecture_main_object = db.query(LectureMain).filter(
+        LectureMain.number == (lecture_main_object.number + 1)
+    ).first()
+    print("next_lecture_main_object:", next_lecture_main_object)
+
+    if (next_lecture_main_object is None):
+        # rv_dict['next_question_object_id'] = None
+        next_question_object_id = None
+    else:
+        next_lecture_qst_object = db.query(LectureQuestion).filter(
+            LectureQuestion.lecture_main_object_id == next_lecture_main_object.id
+        ).first()
+        next_question_object_id = next_lecture_qst_object.id
+
+
+    ## Preparing Return Dictionary
+    final_return_dict = {}
+    user_created_lecture_question_list = []
+    for idx, lec_q_object in enumerate(problem_set_lec_question_objects):
+
+        tmp_dict = {
+            "name": lec_q_object.name,
+            "question": lec_q_object.text,
+            "input_output_list": ast.literal_eval(lec_q_object.example_io_list),
+            "code": lec_q_object.starter_code,
+
+            "lecture_question": True,
+            "test_case_list": ast.literal_eval(lec_q_object.test_case_list),
+
+            "next_lecture_number": None,
+            "next_question_object_id": None,
+
+            "problem_set_question": True,
+            "problem_set_current_part": idx,
+            "problem_set_next_part": idx + 1,
+            "problem_set_number": lec_q_object.problem_set_number
+        }
+
+        if idx == (len(problem_set_lec_question_objects)-1):
+            tmp_dict['next_lecture_number'] = lecture_main_object.number
+            tmp_dict['next_question_object_id'] = next_question_object_id
+            tmp_dict['problem_set_next_part'] = None
+
+        if authenticated_user_object is not None:
+            user_created_lec_q_object = db.query(UserCreatedLectureQuestion).filter(
+                UserCreatedLectureQuestion.lecture_question_object_id == lec_q_object.id,
+                UserCreatedLectureQuestion.custom_user_id == authenticated_user_object.id
+            ).first()
+            
+            if user_created_lec_q_object is None:
+                user_created_lec_q_object = UserCreatedLectureQuestion(
+                    lecture_question_object_id = lec_q_object.id,
+                    custom_user_id = authenticated_user_object.id
+                )
+                db.add(user_created_lec_q_object)
+                db.commit()
+                db.refresh(user_created_lec_q_object)
+
+            user_created_lecture_question_list.append(str(user_created_lec_q_object.id))
+            
+            # else:
+            #     current_lec_q_code_object_list = db.query(UserPlaygroundLectureCode).filter(
+            #         UserPlaygroundLectureCode.lecture_question_object_id == user_created_lec_q_object.id
+            #     ).order_by(UserPlaygroundLectureCode.created_at.desc()).all()
+            #     # TODO: 
+            #     if len(current_lec_q_code_object_list) > 0:
+            #         tmp_dict["code"] = current_lec_q_code_object_list[0].code
+
+            tmp_dict["question_id"] = user_created_lec_q_object.id
+
+        else:
+            tmp_dict["question_id"] = lec_q_object.id
+
+        final_return_dict[idx] = tmp_dict
+
+
+    print("user_created_lecture_question_list:", user_created_lecture_question_list)
+
+    current_lec_q_code_object_list = db.query(UserPlaygroundLectureCode).filter(
+        UserPlaygroundLectureCode.lecture_question_object_id.in_(tuple(user_created_lecture_question_list))
+    ).order_by(UserPlaygroundLectureCode.created_at.desc()).all()
+
+    print('current_lec_q_code_object_list-new:', current_lec_q_code_object_list)
+    if len(current_lec_q_code_object_list) > 0:
+        current_code_string = current_lec_q_code_object_list[0].code
+        for idx in final_return_dict:
+            final_return_dict[idx]['code'] = current_code_string
+
+    return {
+        'success': True,
+        'data': final_return_dict,
+        'current_question_state': final_return_dict[0]
+    }
+
+    # lecture_main_object = db.query(LectureMain).filter(
+    #     LectureMain.id == problem_set_question_objects[0].lecture_main_object_id
+    # ).first()
+
+    # next_lecture_main_object = db.query(LectureMain).filter(
+    #     LectureMain.number == (lecture_main_object.number + 1)
+    # ).first()
+    # print("next_lecture_main_object:", next_lecture_main_object)
+
+    # if (next_lecture_main_object is None):
+    #     # rv_dict['next_question_object_id'] = None
+    #     next_question_object_id = None
+    # else:
+    #     next_lecture_qst_object = db.query(LectureQuestion).filter(
+    #         LectureQuestion.lecture_main_object_id == next_lecture_main_object.id
+    #     ).first()
+    #     next_question_object_id = next_lecture_qst_object.id
+
+    # rv = {}
+    # for idx, ps_obj in enumerate(problem_set_question_objects):
+    #     tmp_dict = {
+    #         "question_id": ps_obj.id,
+    #         "name": ps_obj.name,
+    #         "question": ps_obj.text,
+    #         "input_output_list": ast.literal_eval(ps_obj.example_io_list),
+    #         "code": ps_obj.starter_code,
+
+    #         "lecture_quesiton": True,
+    #         "test_case_list": ast.literal_eval(ps_obj.test_case_list),
+
+    #         "next_lecture_number": None,
+    #         "next_question_object_id": None,
+
+    #         "problem_set_question": True,
+    #         # "problem_set_current_part": ps_obj.problem_set_part,
+    #         'problem_set_current_part': idx,
+    #         'problem_set_next_part': idx + 1,
+    #         "problem_set_number": ps_obj.problem_set_number
+    #     }
+
+    #     if idx == (len(problem_set_question_objects)-1):
+    #         tmp_dict['next_lecture_number'] = lecture_main_object.number
+    #         tmp_dict['next_question_object_id'] = next_question_object_id
+    #         tmp_dict['problem_set_next_part'] = None
+
+    #     rv[idx] = tmp_dict
+
+    # return {
+    #     'success': True,
+    #     'data': rv,
+    #     'current_question_state': rv[0]
+    # }
+
+
+
+            # tmp_dict = {
+            #     "question_id": user_created_lec_q_object.id,
+            #     "name": lec_q_object.name,
+            #     "question": lec_q_object.text,
+            #     "input_output_list": ast.literal_eval(lec_q_object.example_io_list),
+            #     "code": lec_q_object.starter_code,
+
+            #     "lecture_question": True,
+            #     "test_case_list": ast.literal_eval(lec_q_object.test_case_list),
+
+            #     "next_lecture_number": None,
+            #     "next_question_object_id": None,
+
+            #     "problem_set_question": True,
+            #     # "problem_set_current_part": ps_obj.problem_set_part,
+            #     'problem_set_current_part': idx,
+            #     'problem_set_next_part': idx + 1,
+            #     "problem_set_number": lec_q_object.problem_set_number
+            # }

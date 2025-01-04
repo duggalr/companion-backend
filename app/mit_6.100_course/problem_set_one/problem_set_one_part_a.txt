@@ -7,7 +7,8 @@ total cost of your dream house by the down payment percentage.
 . The starting yearly salary ( yearly_salary)
 . The portion of salary to be saved ( portion_saved). This variable should be in decimal form (e.g. 0.1 for 10%).
 . The cost of your dream home ( cost_of_dream_home)
-Writing the Progra. You will need to determine how many months it will take given the following information:
+
+You will need to determine how many months it will take given the following information:
 . yearly_salary, as described above.
 . portion_saved, as described above.
 . cost_of_dream_home, as described above.
