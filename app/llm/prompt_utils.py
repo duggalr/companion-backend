@@ -95,7 +95,7 @@ Did all the test cases pass (boolean):
 {test_case_result_boolean}
 
 The test cases results list for the student's code are:
-{{test_case_result_list_str}}
+{test_case_result_list_str}
 
 1. **Test Case Results Summary**: 
    - If the student's solution passes all test cases, provide a positive summary about the correctness of the solution.
@@ -121,14 +121,14 @@ Return a short paragraph with your response.
 
 ##Output:
 """
-
-    prompt = prompt.format(
-        user_code = user_code,
-        correct_solution = correct_solution,
-        test_case_result_boolean = test_case_result_boolean,
-        test_case_result_list_str = test_case_result_list_str   
-    )
     return prompt
+    # prompt = prompt.format(
+    #     user_code = user_code,
+    #     correct_solution = correct_solution,
+    #     test_case_result_boolean = test_case_result_boolean,
+    #     test_case_result_list_str = test_case_result_list_str   
+    # )
+    # return prompt
 
 
 

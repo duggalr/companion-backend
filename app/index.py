@@ -1237,6 +1237,7 @@ def handle_lecture_question_submission(
         )
     
     elif tc_function_name == 'run_test_cases_with_class':
+        # TODO: 
         run_test_cases_with_class(
             user_code = user_code,
             class_name = parent_lecture_question_object.class_name,
@@ -1252,14 +1253,24 @@ def handle_lecture_question_submission(
             all_tests_passed = False
             break
 
-    print("PROMPT")
+    # print("PROMPT")
+
+    serialized_test_case_results = json.dumps(tc_results, indent=2)
     solution_fb_prompt = _prepare_solution_feedback_prompt(
         user_code = user_code,
         correct_solution = parent_lecture_question_object.correct_solution,
         test_case_result_boolean = all_tests_passed,
-        test_case_result_list_str = str(tc_results)
+        test_case_result_list_str = serialized_test_case_results
     )
     print(solution_fb_prompt)
+
+    tc_results_output_list = []
+    for eval_dict in tc_results:
+        program_output = str(eval_dict['program_output'])
+        expected_output = str(eval_dict['expected_output'])
+        eval_dict['program_output'] = program_output
+        eval_dict['expected_output'] = expected_output
+        tc_results_output_list.append(eval_dict)
 
     # TODO: uncomment the ai_response
     ai_response = op_ai_wrapper.generate_sync_response(
@@ -1333,7 +1344,8 @@ def handle_lecture_question_submission(
             'lc_submission_history_object_boolean_result': lc_submission_history_object.test_case_boolean_result,
             'lc_submission_history_code': lc_submission_history_object.code,
 
-            'result_list': tc_results,
+            # 'result_list': tc_results,
+            'result_list': tc_results_output_list,
             'all_tests_passed': all_tests_passed,
             'ai_response': ai_response_string
         }
@@ -1410,12 +1422,10 @@ def fetch_problem_set_question_data(
         ).first()
         next_question_object_id = next_lecture_qst_object.id
 
-
     ## Preparing Return Dictionary
     final_return_dict = {}
     user_created_lecture_question_list = []
     for idx, lec_q_object in enumerate(problem_set_lec_question_objects):
-
         tmp_dict = {
             "name": lec_q_object.name,
             "question": lec_q_object.text,
@@ -1423,7 +1433,7 @@ def fetch_problem_set_question_data(
             "code": lec_q_object.starter_code,
 
             "lecture_question": True,
-            "test_case_list": ast.literal_eval(lec_q_object.test_case_list),
+            # "test_case_list": ast.literal_eval(lec_q_object.test_case_list),
 
             "next_lecture_number": None,
             "next_question_object_id": None,
@@ -1433,6 +1443,37 @@ def fetch_problem_set_question_data(
             "problem_set_next_part": idx + 1,
             "problem_set_number": lec_q_object.problem_set_number
         }
+
+        ## Fetching test cases list for specific question
+        test_case_list_literal = ast.literal_eval(lec_q_object.test_case_list)
+        print('test_case_list_literal:', test_case_list_literal)
+
+        test_case_rv_list = []
+        for di in test_case_list_literal:
+            input_values_dict = di['input']
+            input_values_str = ""
+            for inp_k in input_values_dict:
+                input_values_str += f"{inp_k} = {input_values_dict[inp_k]}, "
+
+            output_value = di['expected_output']
+            
+            output_values_str = ""
+            if isinstance(output_value, dict):
+                # for out_k in output_value:
+                #     output_values_str += f"{out_k} = {output_value[out_k]}, "
+                # output_values_str = output_values_str.strip()[:-1]
+                output_values_str = str(output_value)
+            else:
+                output_values_str = output_value
+
+
+            print("OUTPUT VALUE STRING NEW:", output_values_str)
+            test_case_rv_list.append({
+                'input': input_values_str.strip()[:-1],
+                'output': output_values_str
+            })
+
+        tmp_dict['test_case_list'] = test_case_rv_list
 
         if idx == (len(problem_set_lec_question_objects)-1):
             tmp_dict['next_lecture_number'] = lecture_main_object.number

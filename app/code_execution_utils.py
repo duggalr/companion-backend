@@ -114,12 +114,11 @@ def _compute_eval_result_dict(execution_result, code_expected_output, function_p
             pass
 
 
-        if isinstance(actual_output, str) and (actual_output.startswith("(") or actual_output.startswith("[")):
+        if isinstance(actual_output, str) and (actual_output.startswith("(") or actual_output.startswith("[") or actual_output.startswith("{")):
             actual_output = ast.literal_eval(actual_output)
 
-        if isinstance(code_expected_output, str) and (code_expected_output.startswith("(") or code_expected_output.startswith("[")):
+        if isinstance(code_expected_output, str) and (code_expected_output.startswith("(") or code_expected_output.startswith("[") or code_expected_output.startswith("{")):
             code_expected_output = ast.literal_eval(code_expected_output)
-
 
         # Populate the result dictionary
         rv_dict['program_output'] = actual_output
@@ -207,6 +206,7 @@ def run_test_cases_with_function(user_code: str, function_name: str, test_case_l
             'python',
             full_code_to_call
         )
+        print('exec-result:', execution_result)
 
         rv_dict = _compute_eval_result_dict(
             execution_result=execution_result,
@@ -217,24 +217,21 @@ def run_test_cases_with_function(user_code: str, function_name: str, test_case_l
 
     return results
 
-# user_code = """def eval_quadratic(a, b, c, x):
-#     """
-#     Evaluates a quadratic equation at a given value.
+# user_code = "def find_best_savings_rate(initial_deposit):\n    # Constants\n    house_cost = 800000\n    portion_down_payment = 0.25\n    down_payment = house_cost * portion_down_payment\n    months = 36\n    epsilon = 100  # Allowable margin of error\n\n    # Initialize bisection search bounds\n    low = 0\n    high = 1\n    steps = 0\n\n    # Check if it's possible to reach the down payment\n    if initial_deposit * (1 + (high / 12))**months < down_payment:\n        return {\"best_savings_rate\": None, \"steps_in_bisection_search\": 0}\n\n    while high - low > 1e-4:  # Precision threshold\n        steps += 1\n        r = (low + high) / 2\n        amount_saved = initial_deposit * (1 + (r / 12))**months\n\n        if abs(amount_saved - down_payment) < epsilon:\n            return {\"best_savings_rate\": r, \"steps_in_bisection_search\": steps}\n        elif amount_saved < down_payment:\n            low = r\n        else:\n            high = r\n\n    return {\"best_savings_rate\": (low + high) / 2, \"steps_in_bisection_search\": steps}"
 
-#     Args:
-#         a (float): Coefficient of the quadratic term (x^2).
+# test_case_list = [
+#     {"input": {"initial_deposit": 65000}, "expected_output": {"best_savings_rate": 0.380615234375, "steps_in_bisection_search": 12}},
+#     {"input": {"initial_deposit": 150000}, "expected_output": {"best_savings_rate": 0.09619140625, "steps_in_bisection_search": 11}}
+# ]
 
-#     # Your code here
-#     """
-
-#     return a * (x**2) + b * (x) + c
-# """
-# test_case_list = [{'input': {'a': 1, 'b': 1, 'c': 1, 'x': 1}, 'expected_output': 3}, {'input': {'a': 2, 'b': -4, 'c': 0, 'x': 2}, 'expected_output': 0}, {'input': {'a': 0, 'b': 0, 'c': 0, 'x': 0}, 'expected_output': 0}, {'input': {'a': 1, 'b': 0, 'c': -1, 'x': 0}, 'expected_output': -1}, {'input': {'a': 3, 'b': 2, 'c': 1, 'x': -1}, 'expected_output': 2}]
-# run_test_cases_with_function(
+# output = run_test_cases_with_function(
 #     user_code = user_code,
-#     function_name = 'eval_quadratic',
+#     function_name = 'find_best_savings_rate',
 #     test_case_list = test_case_list
 # )
+# for out_di in output:
+#     print(out_di)
+
 
 def run_test_cases_with_class(user_code: str, class_name: str, test_case_list: list):
     results = []

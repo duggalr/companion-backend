@@ -1,0 +1,91 @@
+{
+    "problems": [
+        {
+            "problem_set_number": 3,
+            "problem_set_name": "Document Distance",
+            "part": "1",
+            "name": "Problem Set #3 - Text to List Part A",
+            "exercise": "Write a function to convert a string of text into a list of words. The input text string will have words separated by spaces and new lines. Remove punctuation and return a list of words.\n\n**Additional Context**:\n- The input text string may contain only spaces and new lines as white space characters.\n- You can assume the text is in lowercase and contains no special characters beyond punctuation.",
+            "starter_code": "def text_to_list(text):\n    # Your code here\n    pass",
+            "mit_correct_solution": "TODO: implement",
+            "input_output_list": [
+                {"input": "'hello world hello'", "output": ["hello", "world", "hello"]},
+                {"input": "'python programming is fun'", "output": ["python", "programming", "is", "fun"]}
+            ],
+            "test_case_list": [
+                {"input": {"text": "hello world hello"}, "expected_output": ["hello", "world", "hello"]},
+                {"input": {"text": "python programming is fun"}, "expected_output": ["python", "programming", "is", "fun"]}
+            ],
+            "function_name": "text_to_list",
+            "test_function_name": "run_test_cases_with_function"
+        },
+        {
+            "part": "2",
+            "name": "Problem Set #3 - Get Frequencies Part B",
+            "exercise": "Write a function that takes a list of words and returns a dictionary with each unique word as the key and its frequency as the value.\n\n**Additional Context**:\n- The function should iterate through the list and count the occurrences of each word.\n- Consider edge cases such as empty lists or lists with one word.",
+            "starter_code": "def get_frequencies(word_list):\n    # Your code here\n    pass",
+            "mit_correct_solution": "TODO: implement",
+            "input_output_list": [
+                {"input": "['h', 'e', 'l', 'l', 'o']", "output": {"h": 1, "e": 1, "l": 2, "o": 1}},
+                {"input": "['hello', 'world', 'hello']", "output": {"hello": 2, "world": 1}}
+            ],
+            "test_case_list": [
+                {"input": {"word_list": ["h", "e", "l", "l", "o"]}, "expected_output": {"h": 1, "e": 1, "l": 2, "o": 1}},
+                {"input": {"word_list": ["hello", "world", "hello"]}, "expected_output": {"hello": 2, "world": 1}}
+            ],
+            "function_name": "get_frequencies",
+            "test_function_name": "run_test_cases_with_function"
+        },
+        {
+            "part": "3",
+            "name": "Problem Set #3 - Letter Frequencies Part C",
+            "exercise": "Write a function that takes a word and returns a dictionary of letter frequencies using get_frequencies as a helper function.\n\n**Additional Context**:\n- Reuse the get_frequencies function to handle the counting logic.\n- Make sure the input is a single string without spaces or special characters.",
+            "starter_code": "def get_letter_frequencies(word):\n    # Your code here\n    pass",
+            "mit_correct_solution": "TODO: implement",
+            "input_output_list": [
+                {"input": "'hello'", "output": {"h": 1, "e": 1, "l": 2, "o": 1}},
+                {"input": "'that'", "output": {"t": 2, "h": 1, "a": 1}}
+            ],
+            "test_case_list": [
+                {"input": {"word": "hello"}, "expected_output": {"h": 1, "e": 1, "l": 2, "o": 1}},
+                {"input": {"word": "that"}, "expected_output": {"t": 2, "h": 1, "a": 1}}
+            ],
+            "function_name": "get_letter_frequencies",
+            "test_function_name": "run_test_cases_with_function"
+        },
+        {
+            "part": "4",
+            "name": "Problem Set #3 - Calculate Similarity Part D",
+            "exercise": "Write a function to calculate the similarity score between two frequency dictionaries. Use the formula and instructions given in the problem set to compute the similarity.\n\n**Additional Context**:\n- Formula: Similarity = 1 - (\u03a3 |\u03b4(u)| / \u03a3 \u03c3(u)), rounded to 2 decimal places.\n- Where \u03b4(u) = |count(u, freq1) - count(u, freq2)| and \u03c3(u) = count(u, freq1) + count(u, freq2).\n- Iterate through the unique keys from both dictionaries to compute the sums for the formula.",
+            "starter_code": "def calculate_similarity_score(freq1, freq2):\n    # Your code here\n    pass",
+            "mit_correct_solution": "TODO: implement",
+            "input_output_list": [
+                {"input": "{'hello': 2, 'world': 1}, {'hello': 1, 'friends': 1}", "output": 0.4},
+                {"input": "{'h': 1, 'e': 1}, {'h': 1, 'e': 1}", "output": 1.0}
+            ],
+            "test_case_list": [
+                {"input": {"freq1": {"hello": 2, "world": 1}, "freq2": {"hello": 1, "friends": 1}}, "expected_output": 0.4},
+                {"input": {"freq1": {"h": 1, "e": 1}, "freq2": {"h": 1, "e": 1}}, "expected_output": 1.0}
+            ],
+            "function_name": "calculate_similarity_score",
+            "test_function_name": "run_test_cases_with_function"
+        },
+        {
+            "part": "5",
+            "name": "Problem Set #3 - Most Frequent Words Part E",
+            "exercise": "Write a function to find the most frequent word(s) from two frequency dictionaries combined. If multiple words have the highest frequency, return them alphabetically sorted.\n\n**Additional Context**:\n- Combine the frequencies from both dictionaries by summing the counts of each word.\n- Use sorting to handle ties alphabetically for the most frequent words.",
+            "starter_code": "def get_most_frequent_words(freq1, freq2):\n    # Your code here\n    pass",
+            "mit_correct_solution": "TODO: implement",
+            "input_output_list": [
+                {"input": "{'hello': 5, 'world': 1}, {'hello': 1, 'world': 5}", "output": ["hello", "world"]},
+                {"input": "{'a': 2, 'b': 3}, {'b': 3, 'c': 1}", "output": ["b"]}
+            ],
+            "test_case_list": [
+                {"input": {"freq1": {"hello": 5, "world": 1}, "freq2": {"hello": 1, "world": 5}}, "expected_output": ["hello", "world"]},
+                {"input": {"freq1": {"a": 2, "b": 3}, "freq2": {"b": 3, "c": 1}}, "expected_output": ["b"]}
+            ],
+            "function_name": "get_most_frequent_words",
+            "test_function_name": "run_test_cases_with_function"
+        }
+    ]
+}

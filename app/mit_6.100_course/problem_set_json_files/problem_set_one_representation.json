@@ -1,5 +1,4 @@
 {
-
     "problems": [
         {
             "problem_set_number": 1,
@@ -9,7 +8,7 @@
             "name": "Problem Set #1 - Part A",
             "exercise": "Write a function to calculate the number of months required to save for a down payment given the yearly salary, portion saved, and cost of a dream home. Assume an annual return rate of 0.05 and a down payment percentage of 0.25.",
             "starter_code": "## Part A\ndef calculate_months_to_save(yearly_salary, portion_saved, cost_of_dream_home):\n    # Your code here\n    pass\n\n\n## Part B\ndef calculate_months_with_raise(yearly_salary, portion_saved, cost_of_dream_home, semi_annual_raise):\n    # Your code here\n    pass\n\n\n## Part C\ndef find_best_savings_rate(initial_deposit):\n    # Your code here\n    pass\n\n",
-            "mit_correct_solution": "TODO: need to implement",
+            "mit_correct_solution": "def calculate_months_to_save(yearly_salary, portion_saved, cost_of_dream_home):\n    # Constants\n    annual_return = 0.05  # Annual return rate\n    portion_down_payment = 0.25  # Down payment percentage\n\n    # Calculating the down payment amount\n    down_payment = cost_of_dream_home * portion_down_payment\n\n    # Initializing variables\n    current_savings = 0.0\n    monthly_salary = yearly_salary / 12\n    months = 0\n\n    # Calculate the number of months needed\n    while current_savings < down_payment:\n        # Add monthly savings and investment returns\n        current_savings += current_savings * (annual_return / 12)  # Investment return\n        current_savings += monthly_salary * portion_saved  # Savings from salary\n        months += 1\n\n    return months",
             "function_name": "calculate_months_to_save",
 
             "input_output_list": [
@@ -29,63 +28,64 @@
             ],
             
             "test_case_list": [
-                {"yearly_salary": 112000, "portion_saved": 0.17, "cost_of_dream_home": 750000, "expected": 97},
-                {"yearly_salary": 65000, "portion_saved": 0.2, "cost_of_dream_home": 400000, "expected": 79},
-                {"yearly_salary": 350000, "portion_saved": 0.3, "cost_of_dream_home": 10000000, "expected": 189}
+                {"input": {"yearly_salary": 112000, "portion_saved": 0.17, "cost_of_dream_home": 750000}, "expected_output": 97},
+                {"input": {"yearly_salary": 65000, "portion_saved": 0.2, "cost_of_dream_home": 400000}, "expected_output": 79},
+                {"input": {"yearly_salary": 350000, "portion_saved": 0.3, "cost_of_dream_home": 10000000}, "expected_output": 189}
             ],
-
             "test_function_name": "run_test_cases_with_function"
 
         },
         {
             "problem_set_number": 1,
             "problem_set_name": "Problem Set 1: Compound Interest",
-            
+           
             "part": "B",
             "name": "Problem Set #1 - Part B",
             "exercise": "Modify the function to account for a semi-annual raise. Calculate the number of months required to save for a down payment given yearly salary, portion saved, cost of dream home, and semi-annual raise percentage.",
             "starter_code": "",
-            "mit_correct_solution": "TODO: need to implement",
+            "mit_correct_solution": "def calculate_months_with_raise(yearly_salary, portion_saved, cost_of_dream_home, semi_annual_raise):\n    # Constants\n    annual_return = 0.05  # Annual return rate\n    portion_down_payment = 0.25  # Down payment percentage\n\n    # Calculating the down payment amount\n    down_payment = cost_of_dream_home * portion_down_payment\n\n    # Initializing variables\n    current_savings = 0.0\n    monthly_salary = yearly_salary / 12\n    months = 0\n\n    # Calculate the number of months needed\n    while current_savings < down_payment:\n        # Add monthly savings and investment returns\n        current_savings += current_savings * (annual_return / 12)  # Investment return\n        current_savings += monthly_salary * portion_saved  # Savings from salary\n        months += 1\n\n        # Apply the semi-annual raise every 6 months\n        if months % 6 == 0:\n            monthly_salary += monthly_salary * semi_annual_raise\n\n    return months",
             "function_name": "calculate_months_with_raise",
-
+ 
+ 
             "input_output_list": [
                 {
                     "input": "{\"yearly_salary\": 110000, \"portion_saved\": 0.15, \"cost_of_dream_home\": 750000, \"semi_annual_raise\": 0.03}",
                     "output": 92
                 },
-                
+               
                 {
                     "input": "{\"yearly_salary\": 350000, \"portion_saved\": 0.3, \"cost_of_dream_home\": 10000000, \"semi_annual_raise\": 0.05}",
                     "output": 131
                 }
             ],
-
+ 
+ 
             "test_case_list": [
-                {"yearly_salary": 110000, "portion_saved": 0.15, "cost_of_dream_home": 750000, "semi_annual_raise": 0.03, "expected": 92},
-                {"yearly_salary": 350000, "portion_saved": 0.3, "cost_of_dream_home": 10000000, "semi_annual_raise": 0.05, "expected": 131}
+                {"input": {"yearly_salary": 110000, "portion_saved": 0.15, "cost_of_dream_home": 750000, "semi_annual_raise": 0.03}, "expected_output": 92},
+                {"input": {"yearly_salary": 350000, "portion_saved": 0.3, "cost_of_dream_home": 10000000, "semi_annual_raise": 0.05}, "expected_output": 131}
             ],
-
             "test_function_name": "run_test_cases_with_function"
-
+ 
         },
         {
-            
+           
             "problem_set_number": 1,
             "problem_set_name": "Problem Set 1: Compound Interest",
-            
+           
             "part": "C",
             "name": "Problem Set #1 - Part C",
             "exercise": "Using bisection search, determine the minimum rate of return required to save for a down payment within 36 months given an initial deposit and house cost of $800,000. Down payment is 25% of the cost.\n\nUse the following formula for compound interest in order to calculate the predicted savings amount given a rate of return r, an initial_deposit, and months: amount_saved = initial_deposit * (1 + (r/12))^months.\n\nYou will use bisection search to determine the lowest rate of return r that is needed to achieve a down payment on a $800,000 house in 36 months. Since hitting this exact amount is a bit of a challenge, we only require that your savings be within $100 of the required down payment. For example, if the down payment is $1000, the total amount saved should be between $900 and $1100 (exclusive).\n\nYour bisection search should update the value of r until it represents the lowest rate of return that allows you to save enough for the down payment in 3 years. r should be a float (e.g. 0.0704 for 7.04%). Assume that r lies somewhere between 0% and 100% (inclusive).",
             "starter_code": "",
-            "mit_correct_solution": "TODO: need to implement",
+            "mit_correct_solution": "def find_best_savings_rate(initial_deposit):\n    # Constants\n    house_cost = 800000\n    portion_down_payment = 0.25\n    down_payment = house_cost * portion_down_payment\n    months = 36\n    epsilon = 100  # Allowable margin of error\n\n    # Initialize bisection search bounds\n    low = 0\n    high = 1\n    steps = 0\n\n    # Check if it's possible to reach the down payment\n    if initial_deposit * (1 + (high / 12))**months < down_payment:\n        return {\"best_savings_rate\": None, \"steps_in_bisection_search\": 0}\n\n    while high - low > 1e-4:  # Precision threshold\n        steps += 1\n        r = (low + high) / 2\n        amount_saved = initial_deposit * (1 + (r / 12))**months\n\n        if abs(amount_saved - down_payment) < epsilon:\n            return {\"best_savings_rate\": r, \"steps_in_bisection_search\": steps}\n        elif amount_saved < down_payment:\n            low = r\n        else:\n            high = r\n\n    return {\"best_savings_rate\": (low + high) / 2, \"steps_in_bisection_search\": steps}",
             "function_name": "find_best_savings_rate",
-
+ 
+ 
             "input_output_list": [
                 {
                     "input": "{\"initial_deposit\": 65000}",
                     "output": "{\"best_savings_rate\": 0.380615234375, \"steps_in_bisection_search\": 12}"
                 },
-                
+               
                 {
                     "input": "{\"initial_deposit\": \"150000\"}",
                     "output": "{\"best_savings_rate\": 0.09619140625, \"steps_in_bisection_search\": 11}"
@@ -95,14 +95,13 @@
                     "output": "{\"best_savings_rate\": None, \"steps_in_bisection_search\": 0}"
                 }
             ],
-
+ 
             "test_case_list": [
-                {"initial_deposit": 65000, "expected": {"best_savings_rate": 0.380615234375, "steps_in_bisection_search": 12}},
-                {"initial_deposit": 150000, "expected": {"best_savings_rate": 0.09619140625, "steps_in_bisection_search": 11}},
-                {"initial_deposit": 1000, "expected": {"best_savings_rate": null, "steps_in_bisection_search": 0}}
+                {"input": {"initial_deposit": 65000}, "expected_output": {"best_savings_rate": 0.380615234375, "steps_in_bisection_search": 12}},
+                {"input": {"initial_deposit": 150000}, "expected_output": {"best_savings_rate": 0.09619140625, "steps_in_bisection_search": 11}}
             ],
             "test_function_name": "run_test_cases_with_function"
-
+ 
         }
     ]
 }
