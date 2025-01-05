@@ -113,7 +113,7 @@ class LectureMain(Base):
     thumbnail_image_url = Column(String, nullable=True)
     code_url = Column(String, nullable=True)
 
-    lecture_complete = Column(Boolean, nullable=True)
+    lecture_complete = Column(Boolean, default=False)
 
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
@@ -125,8 +125,9 @@ class ProblemSetQuestion(Base):
     __tablename__ = 'problem_set_question'
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    ps_number = Column(Integer, nullable=True, unique=True)
-    ps_name = Column(String, nullable=True, unique=True)
+    ps_number = Column(Integer, nullable=False, unique=True)
+    ps_name = Column(String, nullable=False)
+    ps_url = Column(String, nullable=False, unique=True)
 
     lecture_main_object_id = Column(UUID, ForeignKey('lecture_main.id'))
     lecture_main_object = relationship("LectureMain")
@@ -165,6 +166,8 @@ class UserCreatedLectureQuestion(Base):
 
     lecture_question_object_id = Column(UUID, ForeignKey('lecture_question.id'))
     lecture_question = relationship("LectureQuestion")
+
+    complete = Column(Boolean, default=False)
 
     custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
     custom_user = relationship("CustomUser")
@@ -269,7 +272,3 @@ class PlaygroundProblemSetChatConversation(TutorConversationBaseModel):
     code = Column(String, nullable=True)
     problem_set_object_id = Column(UUID, ForeignKey('problem_set_question.id'), nullable=False)
     problem_set_object = relationship("ProblemSetQuestion")
-
-# TODO: 
-    # start here and get chat setup with this now table to handle it
-    # proceed from there to testing

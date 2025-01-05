@@ -1,8 +1,11 @@
 {
+    "lecture_number": 12,
+    "problem_set_number": 3,
+    "problem_set_name": "Document Distance",
+    "problem_set_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_ps3_pdf/",
+
     "problems": [
         {
-            "problem_set_number": 3,
-            "problem_set_name": "Document Distance",
             "part": "1",
             "name": "Problem Set #3 - Text to List Part A",
             "exercise": "Write a function to convert a string of text into a list of words. The input text string will have words separated by spaces and new lines. Remove punctuation and return a list of words.\n\n**Additional Context**:\n- The input text string may contain only spaces and new lines as white space characters.\n- You can assume the text is in lowercase and contains no special characters beyond punctuation.",

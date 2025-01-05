@@ -1,8 +1,11 @@
 {
+    "lecture_number": 16,
+    "problem_set_number": 4,
+    "problem_set_name": "Recursion and Caesar Cipher",
+    "problem_set_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_ps4_pdf/",
+
     "problems": [
         {
-            "problem_set_number": 4,
-            "problem_set_name": "Recursion and Caesar Cipher",
             "part": "1",
             "name": "Data Representation Practice",
             "exercise": "### Exercise\nCreate Node objects to represent the given trees in the problem set.\n\n#### Additional Context:\n- A **tree** is a hierarchical data structure composed of nodes.\n- Each node has a **value** and may optionally have **left** and **right child nodes**.\n\n#### Instructions:\n- Use the `Node` class provided in `tree.py`.\n- Assign the tree structures to variables `tree1`, `tree2`, and `tree3`.\n\n#### Example:\n```python\n# Example tree\ntree_example = Node(1, Node(2), Node(5, Node(7), Node(8)))\n```",

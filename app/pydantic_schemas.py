@@ -56,3 +56,6 @@ class LectureQuestionSubmissionSchema(BaseModel):
 class ProblemSetFetchSchema(BaseModel):
     problem_set_object_id: str
 
+class FetchDashboardSchema(BaseModel):
+    user_access_token: str
+

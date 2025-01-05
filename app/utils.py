@@ -137,3 +137,10 @@ def clean_question_input_output_list(input_output_list: list):
 def clean_question_test_case_list(test_case_list: list):
     return _make_list_renderable_for_frontend(test_case_list, type='test_case')
 
+
+
+
+## MIT 6.100 Course Data
+# TODO: 
+
+
