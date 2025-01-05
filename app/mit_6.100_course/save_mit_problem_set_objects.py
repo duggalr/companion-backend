@@ -8,7 +8,8 @@ db = SessionLocal()
 
 problem_set_fp_list = [
     # "/Users/rahulduggal/Documents/new_projects/new_companion/companion_backend/app/mit_6.100_course/problem_set_json_files/problem_set_one_representation.json",
-    "/Users/rahulduggal/Documents/new_projects/new_companion/companion_backend/app/mit_6.100_course/problem_set_json_files/problem_set_three_representation.json"
+    # "/Users/rahulduggal/Documents/new_projects/new_companion/companion_backend/app/mit_6.100_course/problem_set_json_files/problem_set_three_representation.json",
+    "/Users/rahulduggal/Documents/new_projects/new_companion/companion_backend/app/mit_6.100_course/problem_set_json_files/problem_set_four_representation.json"
 ]
 for ps_json_fp in problem_set_fp_list:
     with open(ps_json_fp, 'r', encoding='utf-8') as file:
