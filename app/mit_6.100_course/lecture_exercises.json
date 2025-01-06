@@ -879,27 +879,7 @@
             }
         ],
 
-        "test_case_list": [
-            {
-                "method_to_test": "get_area",
-                "class_initialization_value": {"a": 5},
-                "input": {},
-                "expected_output": 78.5
-            },
-            {
-                "method_to_test": "get_area",
-                "class_initialization_value": {"a": 3},
-                "input": {},
-                "expected_output": 28.26
-            },
-            {
-                "method_to_test": "get_area",
-                "class_initialization_value": {"a": 6},
-                "input": {},
-                "expected_output": 113.04
-            }
-        ],
-        "test_function_name": "run_test_cases_with_class"
+        "test_case_list": []
     },
 
     {
@@ -948,34 +928,7 @@
             }
         ],
 
-        "test_case_list": [
-            {
-                "method_to_test": "__add__",
-                "class_initialization_value": {"a": 3},
-                "input_type": "class_object",
-                "input": {"a": 7},
-                "expected_output": 10
-            },
-            {
-                "method_to_test": "get_radius",
-                "class_initialization_value": {"a": 5},
-                "input": {},
-                "expected_output": 5
-            },
-            {
-                "method_to_test": "__str__",
-                "class_initialization_value": {"a": 3},
-                "input": {},
-                "expected_output": 3
-            },
-            {
-                "method_to_test": "__add__",
-                "class_initialization_value": {"a": 1},
-                "input_type": "class_object",
-                "input": {"a": 12},
-                "expected_output": 13
-            }
-        ],
+        "test_case_list": [],
         "test_function_name": "run_test_cases_with_class"
     },
 

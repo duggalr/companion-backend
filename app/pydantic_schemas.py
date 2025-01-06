@@ -40,7 +40,7 @@ class SaveLandingPageEmailSchema(BaseModel):
 
 class FetchQuestionDetailsSchema(BaseModel):
     question_id: str
-    problem_set_question: bool
+    problem_set_question: Optional[bool] = None
     lecture_question: Optional[bool] = None
 
 class FetchLessonQuestionDetailSchema(BaseModel):

@@ -777,8 +777,9 @@ def fetch_question_data(
         user_id = None,
         token = token
     )
-    
+
     question_object_id = data.question_id
+    print('QUESTION OBJECT ID:', question_object_id)
 
     try:
         question_object = db.query(UserCreatedPlaygroundQuestion).filter(
@@ -1431,7 +1432,7 @@ def fetch_problem_set_question_data(
     ps_question_object = db.query(ProblemSetQuestion).filter(
         ProblemSetQuestion.id == ps_object_id
     ).first()
-    
+
     if ps_question_object is None:
         raise HTTPException(status_code=404, detail="Problem Set Not Found.")
 
@@ -1491,7 +1492,7 @@ def fetch_problem_set_question_data(
             # "test_case_list": ast.literal_eval(lec_q_object.test_case_list),
             "test_case_list": cleaned_tc_list,
 
-            "next_lecture_number": None,
+            "next_lecture_number": lecture_main_object.number,
             "next_question_object_id": None,
 
             "problem_set_question": True,
@@ -1531,7 +1532,7 @@ def fetch_problem_set_question_data(
         # tmp_dict['test_case_list'] = test_case_rv_list
 
         if idx == (len(problem_set_lec_question_objects)-1):
-            tmp_dict['next_lecture_number'] = lecture_main_object.number
+            # tmp_dict['next_lecture_number'] = lecture_main_object.number
             tmp_dict['next_question_object_id'] = next_question_object_id
             tmp_dict['next_question_object_type'] = next_question_object_type
             tmp_dict['problem_set_next_part'] = None
@@ -1563,7 +1564,6 @@ def fetch_problem_set_question_data(
             #         tmp_dict["code"] = current_lec_q_code_object_list[0].code
 
             tmp_dict["question_id"] = user_created_lec_q_object.id
-
         else:
             tmp_dict["question_id"] = lec_q_object.id
 
