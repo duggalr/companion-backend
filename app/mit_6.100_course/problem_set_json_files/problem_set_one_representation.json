@@ -35,7 +35,6 @@
                 {"input": {"yearly_salary": 350000, "portion_saved": 0.3, "cost_of_dream_home": 10000000}, "expected_output": 189}
             ],
             "test_function_name": "run_test_cases_with_function"
-
         },
         {
             "part": "2",
@@ -62,7 +61,6 @@
                 {"input": {"yearly_salary": 350000, "portion_saved": 0.3, "cost_of_dream_home": 10000000, "semi_annual_raise": 0.05}, "expected_output": 131}
             ],
             "test_function_name": "run_test_cases_with_function"
- 
         },
         {
             "part": "3",
@@ -94,7 +92,6 @@
                 {"input": {"initial_deposit": 150000}, "expected_output": {"best_savings_rate": 0.09619140625, "steps_in_bisection_search": 11}}
             ],
             "test_function_name": "run_test_cases_with_function"
- 
         }
     ]
 }

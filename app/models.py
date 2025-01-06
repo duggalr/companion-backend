@@ -119,6 +119,22 @@ class LectureMain(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
 
+class UserLectureMain(Base):
+    """
+    """
+    __tablename__ = 'user_lecture_main'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    complete = Column(Boolean, nullable=False, default=False)
+
+    custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
+    custom_user = relationship("CustomUser")
+
+    lecture_main_object_id = Column(UUID, ForeignKey('lecture_main.id'))
+    lecture_main_object = relationship("LectureMain")
+
+
 class ProblemSetQuestion(Base):
     """
     """
@@ -163,7 +179,7 @@ class UserCreatedLectureQuestion(Base):
     """
     """
     __tablename__ = 'user_created_lecture_question'
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     lecture_question_object_id = Column(UUID, ForeignKey('lecture_question.id'))

@@ -16,7 +16,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.database import SessionLocal
 from app.llm import prompts, openai_wrapper
-from app.models import UserOAuth, CustomUser, InitialPlaygroundQuestion, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion, UserPlaygroundLectureCode, LecturePlaygroundChatConversation, LectureMain, LectureCodeSubmissionHistory, ProblemSetQuestion, PlaygroundProblemSetChatConversation
+from app.models import UserOAuth, CustomUser, InitialPlaygroundQuestion, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion, UserPlaygroundLectureCode, LecturePlaygroundChatConversation, LectureMain, LectureCodeSubmissionHistory, ProblemSetQuestion, PlaygroundProblemSetChatConversation, UserLectureMain
 from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema, FetchLessonQuestionDetailSchema, FetchLectureDetailSchema, LectureQuestionSubmissionSchema, ProblemSetFetchSchema
 from app.config import settings
 from app.utils import create_anon_user_object, get_anon_custom_user_object, _get_random_initial_pg_question, get_user_object, get_optional_token, clean_question_input_output_list, clean_question_test_case_list
@@ -528,6 +528,8 @@ async def websocket_handle_chat_response(
         while True:  # Keep receiving messages in a loop
             data = await websocket.receive_json()
 
+            print('DATA-WEBSOCKET:', data)
+
             problem_set_question = data.get('problem_set_question', None)
             problem_set_object_id = data.get('problem_set_object_id', None)
 
@@ -674,6 +676,7 @@ def fetch_dashboard_data(
             problem_set_dict = {}
 
         ## Determine if the exercises have been complete for authenticated user
+        current_lecture_main_complete = False
         if token:
             # Lecture Exercises
             for lecture_exercise_di in lecture_exercise_list:
@@ -698,11 +701,23 @@ def fetch_dashboard_data(
                         UserCreatedLectureQuestion.lecture_question_object_id == ps_lq_object.id,
                         UserCreatedLectureQuestion.custom_user_id == current_custom_user_object.id
                     ).first()
-                    if not user_created_lq_object.complete:
+                    # TODO: why does lecture question get created twice? <-- fix
+                    if user_created_lq_object is not None:
+                        if not user_created_lq_object.complete:
+                            problem_set_complete = False
+                            break
+                    else:
                         problem_set_complete = False
                         break
   
                 problem_set_dict['problem_set_complete'] = problem_set_complete
+
+            user_lecture_main_object = db.query(UserLectureMain).filter(
+                UserLectureMain.custom_user_id == current_custom_user_object.id,
+                UserLectureMain.complete == True
+            ).all()
+            if len(user_lecture_main_object) > 0:
+                current_lecture_main_complete = True
 
         lecture_objects_rv.append({
             'id': lm_obj.id,
@@ -711,7 +726,9 @@ def fetch_dashboard_data(
             'description': lm_obj.description,
             'video_url': lm_obj.video_url,
             'notes_url': lm_obj.notes_url,
-            'lecture_completed': lm_obj.lecture_complete,
+
+            # TODO: serious bug --> lecture_complete cannot sit on global lecture-main object <-- fix and proceed from there to ensuring good
+            'lecture_completed': current_lecture_main_complete,
             'problem_set_dict': problem_set_dict,
             'lecture_exercise_list': lecture_exercise_list
         })
@@ -993,9 +1010,13 @@ def fetch_lesson_question_data(
                 UserCreatedLectureQuestion.custom_user_id == authenticated_user_object.id
             ).first()
 
+            print('user_l_question_obj:', user_l_question_obj.id)
+
             current_code_object = db.query(UserPlaygroundLectureCode).filter(
                 UserPlaygroundLectureCode.lecture_question_object_id == user_l_question_obj.id
             ).order_by(UserPlaygroundLectureCode.created_at.desc()).first()
+
+            print('current-code-object:', current_code_object)
 
         else:
             user_l_question_obj = UserCreatedLectureQuestion(
@@ -1090,7 +1111,14 @@ def fetch_lesson_question_data(
         ).first()
         if current_question_for_lm_object is not None:
             if current_question_for_lm_object.id != lecture_question_object.id:
-                rv_dict['next_question_object_id'] = current_question_for_lm_object.id
+                rv_dict['next_question_object_type'] = current_question_for_lm_object.question_type
+                
+                # TODO: abstract this
+                if current_question_for_lm_object.question_type == 'problem_set':
+                    rv_dict['next_question_object_id'] = db.query(ProblemSetQuestion).filter(ProblemSetQuestion.lecture_main_object_id == lm_obj.id).first().id
+                else:
+                    rv_dict['next_question_object_id'] = current_question_for_lm_object.id
+                    
                 next_q = False
                 break
 
@@ -1106,13 +1134,20 @@ def fetch_lesson_question_data(
         print("next_lecture_main_object:", next_lecture_main_object)
         if (next_lecture_main_object is None):
             rv_dict['next_question_object_id'] = None
+            rv_dict['next_question_object_type'] = None
         else:
             next_lecture_qst_object = db.query(LectureQuestion).filter(
                 LectureQuestion.lecture_main_object_id == next_lecture_main_object.id
             ).first()
-            rv_dict['next_question_object_id'] = next_lecture_qst_object.id
+            rv_dict['next_question_object_type'] = next_lecture_qst_object.question_type
 
-    print("TMP TESTING:", rv_dict)
+            if next_lecture_qst_object.question_type == 'problem_set':
+                rv_dict['next_question_object_id'] = db.query(ProblemSetQuestion).filter(ProblemSetQuestion.lecture_main_object_id == next_lecture_main_object.id).first().id
+            else:
+                rv_dict['next_question_object_id'] = next_lecture_qst_object.id
+
+            # rv_dict['next_question_object_id'] = next_lecture_qst_object.id
+
 
     cleaned_io_list = clean_question_input_output_list(
         input_output_list = ast.literal_eval(lecture_question_object.example_io_list)
@@ -1187,14 +1222,6 @@ def handle_lecture_question_submission(
             "expected_output": tc_di["expected_output"]
         })
 
-    # # TODO: test this function first before FE test
-    # tc_results = run_test_cases(
-    #     language = 'python',
-    #     code = user_code,
-    #     test_cases = tc_return_list
-    # )
-    # print("Results:", tc_results)
-
     tc_function_name = parent_lecture_question_object.test_function_name
 
     tc_results = None
@@ -1203,8 +1230,6 @@ def handle_lecture_question_submission(
             user_code = user_code,
             test_case_list = ast.literal_eval(parent_lecture_question_object.test_case_list)
         )
-
-    # TODO: add function and class name to the lecture question + update the initial todo's
 
     elif tc_function_name == 'run_test_cases_with_function':
         tc_results = run_test_cases_with_function(
@@ -1229,8 +1254,6 @@ def handle_lecture_question_submission(
         if rslt['correct'] != 'yes':
             all_tests_passed = False
             break
-
-    # print("PROMPT")
 
     serialized_test_case_results = json.dumps(tc_results, indent=2)
     solution_fb_prompt = _prepare_solution_feedback_prompt(
@@ -1272,8 +1295,20 @@ def handle_lecture_question_submission(
     db.commit()
     db.refresh(lc_submission_history_object)
 
+    # TODO: update the following
+        # if test-case-passed --> mark current question as complete
+        # fetch all questions for this lecture --> count number of complete
+            # if complete-count == total_count --> mark as completed
+
     # if true --> update
     if all_tests_passed:
+
+        print('Updating lecture question as passed')
+        user_created_lecture_question_object.complete = True
+        db.add(user_created_lecture_question_object)
+        db.commit()
+        db.refresh(user_created_lecture_question_object)
+
         parent_lm_object = db.query(LectureMain).filter(
             LectureMain.id == parent_lecture_question_object.lecture_main_object_id
         ).first()
@@ -1295,25 +1330,50 @@ def handle_lecture_question_submission(
             ).all()
 
             for user_created_q_obj in user_created_q_for_lq_objects:
-                success_code_submission_count_for_lq = db.query(LectureCodeSubmissionHistory).filter(
-                    LectureCodeSubmissionHistory.user_created_lecture_question_object_id == user_created_q_obj.id,
-                    (LectureCodeSubmissionHistory.test_case_boolean_result) == True
-                ).count()
-                # print(f'success-submissions-count for lect-number {lm_obj.number} is {success_code_submission_count_for_lq}')
-                if success_code_submission_count_for_lq > 0:
-                    # question_passed = True
+                if user_created_q_obj.complete is True:
                     total_questions_passed += 1
+                # success_code_submission_count_for_lq = db.query(LectureCodeSubmissionHistory).filter(
+                #     LectureCodeSubmissionHistory.user_created_lecture_question_object_id == user_created_q_obj.id,
+                #     (LectureCodeSubmissionHistory.test_case_boolean_result) == True
+                # ).count()
+                # # print(f'success-submissions-count for lect-number {lm_obj.number} is {success_code_submission_count_for_lq}')
+                # if success_code_submission_count_for_lq > 0:
+                #     # question_passed = True
+                #     total_questions_passed += 1
 
         print(f"Total: {total_questions_count} | Total Passed: {total_questions_passed} | Lecture: {parent_lm_object.number}")
 
         current_lecture_completed = False
-        if (total_questions_count == total_questions_count):
+        if (total_questions_count == total_questions_passed):
             current_lecture_completed = True
 
-        parent_lm_object.lecture_complete = current_lecture_completed
-        db.add(parent_lm_object)
-        db.commit()
-        db.refresh(parent_lm_object)
+        # TODO:
+        print('Creating or Update User Lecture Main Object...')
+        existing_user_lecture_main_obj = db.query(UserLectureMain).filter(
+            UserLectureMain.lecture_main_object_id == parent_lecture_question_object.lecture_main_object_id
+        ).first()
+        if existing_user_lecture_main_obj is not None:
+            existing_user_lecture_main_obj.complete = current_lecture_completed
+            db.add(existing_user_lecture_main_obj)
+            db.commit()
+            db.refresh(existing_user_lecture_main_obj)
+        else:
+            user_lec_main_object = UserLectureMain(
+                complete = current_lecture_completed,
+                custom_user_id = authenticated_user_object.id,
+                lecture_main_object_id = parent_lecture_question_object.lecture_main_object_id,
+            )
+            db.add(user_lec_main_object)
+            db.commit()
+            db.refresh(user_lec_main_object)
+
+        # parent_lm_object.lecture_complete = current_lecture_completed
+        # db.add(parent_lm_object)
+        # db.commit()
+        # db.refresh(parent_lm_object)
+
+        ## TODO: Create new user-lecture and add True
+        # Fine to just create another one upon each submission as it doesn't do any harm <-- although ideal would be 1-to-1 mapping
 
     return {
         'success': True,
@@ -1341,7 +1401,6 @@ def fetch_course_progress(
     ).count()
 
     total_lecture_objects = db.query(LectureMain).count()
-
     percent_complete = round((completed_lecture_objects / total_lecture_objects) * 100, 0)
 
     return {
@@ -1393,14 +1452,19 @@ def fetch_problem_set_question_data(
     if (next_lecture_main_object is None):
         # rv_dict['next_question_object_id'] = None
         next_question_object_id = None
+        next_question_object_type = None
     else:
         next_lecture_qst_object = db.query(LectureQuestion).filter(
             LectureQuestion.lecture_main_object_id == next_lecture_main_object.id
         ).first()
         if next_lecture_qst_object is not None:
             next_question_object_id = next_lecture_qst_object.id
+            next_question_object_type = next_lecture_qst_object.question_type
+            if next_question_object_type == 'problem_set':
+                next_question_object_id = db.query(ProblemSetQuestion).filter(ProblemSetQuestion.lecture_main_object_id == next_lecture_main_object.id).first().id
         else:  # TODO: verify here
             next_question_object_id = None
+            next_question_object_type = None
 
     ## Preparing Return Dictionary
     final_return_dict = {}
@@ -1469,8 +1533,8 @@ def fetch_problem_set_question_data(
         if idx == (len(problem_set_lec_question_objects)-1):
             tmp_dict['next_lecture_number'] = lecture_main_object.number
             tmp_dict['next_question_object_id'] = next_question_object_id
+            tmp_dict['next_question_object_type'] = next_question_object_type
             tmp_dict['problem_set_next_part'] = None
-
 
         user_created_lec_q_object = None
         if authenticated_user_object is not None:
