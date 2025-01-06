@@ -129,6 +129,8 @@ class ProblemSetQuestion(Base):
     ps_name = Column(String, nullable=False)
     ps_url = Column(String, nullable=False, unique=True)
 
+    implementation_in_progress = Column(Boolean, default=False)
+
     lecture_main_object_id = Column(UUID, ForeignKey('lecture_main.id'))
     lecture_main_object = relationship("LectureMain")
 

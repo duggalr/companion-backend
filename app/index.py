@@ -469,11 +469,10 @@ def save_user_code(
         data.user_id,
         token
     )
-
+    print('custom-user-object:', custom_user_object)
     print('question_ID:', data.question_id)
 
     # TODO: need to update here to handle problem set for saving code and other stuff; finish and proceed from there
-
     if data.lecture_question is True:
         question_object = db.query(UserCreatedLectureQuestion).filter(
             UserCreatedLectureQuestion.id == data.question_id,
@@ -513,6 +512,7 @@ def save_user_code(
         'success': True,
         'data': {'question_id': question_object.id}
     }
+
 
 
 ## Websocket 
@@ -627,71 +627,6 @@ async def websocket_handle_chat_response(
         await websocket.close()
 
 
-## Authenticated
-
-# @app.post("/fetch_course_dashboard_home_data")
-# def fetch_course_dashboard_home_data(
-#     data: NotRequiredAnonUserSchema,
-#     token: Optional[str] = Depends(get_optional_token),
-#     db: Session = Depends(get_db),
-# ):
-#     current_custom_user_object = get_user_object(
-#         db = db,
-#         user_id = data.user_id,
-#         token = token
-#     )
-#     if current_custom_user_object is None:
-#         raise HTTPException(status_code=400, detail="User object not found.")
-
-#     print('CURRENT CUSTOM USER OBEJCT:', current_custom_user_object)
-
-#     ## Lecture Objects
-#     # lecture_main_objects = db.query(LectureMain).all()
-#     lecture_main_objects = db.query(LectureMain).distinct(LectureMain.number).all()
-#     lecture_objects_rv = []
-#     for lm_obj in lecture_main_objects:
-#         # TODO:
-#             # fetch user and determine if complete
-
-#         lecture_passed = False
-
-#         # lecture_question_object = db.query(LectureQuestion).filter(
-#         #     LectureQuestion.lecture_main_object_id == lm_obj.id
-#         # ).first()
-#         lecture_question_objects_list = db.query(LectureQuestion).filter(
-#             LectureQuestion.lecture_main_object_id == lm_obj.id
-#         ).first()
-#         if token is not None:
-#             for lec_q_obj in lecture_question_objects_list:
-#                 user_created_lecture_question_object = db.query(UserCreatedLectureQuestion).filter(
-#                     UserCreatedLectureQuestion.lecture_question_object_id == lec_q_obj.id,
-#                     UserCreatedLectureQuestion.custom_user_id == current_custom_user_object.id
-#                 ).first()
-
-#                 if user_created_lecture_question_object is not None:
-#                     passed_test_cases_count = db.query(LectureCodeSubmissionHistory).filter(
-#                         LectureCodeSubmissionHistory.user_created_lecture_question_object_id == user_created_lecture_question_object.id,
-#                         LectureCodeSubmissionHistory.test_case_boolean_result == True
-#                     ).all()
-#                     if passed_test_cases_count > 0:
-#                         lecture_passed = True
-
-#         lecture_objects_rv.append({
-#             'id': lm_obj.id,
-#             'number': lm_obj.number,
-#             'name': lm_obj.name,
-#             'description': lm_obj.description,
-#             'video_url': lm_obj.video_url,
-#             'notes_url': lm_obj.notes_url,
-#             'lecture_passed': lecture_passed
-#         })
-
-#     return {
-#         'success': True,
-#         'lecture_objects_list': lecture_objects_rv
-#     }
-
-
 @app.post("/fetch_dashboard_data")
 def fetch_dashboard_data(
     data: NotRequiredAnonUserSchema,
@@ -732,6 +667,7 @@ def fetch_dashboard_data(
                 'id': problem_set_question_object.id,
                 'number': problem_set_question_object.ps_number,
                 'name': problem_set_question_object.ps_name,
+                'implementation_in_progress': problem_set_question_object.implementation_in_progress,
                 'complete': False
             }
         else:
@@ -810,20 +746,6 @@ def fetch_dashboard_data(
         'lecture_objects_list': lecture_objects_rv,
         'playground_object_list': user_created_questions_rv
     }
-
-
-
-@app.post("/test_404")
-def test_404(db: Session = Depends(get_db)):
-    try:
-        print('DB:', db)
-        question_object = None  # Simulate no result from the database
-        if question_object is None:
-            raise HTTPException(status_code=404, detail="Item not found.")
-    except Exception as e:
-        print(f"Test exception: {e}")
-        raise
-
 
 
 @app.post("/fetch_question_data")
@@ -991,6 +913,23 @@ def fetch_lecture_data(
             # 'starter_code': lecture_associated_exercise_object.starter_code,
         })
 
+
+    # fetch problem set for the lecture
+    # TODO:
+    problem_set_object = db.query(ProblemSetQuestion).filter(
+        ProblemSetQuestion.lecture_main_object_id == lm_object.id
+    ).first()
+    print('Problem Set Object Data:', problem_set_object)
+    if problem_set_object is not None:
+        problem_set_dict = {}
+        problem_set_dict['id'] = problem_set_object.id
+        problem_set_dict['ps_number'] = problem_set_object.ps_number
+        problem_set_dict['ps_name'] = problem_set_object.ps_name
+        problem_set_dict['ps_url'] = problem_set_object.ps_url
+        problem_set_dict['implementation_in_progress'] = problem_set_object.implementation_in_progress
+    else:
+        problem_set_dict = None
+
     return {
         'success': True,
         'lecture_data': {
@@ -1003,9 +942,9 @@ def fetch_lecture_data(
             'notes_url': lm_object.notes_url,
             'code_url': lm_object.code_url,
         },
-        'exercise_data': exercise_data_list_rv
+        'exercise_data': exercise_data_list_rv,
+        'problem_set_data': problem_set_dict
     }
-
 
 
 

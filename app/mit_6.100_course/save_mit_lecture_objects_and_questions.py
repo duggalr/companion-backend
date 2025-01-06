@@ -6,11 +6,6 @@ from app.models import LectureMain, LectureQuestion
 
 db = SessionLocal()
 
-# TODO:
-    # re-adjust the comments in the code (mainly for the first 6 questions)
-    # test everything
-    # add all problem sets today**
-
 with open('lecture_exercises.json', 'r', encoding='utf-8') as file:
     data = json.load(file)
 

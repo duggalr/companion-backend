@@ -8,8 +8,10 @@ db = SessionLocal()
 
 problem_set_fp_list = [
     "/Users/rahulduggal/Documents/new_projects/new_companion/companion_backend/app/mit_6.100_course/problem_set_json_files/problem_set_one_representation.json",
+    "/Users/rahulduggal/Documents/new_projects/new_companion/companion_backend/app/mit_6.100_course/problem_set_json_files/problem_set_two_representation.json",
     "/Users/rahulduggal/Documents/new_projects/new_companion/companion_backend/app/mit_6.100_course/problem_set_json_files/problem_set_three_representation.json",
-    "/Users/rahulduggal/Documents/new_projects/new_companion/companion_backend/app/mit_6.100_course/problem_set_json_files/problem_set_four_representation.json"
+    "/Users/rahulduggal/Documents/new_projects/new_companion/companion_backend/app/mit_6.100_course/problem_set_json_files/problem_set_four_representation.json",
+    "/Users/rahulduggal/Documents/new_projects/new_companion/companion_backend/app/mit_6.100_course/problem_set_json_files/problem_set_five_representation.json"
 ]
 for ps_json_fp in problem_set_fp_list:
     with open(ps_json_fp, 'r', encoding='utf-8') as file:
@@ -25,18 +27,34 @@ for ps_json_fp in problem_set_fp_list:
     ).first()
 
     print("Saving Problem Set...")
-    problem_set_object = ProblemSetQuestion(
-        ps_number = problem_set_number,
-        ps_name = problem_set_name,
-        ps_url = problem_set_url,
-        lecture_main_object_id = lecture_main_object.id
-    )
-    db.add(problem_set_object)
-    db.commit()
-    db.refresh(problem_set_object)
+
+    problems_list = data['problems']
+
+    if len(problems_list) > 0:
+        problem_set_object = ProblemSetQuestion(
+            ps_number = problem_set_number,
+            ps_name = problem_set_name,
+            ps_url = problem_set_url,
+            implementation_in_progress = False,
+            lecture_main_object_id = lecture_main_object.id
+        )
+        db.add(problem_set_object)
+        db.commit()
+        db.refresh(problem_set_object)
+    else:
+        # TODO: start here (also set for the lecture question; disable submit solution for that)
+        problem_set_object = ProblemSetQuestion(
+            ps_number = problem_set_number,
+            ps_name = problem_set_name,
+            ps_url = problem_set_url,
+            implementation_in_progress = True,  # setting this to True to not make it viewable to frontend
+            lecture_main_object_id = lecture_main_object.id
+        )
+        db.add(problem_set_object)
+        db.commit()
+        db.refresh(problem_set_object)
 
     print("Saving questions associated with the problem set...")
-    problems_list = data['problems']
     for pdict in problems_list:
         print(f"Saving question {pdict['name']}")
 
