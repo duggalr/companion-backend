@@ -144,8 +144,6 @@ def _compute_eval_result_dict(execution_result, code_expected_output, function_p
                     rv_dict['correct'] = 'yes'
                 else:
                     rv_dict['correct'] = 'no'
-                    print(f"Type Mismatch: Actual ({type(actual_output)}), Expected ({type(code_expected_output)})")
-                    print(f"Value Mismatch: Actual ({actual_output}), Expected ({code_expected_output})")
     else:
         # Mark as failed if execution didn't succeed
         rv_dict['correct'] = 'no'
@@ -206,7 +204,6 @@ def run_test_cases_with_function(user_code: str, function_name: str, test_case_l
             'python',
             full_code_to_call
         )
-        print('exec-result:', execution_result)
 
         rv_dict = _compute_eval_result_dict(
             execution_result=execution_result,
@@ -216,21 +213,6 @@ def run_test_cases_with_function(user_code: str, function_name: str, test_case_l
         results.append(rv_dict)
 
     return results
-
-# user_code = "def find_best_savings_rate(initial_deposit):\n    # Constants\n    house_cost = 800000\n    portion_down_payment = 0.25\n    down_payment = house_cost * portion_down_payment\n    months = 36\n    epsilon = 100  # Allowable margin of error\n\n    # Initialize bisection search bounds\n    low = 0\n    high = 1\n    steps = 0\n\n    # Check if it's possible to reach the down payment\n    if initial_deposit * (1 + (high / 12))**months < down_payment:\n        return {\"best_savings_rate\": None, \"steps_in_bisection_search\": 0}\n\n    while high - low > 1e-4:  # Precision threshold\n        steps += 1\n        r = (low + high) / 2\n        amount_saved = initial_deposit * (1 + (r / 12))**months\n\n        if abs(amount_saved - down_payment) < epsilon:\n            return {\"best_savings_rate\": r, \"steps_in_bisection_search\": steps}\n        elif amount_saved < down_payment:\n            low = r\n        else:\n            high = r\n\n    return {\"best_savings_rate\": (low + high) / 2, \"steps_in_bisection_search\": steps}"
-
-# test_case_list = [
-#     {"input": {"initial_deposit": 65000}, "expected_output": {"best_savings_rate": 0.380615234375, "steps_in_bisection_search": 12}},
-#     {"input": {"initial_deposit": 150000}, "expected_output": {"best_savings_rate": 0.09619140625, "steps_in_bisection_search": 11}}
-# ]
-
-# output = run_test_cases_with_function(
-#     user_code = user_code,
-#     function_name = 'find_best_savings_rate',
-#     test_case_list = test_case_list
-# )
-# for out_di in output:
-#     print(out_di)
 
 
 def run_test_cases_with_class(user_code: str, class_name: str, test_case_list: list):
@@ -261,19 +243,7 @@ def run_test_cases_with_class(user_code: str, class_name: str, test_case_list: l
                 method_call_string = f"print({class_call_string}.{tc_method}({input_class_object_initialization_string}))"
                 
                 full_code = user_code + '\n\n' + method_call_string
-                # print(full_code)
 
-                # execution_result = execute_code_in_container(
-                #     language = 'python',
-                #     code = full_code
-                # )
-                # print(type(execution_result['output']))
-                # rv_dict = _compute_eval_result_dict(
-                #     execution_result = execution_result,
-                #     code_expected_output = tc_dict['expected_output'],
-                #     function_params_string = method_call_string
-                # )
-                # print(rv_dict)
         else:
             # method_call_input_param_string = ", ".join([repr(tc_input_dict[k]) for k in tc_input_dict]).strip()
             method_call_input_param_string = ", ".join([
