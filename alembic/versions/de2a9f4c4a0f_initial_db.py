@@ -1,8 +1,8 @@
-"""update
+"""initial db
 
-Revision ID: 6cb48c3dd1b7
+Revision ID: de2a9f4c4a0f
 Revises: 
-Create Date: 2024-12-16 19:41:38.701340
+Create Date: 2025-01-02 22:47:10.837046
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '6cb48c3dd1b7'
+revision: str = 'de2a9f4c4a0f'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -46,6 +46,21 @@ def upgrade() -> None:
     sa.Column('created_date', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('lecture_main',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('number', sa.Integer(), nullable=True),
+    sa.Column('name', sa.String(), nullable=True),
+    sa.Column('description', sa.String(), nullable=True),
+    sa.Column('notes_url', sa.String(), nullable=True),
+    sa.Column('video_url', sa.String(), nullable=True),
+    sa.Column('embed_video_url', sa.String(), nullable=True),
+    sa.Column('thumbnail_image_url', sa.String(), nullable=True),
+    sa.Column('code_url', sa.String(), nullable=True),
+    sa.Column('lecture_complete', sa.Boolean(), nullable=True),
+    sa.Column('created_date', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('user_oauth',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('auth_zero_unique_sub_id', sa.String(), nullable=False),
@@ -72,6 +87,39 @@ def upgrade() -> None:
     sa.Column('created_date', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['anon_user_id'], ['anon_user.user_unique_id'], ),
     sa.ForeignKeyConstraint(['oauth_user_id'], ['user_oauth.auth_zero_unique_sub_id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('problem_set_question',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('ps_number', sa.Integer(), nullable=True),
+    sa.Column('ps_name', sa.String(), nullable=True),
+    sa.Column('lecture_main_object_id', sa.UUID(), nullable=True),
+    sa.Column('created_date', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['lecture_main_object_id'], ['lecture_main.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('ps_name'),
+    sa.UniqueConstraint('ps_number')
+    )
+    op.create_table('lecture_question',
+    sa.Column('starter_code', sa.String(), nullable=True),
+    sa.Column('correct_solution', sa.String(), nullable=True),
+    sa.Column('test_case_list', sa.String(), nullable=True),
+    sa.Column('function_name', sa.String(), nullable=True),
+    sa.Column('class_name', sa.String(), nullable=True),
+    sa.Column('test_function_name', sa.String(), nullable=True),
+    sa.Column('question_type', sa.String(), nullable=True),
+    sa.Column('problem_set_part', sa.String(), nullable=True),
+    sa.Column('problem_set_number', sa.Integer(), nullable=True),
+    sa.Column('lecture_main_object_id', sa.UUID(), nullable=True),
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('name', sa.String(), nullable=False),
+    sa.Column('text', sa.String(), nullable=False),
+    sa.Column('example_io_list', sa.String(), nullable=False),
+    sa.Column('created_date', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['lecture_main_object_id'], ['lecture_main.id'], ),
+    sa.ForeignKeyConstraint(['problem_set_number'], ['problem_set_question.ps_number'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('user_created_playground_question',
@@ -107,14 +155,63 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['question_object_id'], ['user_created_playground_question.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('user_created_lecture_question',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('lecture_question_object_id', sa.UUID(), nullable=True),
+    sa.Column('custom_user_id', sa.UUID(), nullable=True),
+    sa.Column('created_date', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['custom_user_id'], ['custom_user.id'], ),
+    sa.ForeignKeyConstraint(['lecture_question_object_id'], ['lecture_question.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('lecture_code_submission_history',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('code', sa.String(), nullable=False),
+    sa.Column('test_case_boolean_result', sa.Boolean(), nullable=True),
+    sa.Column('program_output_list', sa.String(), nullable=False),
+    sa.Column('ai_feedback_response_string', sa.String(), nullable=False),
+    sa.Column('user_created_lecture_question_object_id', sa.UUID(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['user_created_lecture_question_object_id'], ['user_created_lecture_question.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('lecture_playground_chat_conversation',
+    sa.Column('code', sa.String(), nullable=True),
+    sa.Column('user_lecture_question_object_id', sa.UUID(), nullable=False),
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('question', sa.String(), nullable=False),
+    sa.Column('prompt', sa.String(), nullable=False),
+    sa.Column('response', sa.String(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['user_lecture_question_object_id'], ['user_created_lecture_question.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('user_playground_lecture_code',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('programming_language', sa.String(), nullable=False),
+    sa.Column('code', sa.String(), nullable=False),
+    sa.Column('lecture_question_object_id', sa.UUID(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['lecture_question_object_id'], ['user_created_lecture_question.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_table('user_playground_lecture_code')
+    op.drop_table('lecture_playground_chat_conversation')
+    op.drop_table('lecture_code_submission_history')
+    op.drop_table('user_created_lecture_question')
     op.drop_table('playground_code')
     op.drop_table('playground_chat_conversation')
     op.drop_table('user_created_playground_question')
+    op.drop_table('lecture_question')
+    op.drop_table('problem_set_question')
     op.drop_table('custom_user')
     op.drop_index(op.f('ix_user_oauth_profile_picture_url'), table_name='user_oauth')
     op.drop_index(op.f('ix_user_oauth_given_name'), table_name='user_oauth')
@@ -124,6 +221,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_user_oauth_email'), table_name='user_oauth')
     op.drop_index(op.f('ix_user_oauth_auth_zero_unique_sub_id'), table_name='user_oauth')
     op.drop_table('user_oauth')
+    op.drop_table('lecture_main')
     op.drop_table('landing_page_email')
     op.drop_table('initial_playground_question')
     op.drop_index(op.f('ix_anon_user_user_unique_id'), table_name='anon_user')

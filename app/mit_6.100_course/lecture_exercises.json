@@ -1,0 +1,1068 @@
+[
+
+    {
+        "name": "Finger Exercise Lecture 1",
+        "exercise": "Assume three variables are already defined for you: a, b, and c. Create a variable called total that adds a and b then multiplies the result by c. Include a last line in your code to print the value: print(total)",
+        "starter_code": "# Write your code for the question shown on the right.\n\n# When submitting your solution ('submit solution' button), do not include any pre-defined variables (ie. a = 2, b = 3, c = 4).\n\n# This is completely fine to do when testing and running your code but please comment these lines out during submission or your solution will not pass the test cases!\n\n",
+        "mit_correct_solution": "total = (a + b) * c\nprint(total)",
+        "function_name": "",
+
+        "lecture_number": 1,
+        "lecture_name": "Introduction to Python",
+        "lecture_description": "Introduction to Python: knowledge, machines, objects, types, variables, bindings, IDEs",
+        "lecture_video_url": "https://www.youtube.com/watch?v=xAcTmDO6NTI",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/xAcTmDO6NTI",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/xAcTmDO6NTI/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec01_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec01_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "a = 2, b = 3, c = 4",
+                "output": "20",
+                "explanation": "First, add a and b: 2 + 3 = 5. Then, multiply the result by c: 5 * 4 = 20. The value of total is 20."
+            },
+            {
+                "input": "a = 5, b = 5, c = 2",
+                "output": "20",
+                "explanation": "First, add a and b: 5 + 5 = 10. Then, multiply the result by c: 10 * 2 = 20. The value of total is 20."
+            },
+            {
+                "input": "a = 1, b = 6, c = 3",
+                "output": "21",
+                "explanation": "First, add a and b: 1 + 6 = 7. Then, multiply the result by c: 7 * 3 = 21. The value of total is 21."
+            }
+        ],
+
+        "test_case_list": [
+            {"input": {"a": 1, "b": 2, "c": 3}, "expected_output": 9},
+            {"input": {"a": -1, "b": 2, "c": 3}, "expected_output": 3},
+            {"input": {"a": -1, "b": -2, "c": -3}, "expected_output": 9},
+            {"input": {"a": 0, "b": 0, "c": 5}, "expected_output": 0},
+            {"input": {"a": 5, "b": 10, "c": 0}, "expected_output": 0},
+            {"input": {"a": 1000000, "b": 2000000, "c": 3000000}, "expected_output": 9000000000000},
+            {"input": {"a": 1.5, "b": 2.5, "c": 2}, "expected_output": 8.0},
+            {"input": {"a": 1, "b": 2.5, "c": 2}, "expected_output": 7.0},
+            {"input": {"a": 1, "b": 1, "c": 1}, "expected_output": 2}
+        ],
+        "test_function_name": "run_test_cases_without_function"
+    },
+
+    {
+        "name": "Finger Exercise Lecture 2",
+        "exercise": "Assume you are given a variable named number (has a numerical value). Write a piece of Python code that prints out one of the following strings: positive if the variable number is positive, negative if the variable number is negative, zero if the variable number is equal to zero",
+        "starter_code": "# Write your code for the question below.\n# When submitting the solution, do not include any variables, simply the logic and the print(total) statement at the end.",
+        "mit_correct_solution": "if number > 0:\n  print('positive')\nelif number < 0:\n  print('negative')\nelse:\n  print('zero')",
+        "function_name": "",
+
+        "lecture_number": 2,
+        "lecture_name": "Strings, Input/Output, Branching",
+        "lecture_description": "Core Elements of Programs: strings, input/output, f-strings, operators, branching, indentation",
+        "lecture_video_url": "https://www.youtube.com/watch?v=UdEX0E9lIQM",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/UdEX0E9lIQM",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/UdEX0E9lIQM/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec02_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec02_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "number = 5",
+                "output": "positive",
+                "explanation": "The value of number is greater than 0, so the output is 'positive'."
+            },
+            {
+                "input": "number = -3",
+                "output": "negative",
+                "explanation": "The value of number is less than 0, so the output is 'negative'."
+            },
+            {
+                "input": "number = 0",
+                "output": "zero",
+                "explanation": "The value of number is equal to 0, so the output is 'zero'."
+            }
+        ],
+
+        "test_case_list": [
+            {"input": {"number": 10}, "expected_output": "positive"},
+            {"input": {"number": -1}, "expected_output": "negative"},
+            {"input": {"number": 0}, "expected_output": "zero"},
+            {"input": {"number": 100}, "expected_output": "positive"},
+            {"input": {"number": -100}, "expected_output": "negative"},
+            {"input": {"number": 1.5}, "expected_output": "positive"},
+            {"input": {"number": -1.5}, "expected_output": "negative"},
+            {"input": {"number": 0.00001}, "expected_output": "positive"},
+            {"input": {"number": -0.00001}, "expected_output": "negative"},
+            {"input": {"number": 0.0}, "expected_output": "zero"}
+        ],
+        "test_function_name": "run_test_cases_without_function"
+    },
+    
+    {
+        "name": "Finger Exercise Lecture 3",
+        "exercise": "Assume you are given a positive integer variable named N. Write a piece of Python code that prints hello world on separate lines, N times. You can use either a while loop or a for loop.",
+        "starter_code": "#TODO: implement your here code",
+        "mit_correct_solution": "for i in range(N):\n  print('hello world')",
+        "function_name": "",
+
+        "lecture_number": 3,
+        "lecture_name": "Iteration",
+        "lecture_description": "Program Flow: control flow, loops",
+        "lecture_video_url": "https://www.youtube.com/watch?v=lzYrMcI92kw",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/lzYrMcI92kw",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/lzYrMcI92kw/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec03_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec03_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "N = 3",
+                "output": "hello world\nhello world\nhello world",
+                "explanation": "The value of N is 3, so the string 'hello world' is printed 3 times, each on a new line."
+            },
+            {
+                "input": "N = 1",
+                "output": "hello world",
+                "explanation": "The value of N is 1, so the string 'hello world' is printed once."
+            },
+            {
+                "input": "N = 0",
+                "output": "",
+                "explanation": "The value of N is 0, so nothing is printed."
+            }
+        ],
+
+        "test_case_list": [
+            {"input": {"N": 5}, "expected_output": "hello world\nhello world\nhello world\nhello world\nhello world"},
+            {"input": {"N": 2}, "expected_output": "hello world\nhello world"},
+            {"input": {"N": 10}, "expected_output": "hello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world\nhello world"},
+            {"input": {"N": 0}, "expected_output": ""},
+            {"input": {"N": 1}, "expected_output": "hello world"}
+        ],
+        "test_function_name": "run_test_cases_without_function"
+    },
+
+    {
+        "name": "Finger Exercise Lecture 4",
+        "exercise": "Assume you are given a positive integer variable named N. Write a piece of Python code that finds the cube root of N. The code prints the cube root if N is a perfect cube or it prints error if N is not a perfect cube.",
+        "starter_code": "#TODO: implement your here code",
+        "mit_correct_solution": "i = 1\nwhile i**3 < N:\n    i += 1\nif i**3 == N:\n    print(i)\nelse:\n    print('error')",
+        "function_name": "",
+
+        "lecture_number": 4,
+        "lecture_name": "Loops over Strings, Guess-and-Check, Binary",
+        "lecture_description": "Iteration, Simple Programs: guess and check, binary, fractions",
+        "lecture_video_url": "https://www.youtube.com/watch?v=fWNZAw5Bmco",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/fWNZAw5Bmco",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/fWNZAw5Bmco/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec04_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec04_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "N = 27",
+                "output": "3",
+                "explanation": "The cube root of 27 is 3 because 3^3 = 27. The code correctly identifies 27 as a perfect cube and prints 3."
+            },
+            {
+                "input": "N = 64",
+                "output": "4",
+                "explanation": "The cube root of 64 is 4 because 4^3 = 64. The code correctly identifies 64 as a perfect cube and prints 4."
+            },
+            {
+                "input": "N = 10",
+                "output": "error",
+                "explanation": "The value 10 is not a perfect cube because no integer raised to the power of 3 equals 10. The code prints 'error'."
+            }
+        ],
+        "test_case_list": [
+            {"input": {"N": 1}, "expected_output": 1},
+            {"input": {"N": 8}, "expected_output": 2},
+            {"input": {"N": 125}, "expected_output": 5},
+            {"input": {"N": 1000}, "expected_output": 10},
+            {"input": {"N": 2}, "expected_output": "error"},
+            {"input": {"N": 15}, "expected_output": "error"},
+            {"input": {"N": 729}, "expected_output": 9},
+            {"input": {"N": 216}, "expected_output": 6},
+            {"input": {"N": 50}, "expected_output": "error"}
+        ],
+        "test_function_name": "run_test_cases_without_function"
+    },
+
+    {
+        "name": "Finger Exercise Lecture 5",
+        "exercise": "Assume you are given a string variable named my_str. Write a piece of Python code that prints out a new string containing the even indexed characters of my_str. For example, if my_str = 'abcdefg' then your code should print out aceg.",
+        "starter_code": "#TODO: implement your here code",
+        "mit_correct_solution": "s = ''\nfor i in range(0,len(my_str),2):\n    s += my_str[i]\nprint(s)",
+        "function_name": "",
+
+        "lecture_number": 5,
+        "lecture_name": "Floats and Approximation Methods",
+        "lecture_description": "Simple Algorithms: approximation method, floats",
+        "lecture_video_url": "https://www.youtube.com/watch?v=OF2sr5e7PrY",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/OF2sr5e7PrY",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/OF2sr5e7PrY/maxresdefault.jpg",
+        
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec05_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec05_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "my_str = 'abcdefg'",
+                "output": "aceg",
+                "explanation": "The even-indexed characters in 'abcdefg' are at indices 0, 2, 4, and 6, resulting in the string 'aceg'."
+            },
+            {
+                "input": "my_str = 'python'",
+                "output": "pto",
+                "explanation": "The even-indexed characters in 'python' are at indices 0, 2, and 4, resulting in the string 'pto'."
+            },
+            {
+                "input": "my_str = '12345'",
+                "output": "135",
+                "explanation": "The even-indexed characters in '12345' are at indices 0, 2, and 4, resulting in the string '135'."
+            }
+        ],
+        "test_case_list": [
+            {"input": {"my_str": "hello"}, "expected_output": "hlo"},
+            {"input": {"my_str": "MIT"}, "expected_output": "MT"},
+            {"input": {"my_str": "abcdef"}, "expected_output": "ace"},
+            {"input": {"my_str": "a"}, "expected_output": "a"},
+            {"input": {"my_str": ""}, "expected_output": ""},
+            {"input": {"my_str": "evenindices"}, "expected_output": "eeidcs"},
+            {"input": {"my_str": "longlonglonglonglong"}, "expected_output": "lnlnlnlnln"},
+            {"input": {"my_str": "testcase"}, "expected_output": "tscs"}
+        ],
+        "test_function_name": "run_test_cases_without_function"
+    },
+
+    {
+        "name": "Finger Exercise Lecture 6",
+        "exercise": "Assume you are given an integer 0 <= N <= 1000. Write a piece of Python code that uses bisection search to guess N. The code prints two lines: count: with how many guesses it took to find N, and answer: with the value of N. Hints: If the halfway value is exactly in between two integers, choose the smaller one.",
+        "starter_code": "#TODO: implement your here code",
+        "mit_correct_solution": "low = 0\nhigh = 1001\nguess = (high+low)//2\ncount = 1\nwhile guess != N:\n   if guess < N:\n      low = guess\n   elif guess > N:\n      high = guess\n   guess = (high+low)//2\n   count += 1\nprint('count:',count)\nprint('answer:',guess)",
+        "function_name": "",
+
+        "lecture_number": 6,
+        "lecture_name": "Bisection Search",
+        "lecture_description": "Simple Algorithms: bisection search, Newton-Raphson",
+        "lecture_video_url": "https://www.youtube.com/watch?v=PJ_5VNvJGtA",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/PJ_5VNvJGtA",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/PJ_5VNvJGtA/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec06_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec05_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "N = 500",
+                "output": "count: 1\nanswer: 500",
+                "explanation": "The initial guess of 500 matches N, so the bisection search ends in 1 step."
+            },
+            {
+                "input": "N = 250",
+                "output": "count: 2\nanswer: 250",
+                "explanation": "First guess is 500 (too high), then 250 (correct) in 2 guesses."
+            },
+            {
+                "input": "N = 125",
+                "output": "count: 3\nanswer: 125",
+                "explanation": "First guess is 500 (too high), then 250 (too high), and finally 125 (correct) in 3 guesses."
+            }
+        ],
+        "test_case_list": [
+            {"input": {"N": 0}, "expected_output": "count: 10\nanswer: 0"},
+            {"input": {"N": 1000}, "expected_output": "count: 10\nanswer: 1000"},
+            {"input": {"N": 512}, "expected_output": "count: 10\nanswer: 512"},
+            {"input": {"N": 255}, "expected_output": "count: 9\nanswer: 255"},
+            {"input": {"N": 1}, "expected_output": "count: 9\nanswer: 1"},
+            {"input": {"N": 999}, "expected_output": "count: 9\nanswer: 999"},
+            {"input": {"N": 500}, "expected_output": "count: 1\nanswer: 500"},
+            {"input": {"N": 123}, "expected_output": "count: 9\nanswer: 123"},
+            {"input": {"N": 875}, "expected_output": "count: 3\nanswer: 875"},
+            {"input": {"N": 600}, "expected_output": "count: 10\nanswer: 600"}
+        ],
+        "test_function_name": "run_test_cases_without_function"
+    },
+
+    {
+        "name": "Finger Exercise Lecture 7 - A",
+        "exercise": "Implement the function that meets the specifications mentioned in the starter code",
+        "starter_code": "def eval_quadratic(a, b, c, x):\n    \"\"\"\n    Evaluates a quadratic equation at a given value.\n\n    Args:\n        a (float): Coefficient of the quadratic term (x^2).\"\"\"\n    # Your code here\n",
+        "mit_correct_solution": "def eval_quadratic(a,b,c,x):\n    return a*x*x + b*x + c",
+        "function_name": "eval_quadratic",
+
+        "lecture_number": 7,
+        "lecture_name": "Decomposition, Abstraction, Functions",
+        "lecture_description": "Functions: decomposition, abstraction, specifications",
+        "lecture_video_url": "https://www.youtube.com/watch?v=Qf6OVR8MLnU",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/Qf6OVR8MLnU",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/Qf6OVR8MLnU/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec07_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec07_code_py/",
+        
+        "input_output_list": [
+            {
+                "input": "a = 1, b = 2, c = 1, x = 1",
+                "output": "4",
+                "explanation": "The quadratic equation evaluates to 1(1^2) + 2(1) + 1 = 4."
+            },
+            {
+                "input": "a = 0, b = 0, c = 0, x = 0",
+                "output": "0",
+                "explanation": "All coefficients are zero, so the result is 0."
+            },
+            {
+                "input": "a = 2, b = -3, c = 5, x = -1",
+                "output": "10",
+                "explanation": "The quadratic equation evaluates to 2(-1^2) + (-3)(-1) + 5 = 10."
+            }
+        ],
+        "test_case_list": [
+            {"input": {"a": 1, "b": 1, "c": 1, "x": 1}, "expected_output": 3},
+            {"input": {"a": 2, "b": -4, "c": 0, "x": 2}, "expected_output": 0},
+            {"input": {"a": 0, "b": 0, "c": 0, "x": 0}, "expected_output": 0},
+            {"input": {"a": 1, "b": 0, "c": -1, "x": 0}, "expected_output": -1},
+            {"input": {"a": 3, "b": 2, "c": 1, "x": -1}, "expected_output": 2}
+        ],
+        "test_function_name": "run_test_cases_with_function"
+    },
+
+    {
+        "name": "Finger Exercise Lecture 7 - B",
+        "exercise": "Implement the function that meets the specifications mentioned in the starter code",
+        "starter_code": "def two_quadratics(a1, b1, c1, x1, a2, b2, c2, x2):\n    \"\"\"\na1, b1, c1: one set of coefficients of a quadratic equation\n    a2, b2, c2: another set of coefficients of a quadratic equation\n    x1, x2: values at which to evaluate the quadratics\n    Evaluates one quadratic with coefficients a1, b1, c1, at x1.\n    Evaluates another quadratic with coefficients a2, b2, c2, at x2.\n     Prints the sum of the two evaluations. Does not return anything.\"\"\"\n    # Your code here\n",
+        "mit_correct_solution": "def eval_quadratic(a,b,c,x):\n    return a*x*x + b*x + c\n\ndef two_quadratics(a1, b1, c1, x1, a2, b2, c2, x2):\n    return(eval_quadratic(a1, b1, c1, x1) + eval_quadratic(a2, b2, c2, x2))",
+        "function_name": "two_quadratics",
+
+        "lecture_number": 7,
+        "lecture_name": "Decomposition, Abstraction, Functions",
+        "lecture_description": "Functions: decomposition, abstraction, specifications",
+        "lecture_video_url": "https://www.youtube.com/watch?v=Qf6OVR8MLnU",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/Qf6OVR8MLnU",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/Qf6OVR8MLnU/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec07_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec07_code_py/",
+        "input_output_list": [
+            {
+                "input": "a1 = 1, b1 = 2, c1 = 1, x1 = 1, a2 = 2, b2 = 3, c2 = 4, x2 = 0",
+                "output": "5",
+                "explanation": "The first quadratic evaluates to 1(1^2) + 2(1) + 1 = 4, and the second evaluates to 2(0^2) + 3(0) + 4 = 4. Their sum is 8."
+            },
+            {
+                "input": "a1 = 0, b1 = 0, c1 = 0, x1 = 0, a2 = 1, b2 = -1, c2 = 0, x2 = 1",
+                "output": "0",
+                "explanation": "The first quadratic evaluates to 0, and the second evaluates to 1(1^2) + (-1)(1) + 0 = 0. Their sum is 0."
+            },
+            {
+                "input": "a1 = 1, b1 = -1, c1 = 1, x1 = -1, a2 = 1, b2 = 1, c2 = 1, x2 = 1",
+                "output": "4",
+                "explanation": "The first quadratic evaluates to 1((-1)^2) + (-1)(-1) + 1 = 3, and the second evaluates to 1(1^2) + 1(1) + 1 = 3. Their sum is 6."
+            }
+        ],
+        "test_case_list": [
+            {"input": {"a1": 1, "b1": 1, "c1": 1, "x1": 1, "a2": 2, "b2": 2, "c2": 2, "x2": 2}, "expected_output": 17},
+            {"input": {"a1": 2, "b1": -4, "c1": 0, "x1": 2, "a2": 1, "b2": 0, "c2": -1, "x2": 0}, "expected_output": -1},
+            {"input": {"a1": 0, "b1": 0, "c1": 0, "x1": 0, "a2": 0, "b2": 0, "c2": 0, "x2": 0}, "expected_output": 0},
+            {"input": {"a1": 1, "b1": -1, "c1": 1, "x1": -1, "a2": 2, "b2": 1, "c2": -1, "x2": 1}, "expected_output": 5},
+            {"input": {"a1": 3, "b1": 2, "c1": 1, "x1": -1, "a2": 0, "b2": 0, "c2": 0, "x2": 0}, "expected_output": 2}
+        ],
+        "test_function_name": "run_test_cases_with_function"
+    },
+
+    {
+        "name": "Finger Exercise Lecture 8",
+        "exercise": "Implement the function that meets the specifications mentioned in the starter code",
+        "starter_code": "def same_chars(s1, s2):\n    \"\"\"\ns1 and s2 are strings\n    Returns boolean True is a character in s1 is also in s2, and vice \n    versa. If a character only exists in one of s1 or s2, returns False.\"\"\"\n    # Your code here",
+        "mit_correct_solution": "def same_chars(s1, s2):\n    for i in s1:\n        if i not in s2:\n            return False\n    for i in s2:\n        if i not in s1:\n            return False\n    return True",
+        "function_name": "same_chars",
+
+        "lecture_number": 8,
+        "lecture_name": "Functions as Objects",
+        "lecture_description": "Functions: environments, scope, functions as objects",
+        "lecture_video_url": "https://www.youtube.com/watch?v=0fEJFRKJN4U&ab_channel=MITOpenCourseWare",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/0fEJFRKJN4U",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/0fEJFRKJN4U/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec08_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec08_code_py/",
+        "input_output_list": [
+            {
+                "input": "s1 = 'abc', s2 = 'cab'",
+                "output": "True",
+                "explanation": "All characters in 'abc' are in 'cab', and vice versa."
+            },
+            {
+                "input": "s1 = 'abc', s2 = 'abx'",
+                "output": "False",
+                "explanation": "'x' is in 's2' but not in 's1', so the function returns False."
+            },
+            {
+                "input": "s1 = 'aabbcc', s2 = 'abc'",
+                "output": "True",
+                "explanation": "All characters in 'abc' are in 'aabbcc', and vice versa."
+            }
+        ],
+        "test_case_list": [
+            {"input": {"s1": "hello", "s2": "oellh"}, "expected_output": true},
+            {"input": {"s1": "abcd", "s2": "abce"}, "expected_output": false},
+            {"input": {"s1": "xyz", "s2": "zyx"}, "expected_output": true},
+            {"input": {"s1": "python", "s2": "pythons"}, "expected_output": false},
+            {"input": {"s1": "", "s2": ""}, "expected_output": true}
+        ],
+        "test_function_name": "run_test_cases_with_function"
+    },
+
+    {
+        "name": "Finger Exercise Lecture 9",
+        "exercise": "Implement the function that meets the specifications mentioned in the starter code",
+        "starter_code": "def dot_product(tA, tB):\n    \"\"\"\n    tA: a tuple of numbers\n    tB: a tuple of numbers of the same length as tA\n\n    Assumes tA and tB are the same length.\n    Returns a tuple where the:\n    * first element is the length of one of the tuples\n    * second element is the sum of the pairwise products of tA and tB\"\"\"\n    # Your code here",
+        "mit_correct_solution": "def dot_product(tA, tB):\n    tot = 0\n    for i in range(len(tA)):\n        tot += tA[i]*tB[i]\n    return (len(tA), tot)",
+        "function_name": "dot_product",
+
+        "lecture_number": 9,
+        "lecture_name": "Lambda Functions, Tuples, and Lists",
+        "lecture_description": "Tuples and lists",
+        "lecture_video_url": "https://www.youtube.com/watch?v=h5abkZ_Ch6c&ab_channel=MITOpenCourseWare",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/h5abkZ_Ch6c",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/h5abkZ_Ch6c/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec09_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec09_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "tA = (1, 2, 3), tB = (4, 5, 6)",
+                "output": "(3, 32)",
+                "explanation": "The length of tA is 3. The pairwise products are: 1*4 = 4, 2*5 = 10, 3*6 = 18. The sum is 4 + 10 + 18 = 32. The result is (3, 32)."
+            },
+            {
+                "input": "tA = (0, 0, 0), tB = (0, 0, 0)",
+                "output": "(3, 0)",
+                "explanation": "The length of tA is 3. All pairwise products are 0. The sum is 0. The result is (3, 0)."
+            },
+            {
+                "input": "tA = (1, -2, 3), tB = (-1, 2, -3)",
+                "output": "(3, -14)",
+                "explanation": "The length of tA is 3. The pairwise products are: 1*(-1) = -1, -2*2 = -4, 3*(-3) = -9. The sum is -1 + -4 + -9 = -14. The result is (3, -14)."
+            }
+        ],
+        "test_case_list": [
+            {"input": {"tA": "(1, 2)", "tB": "(3, 4)"}, "expected_output": "(2, 11)"},
+            {"input": {"tA": "(0, 0)", "tB": "(0, 0)"}, "expected_output": "(2, 0)"},
+            {"input": {"tA": "(1, -1)", "tB": "(-1, 1)"}, "expected_output": "(2, -2)"},
+            {"input": {"tA": "(1000, 2000)", "tB": "(3000, 4000)"}, "expected_output": "(2, 11000000)"},
+            {"input": {"tA": "(1.5, 2.5)", "tB": "(3.5, 4.5)"}, "expected_output": "(2, 16.5)"},
+            {"input": {"tA": "(-1, -2)", "tB": "(-3, -4)"}, "expected_output": "(2, 11)"}
+        ],
+        "test_function_name": "run_test_cases_with_function"
+    },
+
+    {
+        "name": "Finger Exercise Lecture 10",
+        "exercise": "Implement the function that meets the specifications mentioned in the starter code",
+        "starter_code": "def all_true(n, Lf):\n    \"\"\"\n    n is an int ? \"\"\"\n    # Your code here",
+        "mit_correct_solution": "def all_true(n, Lf):\n    flag = True\n    for f in Lf:\n        if not f(n):\n            flag = False\n            break\n    return flag",
+        "function_name": "all_true",
+
+        "lecture_number": 10,
+        "lecture_name": "Lists, Mutability",
+        "lecture_description": "List Operations, Mutability: mutation, aliasing, tricky examples with loops over L",
+        "lecture_video_url": "https://www.youtube.com/watch?v=Z4bm7xzYpKM&ab_channel=MITOpenCourseWare",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/Z4bm7xzYpKM",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/Z4bm7xzYpKM/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec10_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec10_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "n = 3, Lf = [lambda x: x > 0, lambda x: x % 2 == 1, lambda x: x < 10]",
+                "output": "True",
+                "explanation": "All functions in Lf return True when applied to n: 3 > 0, 3 % 2 == 1, and 3 < 10. Thus, the result is True."
+            },
+            {
+                "input": "n = 5, Lf = [lambda x: x > 10, lambda x: x % 2 == 0]",
+                "output": "False",
+                "explanation": "Not all functions in Lf return True when applied to n: 5 > 10 is False. Thus, the result is False."
+            },
+            {
+                "input": "n = -2, Lf = [lambda x: x < 0, lambda x: x % 2 == 0]",
+                "output": "True",
+                "explanation": "All functions in Lf return True when applied to n: -2 < 0 and -2 % 2 == 0. Thus, the result is True."
+            }
+        ]
+    },
+
+    {
+        "name": "Finger Exercise Lecture 11",
+        "exercise": "Implement the function that meets the specifications mentioned in the starter code",
+        "starter_code": "def remove_and_sort(Lin, k):\n    \"\"\" Lin is a list of ints\n        k is an int >= 0\n    Mutates Lin to remove the first k elements in Lin and \n    then sorts the remaining elements in ascending order.\n    If you run out of items to remove, Lin is mutated to an empty list.\n    Does not return anything.\n    \"\"\"\n    # Your code here",
+        "mit_correct_solution": "def remove_and_sort(Lin, k):\n    if len(Lin) <= k:\n        Lin.clear()\n        return Lin\n    for i in range(k):\n        del(Lin[0])\n    Lin.sort()\n    return Lin",
+        "function_name": "remove_and_sort",
+
+        "lecture_number": 11,
+        "lecture_name": "Aliasing, Cloning",
+        "lecture_description": "Aliasing and cloning, list comprehensions",
+        "lecture_video_url": "https://www.youtube.com/watch?v=hpsp-LQurco&ab_channel=MITOpenCourseWare",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/hpsp-LQurco",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/hpsp-LQurco/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec11_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec11_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "Lin = [5, 2, 8, 1, 3], k = 2",
+                "output": "[1, 3, 8]",
+                "explanation": "First, remove the first two elements: [5, 2]. The remaining list is [8, 1, 3], which is then sorted to [1, 3, 8]."
+            },
+            {
+                "input": "Lin = [10, 4, 6, 2], k = 1",
+                "output": "[2, 4, 6]",
+                "explanation": "First, remove the first element: [10]. The remaining list is [4, 6, 2], which is then sorted to [2, 4, 6, 10]."
+            },
+            {
+                "input": "Lin = [7, 3, 9], k = 3",
+                "output": "[]",
+                "explanation": "Remove all three elements from the list: [7, 3, 9]. The list is now empty."
+            },
+            {
+                "input": "Lin = [5, 3, 8], k = 0",
+                "output": "[3, 5, 8]",
+                "explanation": "No elements are removed. The list [5, 3, 8] is sorted to [3, 5, 8]."
+            }
+        ],
+        "test_case_list": [
+            {"input": {"Lin": [1, 3, 2, 4], "k": 1}, "expected_output": [2, 3, 4]},
+            {"input": {"Lin": [4, 7, 5], "k": 2}, "expected_output": [5]},
+            {"input": {"Lin": [6, 9, 1, 2], "k": 3}, "expected_output": [2]},
+            {"input": {"Lin": [], "k": 0}, "expected_output": []},
+            {"input": {"Lin": [10, 20, 30], "k": 0}, "expected_output": [10, 20, 30]},
+            {"input": {"Lin": [100, 50, 75], "k": 2}, "expected_output": [75]}
+        ],
+        "test_function_name": "run_test_cases_with_function"
+    },
+
+    {
+        "name": "Finger Exercise Lecture 12",
+        "exercise": "Implement the function that meets the specifications mentioned in the starter code",
+        "starter_code": "def count_sqrts(nums_list):\n    \"\"\"\n    nums_list: a list\n    Assumes that nums_list only contains positive numbers and that there are no duplicates.\n    Returns how many elements in nums_list are exact squares of elements in the same list, including itself.\n    \"\"\"\n    # Your code here",
+        "mit_correct_solution": "def count_sqrts(nums_list):\n    cnt = 0\n    for i in nums_list:\n        if i * i in nums_list:\n            cnt += 1\n    return cnt",
+        "function_name": "count_sqrts",
+
+        "lecture_number": 12,
+        "lecture_name": "List Comprehension, Functions as Objects, Testing, Debugging",
+        "lecture_description": "More Functions as Objects, Keyword Arguments, Default Arguments, Debugging: glass box/black box testing, examples",
+        "lecture_video_url": "https://www.youtube.com/watch?v=AZBxs3OvFrY&ab_channel=MITOpenCourseWare",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/AZBxs3OvFrY",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/AZBxs3OvFrY/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec12_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec12_code_zip/",
+
+        "input_output_list": [
+            {
+                "input": "[1, 4, 9, 16, 25]",
+                "output": "2",
+                "explanation": "All elements in the list are perfect squares of some other element in the list. 1^2 = 1, 2^2 = 4. Hence, the output is 2."
+            },
+            {
+                "input": "[4, 8, 16, 32, 64]",
+                "output": "2",
+                "explanation": "The numbers that are exact squares of other numbers in the list are 4 (4^2), and 64 (8^2). Hence, the output is 2."
+            },
+            {
+                "input": "[1, 2, 3, 4, 5]",
+                "output": "2",
+                "explanation": "1 is a perfect square (1^2) and 4 is a perfect square (2^2), so the output is 2."
+            }
+        ],
+        "test_case_list": [
+            {"input": {"nums_list": [1, 4, 9, 16]}, "expected_output": 2},
+            {"input": {"nums_list": [8, 18, 9, 81]}, "expected_output": 1},
+            {"input": {"nums_list": [36, 64, 100, 121]}, "expected_output": 0},
+            {"input": {"nums_list": [1, 2, 3]}, "expected_output": 1},
+            {"input": {"nums_list": [2, 4, 16, 25]}, "expected_output": 2},
+            {"input": {"nums_list": [10, 20, 25]}, "expected_output": 0}
+        ],
+        "test_function_name": "run_test_cases_with_function"
+    },
+
+    {
+        "name": "Finger Exercise Lecture 13",
+        "exercise": "Implement the function that meets the specifications mentioned in the starter code",
+        "starter_code": "def sum_str_lengths(L):\n    \"\"\"\n    L is a non-empty list containing either: \n    * string elements or \n    * a non-empty sublist of string elements\n    Returns the sum of the length of all strings in L and \n    lengths of strings in the sublists of L. If L contains an \n    element that is not a string or a list, or L's sublists \n    contain an element that is not a string, raise a ValueError.\n    \"\"\"\n    # Your code here ",
+        "mit_correct_solution": "def sum_str_lengths(L):\n    total = 0\n    for i in L:\n        if type(i) == str:\n            total += len(i)\n        elif type(i) == list:\n            for e in i:\n                if type(e) == str:\n                    total += len(e)\n                else:\n                    raise ValueError\n        else:\n            raise ValueError\n    return total",
+        "function_name": "sum_str_lengths",
+
+        "lecture_number": 13,
+        "lecture_name": "Exceptions, Assertions",
+        "lecture_description": "Exceptions, assertions",
+        "lecture_video_url": "https://www.youtube.com/watch?v=qT3_7FMuv-U&ab_channel=MITOpenCourseWare",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/qT3_7FMuv-U",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/qT3_7FMuv-U/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec13_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec13_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "[\"hello\", [\"world\", \"python\"], \"code\"]",
+                "output": "17",
+                "explanation": "The sum of the lengths of the strings: 'hello' (5), 'world' (5), 'python' (6), 'code' (4). Hence, the output is 17."
+            },
+            {
+                "input": "[\"apple\", [\"banana\", \"cherry\"], \"grape\"]",
+                "output": "17",
+                "explanation": "The sum of the lengths of the strings: 'apple' (5), 'banana' (6), 'cherry' (6), 'grape' (5). Hence, the output is 17."
+            },
+            {
+                "input": "[\"dog\", [\"cat\", \"fish\"]]",
+                "output": "11",
+                "explanation": "The sum of the lengths of the strings: 'dog' (3), 'cat' (3), 'fish' (4). Hence, the output is 11."
+            },
+            {
+                "input": "[\"a\", [\"b\", \"c\"]]",
+                "output": "4",
+                "explanation": "The sum of the lengths of the strings: 'a' (1), 'b' (1), 'c' (1). Hence, the output is 4."
+            }
+        ],
+        "test_case_list": [
+            {"input": {"L": ["hello", ["world", "python"], "code"]}, "expected_output": 20},
+            {"input": {"L": ["apple", ["banana", "cherry"], "grape"]}, "expected_output": 22},
+            {"input": {"L": ["dog", ["cat", "fish"]]}, "expected_output": 10},
+            {"input": {"L": ["a", ["b", "c"]]}, "expected_output": 3},
+            {"input": {"L": [["sublist"], "word"]}, "expected_output": 11},
+            {"input": {"L": ["short", ["longer", "word"], "mid"]}, "expected_output": 18}
+        ],
+        "test_function_name": "run_test_cases_with_function"
+    },
+
+    {
+        "name": "Finger Exercise Lecture 14 - A",
+        "exercise": "Implement the function that meets the specifications mentioned in the starter code",
+        "starter_code": "def keys_with_value(aDict, target):\n    \"\"\"\n    aDict: a dictionary\n    target: an integer or string\n    Assume that keys and values in aDict are integers or strings.\n    Returns a sorted list of the keys in aDict with the value target.\n    If aDict does not contain the value target, returns an empty list.\n    \"\"\"\n    # Your code here",
+        "mit_correct_solution": "def keys_with_value(aDict, target):\n    target_keys = []\n    for i in aDict.keys():\n        if aDict[i] == target:\n            target_keys.append(i)\n    target_keys.sort()\n    return target_keys",
+        "function_name": "keys_with_value",
+
+        "lecture_number": 14,
+        "lecture_name": "Dictionaries",
+        "lecture_description": "Dictionaries: keys, values, mutability, iteration over a dict, examples",
+        "lecture_video_url": "https://www.youtube.com/watch?v=lTgLOuaQsvk&ab_channel=MITOpenCourseWare",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/lTgLOuaQsvk",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/lTgLOuaQsvk/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec14_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec14_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "{\"a\": 3, \"b\": 5, \"c\": 3, \"d\": 2}", 
+                "output": "[\"a\", \"c\"]",
+                "explanation": "The function returns the keys where the value is 3. The keys 'a' and 'c' have the value 3, so the output is ['a', 'c']."
+            },
+            {
+                "input": "{\"apple\": 2, \"banana\": 3, \"cherry\": 2}", 
+                "output": "[\"apple\", \"cherry\"]",
+                "explanation": "The function returns the keys where the value is 2. The keys 'apple' and 'cherry' have the value 2, so the output is ['apple', 'cherry']."
+            },
+            {
+                "input": "{\"dog\": 5, \"cat\": 5, \"rabbit\": 6}", 
+                "output": "[\"cat\", \"dog\"]",
+                "explanation": "The function returns the keys where the value is 5. The keys 'cat' and 'dog' have the value 5, so the output is ['cat', 'dog']."
+            },
+            {
+                "input": "{\"x\": 1, \"y\": 1, \"z\": 2}", 
+                "output": "[\"x\", \"y\"]",
+                "explanation": "The function returns the keys where the value is 1. The keys 'x' and 'y' have the value 1, so the output is ['x', 'y']."
+            }
+        ],
+        "test_case_list": [
+            {"input": {"aDict": {"a": 3, "b": 5, "c": 3, "d": 2}, "target": 3}, "expected_output": ["a", "c"]},
+            {"input": {"aDict": {"apple": 2, "banana": 3, "cherry": 2}, "target": 2}, "expected_output": ["apple", "cherry"]},
+            {"input": {"aDict": {"dog": 5, "cat": 5, "rabbit": 6}, "target": 5}, "expected_output": ["cat", "dog"]},
+            {"input": {"aDict": {"x": 1, "y": 1, "z": 2}, "target": 1}, "expected_output": ["x", "y"]},
+            {"input": {"aDict": {"key1": 10, "key2": 20, "key3": 10}, "target": 10}, "expected_output": ["key1", "key3"]},
+            {"input": {"aDict": {"first": "apple", "second": "banana", "third": "apple"}, "target": "apple"}, "expected_output": ["first", "third"]}
+        ],
+        "test_function_name": "run_test_cases_with_function"
+
+    },
+
+    {
+        "name": "Finger Exercise Lecture 14 - B",
+        "exercise": "Implement the function that meets the specifications mentioned in the starter code",
+        "starter_code": "def all_positive(d):\n    \"\"\"\n    d is a dictionary that maps int:list\n    Suppose an element in d is a key k mapping to value v (a non-empty list).\n    Returns the sorted list of all k whose v elements sums up to a \n    positive value.\n    \"\"\"",
+        "mit_correct_solution": "def all_positive(d):\n    L = []\n    for k, v in d.items():\n        if sum(v) > 0:\n            L.append(k)\n    return sorted(L)",
+        "function_name": "all_positive",
+
+        "lecture_number": 14,
+        "lecture_name": "Dictionaries",
+        "lecture_description": "Dictionaries: keys, values, mutability, iteration over a dict, examples",
+        "lecture_video_url": "https://www.youtube.com/watch?v=lTgLOuaQsvk&ab_channel=MITOpenCourseWare",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/lTgLOuaQsvk",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/lTgLOuaQsvk/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec14_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec14_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "{\"a\": [1, 2, 3], \"b\": [-1, 2, 1], \"c\": [0, 0, 0], \"d\": [1, 1, 1]}", 
+                "output": "[\"a\", \"d\"]",
+                "explanation": "The function checks the sum of values for each key. For 'a' the sum is 6 (positive), for 'b' the sum is 2 (positive), for 'c' the sum is 0 (not positive), and for 'd' the sum is 3 (positive). The sorted keys with positive sums are ['a', 'd']."
+            },
+            {
+                "input": "{\"x\": [-1, -2, -3], \"y\": [4, 1], \"z\": [0, 0]}", 
+                "output": "[\"y\"]",
+                "explanation": "The function checks the sum of values for each key. For 'x' the sum is -6 (not positive), for 'y' the sum is 5 (positive), and for 'z' the sum is 0 (not positive). The sorted keys with positive sums are ['y']."
+            },
+            {
+                "input": "{\"key1\": [1, -1], \"key2\": [3, 2], \"key3\": [-1, -1]}", 
+                "output": "[\"key2\"]",
+                "explanation": "The function checks the sum of values for each key. For 'key1' the sum is 0 (not positive), for 'key2' the sum is 5 (positive), and for 'key3' the sum is -2 (not positive). The sorted keys with positive sums are ['key2']."
+            },
+            {
+                "input": "{\"a\": [0], \"b\": [0], \"c\": [1, -1]}", 
+                "output": "[]",
+                "explanation": "The function checks the sum of values for each key. For 'a' the sum is 0 (not positive), for 'b' the sum is 0 (not positive), and for 'c' the sum is 0 (not positive). There are no keys with a positive sum."
+            }
+        ],
+        "test_case_list": [
+            {"input": {"d": {"a": [1, 2, 3], "b": [-1, 2, 1], "c": [0, 0, 0], "d": [1, 1, 1]}}, "expected_output": ["a", "b", "d"]},
+            {"input": {"d": {"x": [-1, -2, -3], "y": [4, 1], "z": [0, 0]}}, "expected_output": ["y"]},
+            {"input": {"d": {"key1": [1, -1], "key2": [3, 2], "key3": [-1, -1]}}, "expected_output": ["key2"]},
+            {"input": {"d": {"a": [0], "b": [0], "c": [1, -1]}}, "expected_output": []},
+            {"input": {"d": {"a": [1], "b": [0], "c": [-1]}}, "expected_output": ["a"]},
+            {"input": {"d": {"x": [1, 1], "y": [-1, -1], "z": [0, 0]}}, "expected_output": ["x"]}
+        ],
+        "test_function_name": "run_test_cases_with_function"
+    },
+
+    {
+        "name": "Finger Exercise Lecture 15",
+        "exercise": "Implement the function that meets the specifications mentioned in the starter code",
+        "starter_code": "def recur_power(base, exp):\n    \"\"\"\n    base: int or float.\n    exp: int >= 0\n\n    Returns base to the power of exp using recursion.\n    Hint: Base case is when exp = 0. Otherwise, in the recursive\n    case you return base * base^(exp-1).\n    \"\"\"\n    # Your code here",
+        "mit_correct_solution": "def recur_power(base, exp):\n    if exp <= 0:\n        return 1\n    return base * recur_power(base, exp - 1)",
+        "function_name": "recur_power",
+
+        "lecture_number": 15,
+        "lecture_name": "Recursion",
+        "lecture_description": "Recursion: iteration vs. recursion, inductive reasoning",
+        "lecture_video_url": "https://www.youtube.com/watch?v=Bbyp4VRbmyY&ab_channel=MITOpenCourseWare",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/Bbyp4VRbmyY",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/Bbyp4VRbmyY/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec15_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec15_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "{\"base\": 2, \"exp\": 3}", 
+                "output": "8",
+                "explanation": "The function calculates 2 raised to the power of 3 using recursion. The recursive calls are: 2 * (2 * (2 * 1)) = 8."
+            },
+            {
+                "input": "{\"base\": 5, \"exp\": 0}", 
+                "output": "1",
+                "explanation": "The function calculates 5 raised to the power of 0 using recursion. The base case triggers when exp is 0, returning 1."
+            },
+            {
+                "input": "{\"base\": 10, \"exp\": 2}", 
+                "output": "100",
+                "explanation": "The function calculates 10 raised to the power of 2 using recursion. The recursive calls are: 10 * (10 * 1) = 100."
+            },
+            {
+                "input": "{\"base\": 3, \"exp\": 4}", 
+                "output": "81",
+                "explanation": "The function calculates 3 raised to the power of 4 using recursion. The recursive calls are: 3 * (3 * (3 * (3 * 1))) = 81."
+            }
+        ],
+        "test_case_list": [
+            {"input": {"base": 2, "exp": 3}, "expected_output": 8},
+            {"input": {"base": 5, "exp": 0}, "expected_output": 1},
+            {"input": {"base": 10, "exp": 2}, "expected_output": 100},
+            {"input": {"base": 3, "exp": 4}, "expected_output": 81},
+            {"input": {"base": 7, "exp": 1}, "expected_output": 7},
+            {"input": {"base": 1, "exp": 5}, "expected_output": 1}
+        ],
+        "test_function_name": "run_test_cases_with_function"
+    },
+
+    {
+        "name": "Finger Exercise Lecture 16",
+        "exercise": "Implement the function that meets the specifications mentioned in the starter code",
+        "starter_code": "def flatten(L):\n    \"\"\" \n    L: a list \n    Returns a copy of L, which is a flattened version of L \n    \"\"\"\n    # Your code here",
+        "mit_correct_solution": "def flatten(L):\n    result = []\n    for i in L:\n        if type(i) == list:\n            result.extend(flatten(i))\n        else:\n            result.append(i)\n    return result",
+        "function_name": "flatten",
+
+        "lecture_number": 16,
+        "lecture_name": "Recursion on Non-Numerics",
+        "lecture_description": "Recursion: Fibonacci, Fibonacci with a dict, recursion on non-numerics, recursion on lists, Towers of Hanoi (extra)",
+        "lecture_video_url": "https://www.youtube.com/watch?v=2XxGplWqXVQ&ab_channel=MITOpenCourseWare",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/2XxGplWqXVQ",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/2XxGplWqXVQ/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec16_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec16_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "[1, [2, 3], [4, [5, 6]], 7]",
+                "output": "[1, 2, 3, 4, 5, 6, 7]",
+                "explanation": "The function flattens a list containing nested lists by recursively expanding them. It processes the outer list and recursively handles each sublist, resulting in a single flattened list."
+            },
+            {
+                "input": "[['a', 'b'], ['c', 'd'], ['e', 'f']]",
+                "output": "['a', 'b', 'c', 'd', 'e', 'f']",
+                "explanation": "The function flattens a list of lists containing strings into a single list of strings."
+            },
+            {
+                "input": "[['apple', 'banana'], ['cherry', 'date'], ['elderberry']]",
+                "output": "['apple', 'banana', 'cherry', 'date', 'elderberry']",
+                "explanation": "The function flattens a list of lists containing strings into a single list with all strings."
+            },
+            {
+                "input": "[1, 2, [3, 4, [5, 6]], 7]",
+                "output": "[1, 2, 3, 4, 5, 6, 7]",
+                "explanation": "The function recursively flattens nested lists, handling multiple levels of nesting, resulting in a single flattened list."
+            }
+        ],
+        "test_case_list": [
+            {"input": {"L": [1, [2, 3], [4, [5, 6]], 7]}, "expected_output": [1, 2, 3, 4, 5, 6, 7]},
+            {"input": {"L": [1, 2, [3, 4, [5, 6]], 7]}, "expected_output": [1, 2, 3, 4, 5, 6, 7]},
+            {"input": {"L": [1, [2, [3, [4]]], 5]}, "expected_output": [1, 2, 3, 4, 5]},
+            {"input": {"L": [[1, 2], [3, 4], [5, 6]]}, "expected_output": [1, 2, 3, 4, 5, 6]}
+        ],
+        "test_function_name": "run_test_cases_with_function"
+    },
+
+    {
+        "name": "Finger Exercise Lecture 17",
+        "exercise": "Implement the function that meets the specifications mentioned in the starter code",
+        "starter_code": "class Circle():\n    def __init__(self, radius):\n        \"\"\" Initializes self with radius \"\"\"\n        # your code here\n\n    def get_radius(self):\n        \"\"\" Returns the radius of self \"\"\"\n        # your code here\n\n    def set_radius(self, radius):\n        \"\"\" radius is a number\n        Changes the radius of self to radius \"\"\"\n        # your code here\n\n    def get_area(self):\n        \"\"\" Returns the area of self using pi = 3.14 \"\"\"\n        # your code here\n\n    def equal(self, c):\n        \"\"\" c is a Circle object\n        Returns True if self and c have the same radius value \"\"\"\n        # your code here\n\n    def bigger(self, c):\n        \"\"\" c is a Circle object\n        Returns self or c, the Circle object with the bigger radius \"\"\"\n        # your code here",
+        "mit_correct_solution": "class Circle():\n    def __init__(self, radius):\n        self.r = radius\n    def get_radius(self):\n        return self.r\n    def set_radius(self, radius):\n        self.r = radius\n    def get_area(self):\n        return 3.14 * self.r * self.r\n    def equal(self, c):\n        return (c.r == self.r)\n    def bigger(self, c):\n        if c.r > self.r:\n            return c\n        elif c.r < self.r:\n            return self",
+        "function_name": "",
+        "class_name": "Circle",
+
+        "lecture_number": 17,
+        "lecture_name": "Python Classes",
+        "lecture_description": "Object Oriented Programming: data abstraction, class def, class instances, methods",
+        "lecture_video_url": "https://www.youtube.com/watch?v=tsMrUdynbQQ&ab_channel=MITOpenCourseWare",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/tsMrUdynbQQ",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/tsMrUdynbQQ/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec17_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec17_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "Circle(5)",
+                "output": "Area: 78.5, Radius: 5",
+                "explanation": "A Circle with radius 5 has an area calculated by 3.14 * 5^2 = 78.5."
+            },
+            {
+                "input": "c1 = Circle(3)\nc2 = Circle(3)\nc1.equal(c2)",
+                "output": "True",
+                "explanation": "Both circles have the same radius of 3, so the method 'equal' returns True."
+            },
+            {
+                "input": "c1 = Circle(4)\nc2 = Circle(5)\nc1.bigger(c2)",
+                "output": "Circle with radius 5",
+                "explanation": "The 'bigger' method compares the radius and returns the circle with the larger radius."
+            }
+        ],
+
+        "test_case_list": []
+    },
+
+    {
+        "name": "Finger Exercise Lecture 18",
+        "exercise": "Write the class according to the specifications below",
+        "starter_code": "class Circle():\n    def __init__(self, radius):\n        \"\"\" Initializes self with radius \"\"\"\n        # your code here\n\n    def get_radius(self):\n        \"\"\" Returns the radius of self \"\"\"\n        # your code here\n\n    def __add__(self, c):\n        \"\"\" c is a Circle object \n        Returns a new Circle object whose radius is \n        the sum of self and c's radius \"\"\"\n        # your code here\n\n    def __str__(self):\n        \"\"\" A Circle's string representation is the radius \"\"\"\n        # your code here",
+        "mit_correct_solution": "class Circle():\n    def __init__(self, radius):\n        self.r = radius\n    def get_radius(self):\n        return self.r\n    def __add__(self, c):\n        return Circle(self.r + c.r)\n    def __str__(self):\n        return str(self.r)",
+        "function_name": "",
+        "class_name": "Circle",
+
+        "lecture_number": 18,
+        "lecture_name": "More Python Class Methods",
+        "lecture_description": "Object Oriented Programming: dunder methods, examples",
+        "lecture_video_url": "https://www.youtube.com/watch?v=gLnCmUkgUQk&ab_channel=MITOpenCourseWare",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/gLnCmUkgUQk",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/gLnCmUkgUQk/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec18_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec18_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "Circle(5).get_radius()",
+                "output": "5",
+                "explanation": "The radius of the circle is initialized to 5 and retrieved using the `get_radius` method."
+            },
+            {
+                "input": "str(Circle(10))",
+                "output": "'10'",
+                "explanation": "The string representation of a circle with radius 10 is '10'."
+            },
+            {
+                "input": "Circle(3) + Circle(7)",
+                "output": "Circle(10)",
+                "explanation": "Adding two Circle objects with radii 3 and 7 results in a new Circle with a radius of 10."
+            },
+            {
+                "input": "Circle(2) + Circle(4)",
+                "output": "Circle(6)",
+                "explanation": "Adding two Circle objects with radii 2 and 4 results in a new Circle with a radius of 6."
+            },
+            {
+                "input": "str(Circle(8) + Circle(2))",
+                "output": "'10'",
+                "explanation": "Adding two Circle objects with radii 8 and 2 results in a Circle with radius 10, whose string representation is '10'."
+            }
+        ],
+
+        "test_case_list": [],
+        "test_function_name": "run_test_cases_with_class"
+    },
+
+    {
+        "name": "Finger Exercise Lecture 19",
+        "exercise": "In this problem, you will implement two classes according to the specification below: one Container class and one Stack class (a subclass of Container).\n\nOur Container class will initialize an empty list. The two methods we will have are to calculate the size of the list and to add an element. The second method will be inherited by the subclass. We now want to create a subclass so that we can add more functionality—the ability to remove elements from the list. A Stack will add elements to the list in the same way, but will behave differently when removing an element.\n\nA stack is a last-in, first-out data structure. Think of a stack of pancakes. As you make pancakes, you create a stack of them with older pancakes going on the bottom and newer pancakes on the top. As you start eating the pancakes, you pick one off the top so you are removing the newest pancake added to the stack. When implementing your Stack class, you will have to think about which end of your list contains the element that has been in the list the shortest amount of time. This is the element you will want to remove and return.",
+        "starter_code": "class Container(object):\n    \"\"\"\n    A container object is a list and can store elements of any type\n    \"\"\"\n    def __init__(self):\n        \"\"\"\n        Initializes an empty list\n        \"\"\"\n        self.myList = []\n\n    def size(self):\n        \"\"\"\n        Returns the length of the container list\n        \"\"\"\n        # Your code here\n\n    def add(self, elem):\n        \"\"\"\n        Adds the elem to one end of the container list, keeping the end\n        you add to consistent. Does not return anything\n        \"\"\"\n        # Your code here\n\nclass Stack(Container):\n    \"\"\"\n    A subclass of Container. Has an additional method to remove elements.\n    \"\"\"\n    def remove(self):\n        \"\"\"\n        The newest element in the container list is removed\n        Returns the element removed or None if the queue contains no elements\n        \"\"\"\n        # Your code here",
+        "mit_correct_solution": "class Container(object):\n    def __init__(self):\n        self.myList = []\n    def size(self):\n        return len(self.myList)\n    def add(self, elem):\n        self.myList.append(elem)\n\nclass Stack(Container):\n    def remove(self):\n        if self.size() > 0:\n            return self.myList.pop()\n        return None",
+        "function_name": "",
+        "class_name": ["Container", "Stack"],
+
+        "lecture_number": 19,
+        "lecture_name": "Inheritance",
+        "lecture_description": "Inheritance: hierarchies, subclasses, using inherited methods, examples",
+        "lecture_video_url": "https://www.youtube.com/watch?v=rgM7Z9BNm1s&ab_channel=MITOpenCourseWare",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/rgM7Z9BNm1s",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/rgM7Z9BNm1s/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec19_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec19_code_py/",
+
+        "input_output_list": [
+            {
+                "input": "container = Container()\ncontainer.size()",
+                "output": "0",
+                "explanation": "The container is initialized and is empty, so the size is 0."
+            },
+            {
+                "input": "container = Container()\ncontainer.add(5)\ncontainer.size()",
+                "output": "1",
+                "explanation": "After adding one element (5) to the container, its size becomes 1."
+            },
+            {
+                "input": "container = Container()\ncontainer.add(5)\ncontainer.add(10)\ncontainer.size()",
+                "output": "2",
+                "explanation": "Adding two elements to the container results in a size of 2."
+            },
+            {
+                "input": "stack = Stack()\nstack.size()",
+                "output": "0",
+                "explanation": "The stack is initialized and is empty, so the size is 0."
+            },
+            {
+                "input": "stack = Stack()\nstack.add(5)\nstack.remove()",
+                "output": "5",
+                "explanation": "After adding 5 to the stack and removing the last added element, it returns 5."
+            },
+            {
+                "input": "stack = Stack()\nstack.add(5)\nstack.add(10)\nstack.remove()",
+                "output": "10",
+                "explanation": "Adding two elements (5, 10) to the stack and removing the last added element returns 10."
+            },
+            {
+                "input": "stack = Stack()\nstack.add(5)\nstack.add(10)\nstack.remove()\nstack.remove()",
+                "output": "5",
+                "explanation": "Adding 5 and 10 to the stack and removing elements twice results in 10 being removed first, then 5."
+            },
+            {
+                "input": "stack = Stack()\nstack.remove()",
+                "output": "None",
+                "explanation": "Trying to remove an element from an empty stack returns None."
+            }
+        ]
+    },
+
+    {
+        "name": "Finger Exercise Lecture 20",
+        "exercise": "In this problem, you will implement two classes according to the specification below: one Container class and one Queue class (a subclass of Container).\n\nOur Container class will initialize an empty list. The two methods we will have are to calculate the size of the list and to add an element. The second method will be inherited by the subclass. We now want to create a subclass so that we can add more functionality – the ability to remove elements from the list. A Queue will add elements to the list in the same way, but will behave differently when removing an element.\n\nA queue is a first-in, first-out data structure. Think of a store checkout queue. The customer who has been in the line the longest gets the next available cashier. When implementing your Queue class, you will have to think about which end of your list contains the element that has been in the list the longest. This is the element you will want to remove and return.",
+        "starter_code": "class Container(object):\n    \"\"\"\n    A container object is a list and can store elements of any type\n    \"\"\"\n    def __init__(self):\n        \"\"\"\n        Initializes an empty list\n        \"\"\"\n        self.myList = []\n\n    def size(self):\n        \"\"\"\n        Returns the length of the container list\n        \"\"\"\n        # Your code here\n\n    def add(self, elem):\n        \"\"\"\n        Adds the elem to one end of the container list, keeping the end\n        you add to consistent. Does not return anything\n        \"\"\"\n        # Your code here\n\nclass Queue(Container):\n    \"\"\"\n    A subclass of Container. Has an additional method to remove elements.\n    \"\"\"\n    def remove(self):\n        \"\"\"\n        The oldest element in the container list is removed\n        Returns the element removed or None if the stack contains no elements\n        \"\"\"\n        # Your code here",
+        "mit_correct_solution": "class Container(object):\n    def __init__(self):\n        self.myList = []\n    def size(self):\n        return len(self.myList)\n    def add(self, elem):\n        self.myList.append(elem)\n\nclass Queue(Container):\n    def remove(self):\n        if self.size() > 0:\n            return self.myList.pop(0)\n        return None",
+
+        "lecture_number": 20,
+        "lecture_name": "Fitness Tracker Object-Oriented Programming Example",
+        "lecture_description": "Inheritance: more examples",
+        "lecture_video_url": "https://www.youtube.com/watch?v=-wyc5FwzkcM&ab_channel=MITOpenCourseWare",
+        "lecture_embed_video_url": "https://www.youtube.com/embed/wyc5FwzkcM",
+        "lecture_thumbnail_image_url": "https://i.ytimg.com/vi/wyc5FwzkcM/maxresdefault.jpg",
+
+        "lecture_notes_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec20_pdf/",
+        "lecture_code_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_lec20_code_zip/",
+
+        "input_output_list": [
+            {
+                "input": "container = Container()\ncontainer.size()",
+                "output": "0",
+                "explanation": "An empty container has no elements, so the size is 0."
+            },
+            {
+                "input": "container = Container()\ncontainer.add(10)\ncontainer.size()",
+                "output": "1",
+                "explanation": "Adding one element to the container increases its size to 1."
+            },
+            {
+                "input": "container = Container()\ncontainer.add(10)\ncontainer.add(20)\ncontainer.size()",
+                "output": "2",
+                "explanation": "Adding two elements to the container increases its size to 2."
+            },
+            {
+                "input": "queue = Queue()\nqueue.remove()",
+                "output": "None",
+                "explanation": "Removing an element from an empty queue returns None."
+            },
+            {
+                "input": "queue = Queue()\nqueue.add(10)\nqueue.add(20)\nqueue.remove()",
+                "output": "10",
+                "explanation": "The first-in element (10) is removed from the queue."
+            },
+            {
+                "input": "queue = Queue()\nqueue.add(10)\nqueue.add(20)\nqueue.add(30)\nqueue.remove()\nqueue.size()",
+                "output": "2",
+                "explanation": "After removing one element, two elements remain in the queue."
+            },
+            {
+                "input": "queue = Queue()\nqueue.add('apple')\nqueue.add('banana')\nqueue.add('cherry')\nqueue.remove()\nqueue.remove()",
+                "output": "'apple'",
+                "explanation": "After removing the first two elements, the first removed is 'apple'."
+            },
+            {
+                "input": "queue = Queue()\nqueue.add(1)\nqueue.add(2)\nqueue.add(3)\nqueue.remove()\nqueue.remove()\nqueue.remove()",
+                "output": "3",
+                "explanation": "After removing all elements, the last removed is the last element added, 3."
+            },
+            {
+                "input": "queue = Queue()\nqueue.add(100)\nqueue.add(200)\nqueue.remove()\nqueue.size()",
+                "output": "1",
+                "explanation": "After removing one element, the queue size is reduced to 1."
+            },
+            {
+                "input": "queue = Queue()\nqueue.add('MIT')\nqueue.add('Python')\nqueue.add('Lecture')\nqueue.remove()\nqueue.remove()\nqueue.remove()\nqueue.size()",
+                "output": "0",
+                "explanation": "After removing all elements, the queue is empty, so the size is 0."
+            }
+        ]
+
+    }
+
+]

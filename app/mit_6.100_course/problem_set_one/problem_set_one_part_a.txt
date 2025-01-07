@@ -1,0 +1,27 @@
+Part A: Saving for a House
+You have just graduated from MIT and have a job! You move to the Bay Area and decide that you want to start saving for a home. Houses are fairly
+expensive, so you start saving up for the down payment on your dream home.
+Your goal is to find the number of months it takes to save up for a down payment. The cost of your down payment is calculated by multiplying the
+total cost of your dream house by the down payment percentage.
+- You will be given a function with the following variables.
+. The starting yearly salary ( yearly_salary)
+. The portion of salary to be saved ( portion_saved). This variable should be in decimal form (e.g. 0.1 for 10%).
+. The cost of your dream home ( cost_of_dream_home)
+
+You will need to determine how many months it will take given the following information:
+. yearly_salary, as described above.
+. portion_saved, as described above.
+. cost_of_dream_home, as described above.
+. portion_down_payment, the percentage of the total cost needed for a down payment. Assume portion_down_payment = 0.25 (25%).
+. The amount that you have saved thus far is amount_saved, which starts at $0.
+. You get an annual rate of return r. In other words, at the end of each month, you receive an additional amount_saved * (r/12) funds for your
+savings (the 12 is because r is an annual rate). Assume r = 0.05 (5%).
+. At the end of each month, your savings increase by (1) a percentage of your monthly salary and (2) the monthly return on your investment. (Note:
+The investment amount used to calculate the monthly return is the amount you had saved at the start of each month.)
+Output:
+. Your program should store the number of months required to save for the down payment using a variable called months.
+Notes:
+- Be careful about values that represent annual amounts versus monthly amounts.
+- If the number of months your program returns is off by one, reread the highlighted text above.
+- Your program should print outputs in the same format as the test cases below. If you're using Spyder, you might see extra lines in between
+outputs. Don't worry about them!

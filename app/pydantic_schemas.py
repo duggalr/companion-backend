@@ -33,9 +33,29 @@ class CodeExecutionRequestSchema(BaseModel):
 
 class SaveCodeSchema(UpdateQuestionSchema):
     code: str
+    lecture_question: bool
 
 class SaveLandingPageEmailSchema(BaseModel):
     email: str
 
 class FetchQuestionDetailsSchema(BaseModel):
     question_id: str
+    problem_set_question: Optional[bool] = None
+    lecture_question: Optional[bool] = None
+
+class FetchLessonQuestionDetailSchema(BaseModel):
+    lesson_question_id: str
+
+class FetchLectureDetailSchema(BaseModel):
+    lecture_number: str
+
+class LectureQuestionSubmissionSchema(BaseModel):
+    lecture_question_id: str
+    code: str
+
+class ProblemSetFetchSchema(BaseModel):
+    problem_set_object_id: str
+
+class FetchDashboardSchema(BaseModel):
+    user_access_token: str
+

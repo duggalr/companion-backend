@@ -1,0 +1,71 @@
+{
+    "lecture_number": 16,
+    "problem_set_number": 4,
+    "problem_set_name": "Problem Set 4: Recursion and Caesar Cipher",
+    "problem_set_url": "https://ocw.mit.edu/courses/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/resources/mit6_100l_f22_ps4_pdf/",
+
+    "problems": [
+        {
+            "part": "1",
+            "name": "Data Representation Practice",
+            "exercise": "### Exercise\nCreate Node objects to represent the given trees in the problem set.\n\n#### Additional Context:\n- A **tree** is a hierarchical data structure composed of nodes.\n- Each node has a **value** and may optionally have **left** and **right child nodes**.\n\n#### Instructions:\n- Use the `Node` class provided in `tree.py`.\n- Assign the tree structures to variables `tree1`, `tree2`, and `tree3`.\n\n#### Example:\n```python\n# Example tree\ntree_example = Node(1, Node(2), Node(5, Node(7), Node(8)))\n```",
+            "starter_code": "class Node:\n    # Your code here\n    pass\n\ndef define_trees():\n    # Your code here\n    pass\n\ndef find_tree_height(node):\n    # Your code here\n    pass\n\ndef is_heap(node, compare_func):\n    # Your code here\n    pass\n\ndef shift_char(char, shift):\n    # Your code here\n    pass\n\n",
+            "mit_correct_solution": "",
+            "input_output_list": [],
+            "test_case_list": [],
+            "function_name": "define_trees",
+            "test_function_name": "run_test_cases_with_function"
+        },
+        {
+            "part": "2",
+            "name": "Finding the Height of a Tree",
+            "exercise": "### Exercise\nWrite a recursive function to determine the height of a tree.\n\n#### Additional Context:\n- The **height** of a tree is the number of edges between the root and the furthest leaf.\n- A **leaf node** has no children.\n\n#### Recursive Approach:\n1. **Base Case:** If the node is a leaf, the height is `0`.\n2. **Recursive Case:** Recursively calculate the height of the left and right subtrees. Return the maximum of the two heights, plus `1` for the current node.\n\n#### Formula:\n```\nheight(node) = 1 + max(height(node.get_left_child()), height(node.get_right_child()))\n```\n\n#### Example:\n```python\nfind_tree_height(tree1) # Output: 2\nfind_tree_height(tree2) # Output: 3\n```",
+            "starter_code": "def find_tree_height(node):\n    # Your code here\n    pass",
+            "mit_correct_solution": "",
+            "input_output_list": [
+                {"input": "tree1", "output": 2},
+                {"input": "tree2", "output": 3}
+            ],
+            "test_case_list": [
+                {"input": {"node": "tree1"}, "expected_output": 2},
+                {"input": {"node": "tree2"}, "expected_output": 3}
+            ],
+            "function_name": "find_tree_height",
+            "test_function_name": "run_test_cases_with_function"
+        },
+        {
+            "part": "3",
+            "name": "Determining Heaps",
+            "exercise": "### Exercise\nWrite a function to check whether a tree is a heap.\n\n#### Additional Context:\n- A **heap** can be either a **max heap** or a **min heap**.\n  - In a **max heap**, the value of each node is greater than or equal to its children.\n  - In a **min heap**, the value of each node is less than or equal to its children.\n- Use a comparator function `compare_func(child_value, parent_value)` to determine the type of heap.\n\n#### Recursive Approach:\n1. **Base Case:** If the node is a leaf, it satisfies the heap property.\n2. **Recursive Case:** Check if the left and right subtrees satisfy the heap property. Ensure the current node's value satisfies the heap property compared to its children.\n\n#### Example Comparator:\n```python\n# Max heap comparator\ndef compare_func(child_value, parent_value):\n    return child_value < parent_value\n\n# Min heap comparator\ndef compare_func(child_value, parent_value):\n    return child_value > parent_value\n```",
+            "starter_code": "def is_heap(node, compare_func):\n    # Your code here\n    pass",
+            "mit_correct_solution": "",
+            "input_output_list": [
+                {"input": "tree1, max_heap_comparator", "output": true},
+                {"input": "tree2, min_heap_comparator", "output": false}
+            ],
+            "test_case_list": [
+                {"input": {"node": "tree1", "compare_func": "max_heap_comparator"}, "expected_output": true},
+                {"input": {"node": "tree2", "compare_func": "min_heap_comparator"}, "expected_output": false}
+            ],
+            "function_name": "is_heap",
+            "test_function_name": "run_test_cases_with_function"
+        },
+        {
+            "part": "4",
+            "name": "Shifting Characters in Encryption",
+            "exercise": "### Exercise\nWrite a function to shift a character by a specified amount using ASCII values.\n\n#### Additional Context:\n- The ASCII values for characters range from 32 (SPACE) to 126 (~).\n- If the shift exceeds this range, wrap around using modulo arithmetic.\n\n#### Formula:\n```\nnew_char = chr(((ord(char) - 32 + shift) % 95) + 32)\n```\n\n#### Example:\n```python\nshift_char('A', 5)  # Output: 'F'\nshift_char('~', 1)  # Output: ' ' (wraps around)\n```",
+            "starter_code": "def shift_char(char, shift):\n    # Your code here\n    pass",
+            "mit_correct_solution": "",
+            "input_output_list": [
+                {"input": "'A', 5", "output": "'F'"},
+                {"input": "'~', 1", "output": "' '"}
+            ],
+            "test_case_list": [
+                {"input": {"char": "A", "shift": 5}, "expected_output": "F"},
+                {"input": {"char": "~", "shift": 1}, "expected_output": " "}
+            ],
+            "function_name": "shift_char",
+            "test_function_name": "run_test_cases_with_function"
+        }
+    ]
+}

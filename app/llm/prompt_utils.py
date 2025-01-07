@@ -80,3 +80,108 @@ Question: {user_current_problem_text}
         user_current_problem_text=user_current_problem_text,
     )
     return prompt
+
+
+def _prepare_solution_feedback_prompt(user_code, correct_solution, test_case_result_boolean, test_case_result_list_str):
+    prompt = f"""You are a programming tutor providing feedback on a student's code.
+
+The student's solution is as follows:
+{user_code}
+
+The correct solution (reference code) is (only you have access to this. the student does not have access to this and this code/solution should not be directly mentioned or provided to the student. this is for you only.):
+{correct_solution}
+
+Did all the test cases pass (boolean):
+{test_case_result_boolean}
+
+The test cases results list for the student's code are:
+{test_case_result_list_str}
+
+1. **Test Case Results Summary**: 
+   - If the student's solution passes all test cases, provide a positive summary about the correctness of the solution.
+   - If the solution fails any test cases, highlight which test case(s) failed and provide suggestions for debugging or fixing the code.
+
+2. **General Code Feedback**:
+   - Check if the student’s solution follows best coding practices.
+   - Identify any areas where the solution can be improved, such as code readability, efficiency, or potential edge cases that were not considered.
+   - Compare the student’s solution with the correct one and suggest how the code could be refactored to align more closely with the correct solution.
+
+3. **Specific Recommendations**:
+   - If applicable, suggest a specific algorithmic approach or data structures that might improve the solution.
+   - Offer tips on how the student can improve the clarity, structure, and performance of their code.
+
+Your task is to provide detailed feedback to the student based on the points above.
+- Do not mention the reference / correct solution that has been provided to you above, in your detailed feedback response.
+- The correct solution which is only provided to you, is to help you know what the correct solution to the problem would be, and to provide a point of reference when providing your feedback to the student.
+- The correct solution is never accessible to the student and you should never directly mention it, or provide it to the student.
+
+Be constructive and clear, making sure to offer actionable suggestions that the student can use to improve their coding skills.
+
+Return a short paragraph with your response.
+
+##Output:
+"""
+    return prompt
+    # prompt = prompt.format(
+    #     user_code = user_code,
+    #     correct_solution = correct_solution,
+    #     test_case_result_boolean = test_case_result_boolean,
+    #     test_case_result_list_str = test_case_result_list_str   
+    # )
+    # return prompt
+
+
+
+
+# code_str = """#TODO: implement your here code
+
+# a = 5
+# b = 10
+# c = 0
+# print((a * b) + c)
+# """
+
+# correct_solution = """total = (a + b) * c
+# print(total)
+# """
+
+# test_cases_passed = False
+
+# result_list_output_str = [{'program_output': 50, 'expected_output': 9, 'test_input_to_code': "input = {'a': 1, 'b': 2, 'c': 3}", 'correct': 'no'},
+# {'program_output': 50, 'expected_output': 3, 'test_input_to_code': "input = {'a': -1, 'b': 2, 'c': 3}", 'correct': 'no'},
+# {'program_output': 50, 'expected_output': 9, 'test_input_to_code': "input = {'a': -1, 'b': -2, 'c': -3}", 'correct': 'no'}]
+
+# # tc_results_string = ""
+# # for rslt_dict in result_list_output_str:
+# #     tc_results_string += ", ".join(f"{key}: {value}" for key, value in rslt_dict.items())
+# #     tc_results_string += '\n'
+
+# # print(tc_results_string)
+
+# print(_prepare_solution_feedback_prompt(
+#     user_code = code_str, 
+#     correct_solution = correct_solution, 
+#     test_case_result_boolean = test_cases_passed, 
+#     test_case_result_list_str = str(result_list_output_str)
+# ))
+
+
+
+
+# # import ast
+
+# # data = ast.literal_eval(result_list_output_str)
+# # print(data)
+
+# # # Create a string by joining the key-value pairs as "key: value" format
+# # output_string = ", ".join(f"{key}: {value}" for key, value in data.items())
+# # print(output_string)
+
+# # _prepare_solution_feedback_prompt(
+# #     user_code = code_str, 
+# #     correct_solution = correct_solution, 
+# #     test_case_result_boolean = test_cases_passed, 
+# #     test_case_result_list = result_list_output_str
+# # )
+
+

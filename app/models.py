@@ -94,6 +94,137 @@ class UserCreatedPlaygroundQuestion(QuestionBaseModel):
     custom_user = relationship("CustomUser")
 
 
+## MIT Course Models
+
+class LectureMain(Base):
+    """
+    """
+    __tablename__ = 'lecture_main'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    number = Column(Integer, nullable=True)
+    name = Column(String, nullable=True)
+    description = Column(String, nullable=True)
+    # video_url = Column(String, nullable=True)
+    notes_url = Column(String, nullable=True)
+    video_url = Column(String, nullable=True)
+    embed_video_url = Column(String, nullable=True)
+    thumbnail_image_url = Column(String, nullable=True)
+    code_url = Column(String, nullable=True)
+
+    # lecture_complete = Column(Boolean, default=False)
+
+    created_date = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class UserLectureMain(Base):
+    """
+    """
+    __tablename__ = 'user_lecture_main'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    complete = Column(Boolean, nullable=False, default=False)
+
+    custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
+    custom_user = relationship("CustomUser")
+
+    lecture_main_object_id = Column(UUID, ForeignKey('lecture_main.id'))
+    lecture_main_object = relationship("LectureMain")
+
+
+class ProblemSetQuestion(Base):
+    """
+    """
+    __tablename__ = 'problem_set_question'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ps_number = Column(Integer, nullable=False, unique=True)
+    ps_name = Column(String, nullable=False)
+    ps_url = Column(String, nullable=False, unique=True)
+
+    implementation_in_progress = Column(Boolean, default=False)
+
+    lecture_main_object_id = Column(UUID, ForeignKey('lecture_main.id'))
+    lecture_main_object = relationship("LectureMain")
+
+    created_date = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class LectureQuestion(QuestionBaseModel):
+    """
+    """
+    __tablename__ = 'lecture_question'
+
+    starter_code = Column(String, nullable=True)
+    correct_solution = Column(String, nullable=True)
+    test_case_list = Column(String, nullable=True)
+    function_name = Column(String, nullable=True)
+    class_name = Column(String, nullable=True)
+    test_function_name = Column(String, nullable=True)
+
+    question_type = Column(String, nullable=True)  # TODO: question_type (lecture_exercise or problem_set)
+    problem_set_part = Column(String, nullable=True)
+    problem_set_number = Column(Integer, ForeignKey('problem_set_question.ps_number'), nullable=True)
+    problem_set_object = relationship("ProblemSetQuestion")
+
+    lecture_main_object_id = Column(UUID, ForeignKey('lecture_main.id'))
+    lecture_main_object = relationship("LectureMain")
+
+
+class UserCreatedLectureQuestion(Base):
+    """
+    """
+    __tablename__ = 'user_created_lecture_question'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    lecture_question_object_id = Column(UUID, ForeignKey('lecture_question.id'))
+    lecture_question = relationship("LectureQuestion")
+
+    complete = Column(Boolean, default=False)
+
+    custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
+    custom_user = relationship("CustomUser")
+
+    created_date = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class UserPlaygroundLectureCode(Base):
+    """
+    """
+    __tablename__ = 'user_playground_lecture_code'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    programming_language = Column(String, nullable=False, default='python')
+    code = Column(String, nullable=False)
+    lecture_question_object_id = Column(UUID, ForeignKey('user_created_lecture_question.id'), nullable=False)
+    lecture_question_object =relationship("UserCreatedLectureQuestion")
+
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class LectureCodeSubmissionHistory(Base):
+    """
+    """
+    __tablename__ = "lecture_code_submission_history"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    code = Column(String, nullable=False)
+    test_case_boolean_result = Column(Boolean, default=False)
+    program_output_list = Column(String, nullable=False)
+    ai_feedback_response_string = Column(String, nullable=False)
+    user_created_lecture_question_object_id = Column(UUID, ForeignKey('user_created_lecture_question.id'), nullable=False)
+    user_created_lecture_question_object =relationship("UserCreatedLectureQuestion")
+
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+
+
 ## Code Models ##
 
 class PlaygroundCode(Base):
@@ -136,3 +267,26 @@ class PlaygroundChatConversation(TutorConversationBaseModel):
     code = Column(String, nullable=True)
     question_object_id = Column(UUID, ForeignKey('user_created_playground_question.id'), nullable=False)
     parent_question_object = relationship("UserCreatedPlaygroundQuestion")
+
+class LecturePlaygroundChatConversation(TutorConversationBaseModel):
+    """
+    """
+    __tablename__ = 'lecture_playground_chat_conversation'
+
+    code = Column(String, nullable=True)
+    user_lecture_question_object_id = Column(UUID, ForeignKey('user_created_lecture_question.id'), nullable=False)
+    user_lecture_question_object = relationship("UserCreatedLectureQuestion")
+
+    # question_object_id = Column(UUID, ForeignKey('user_created_playground_question.id'), nullable=False)
+    # parent_question_object = relationship("UserCreatedPlaygroundQuestion")    
+
+
+# TODO: set ps object id in state
+class PlaygroundProblemSetChatConversation(TutorConversationBaseModel):
+    """
+    """
+    __tablename__ = "lecture_playground_problem_set_chat_conversation"
+
+    code = Column(String, nullable=True)
+    problem_set_object_id = Column(UUID, ForeignKey('problem_set_question.id'), nullable=False)
+    problem_set_object = relationship("ProblemSetQuestion")
