@@ -1,6 +1,7 @@
-import json
+import os
 import sys
-sys.path.append('/Users/rahulduggal/Documents/new_projects/new_companion/companion_backend')
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+import json
 from app.database import SessionLocal
 from app.models import LectureMain, LectureQuestion
 
