@@ -1257,14 +1257,13 @@ def handle_lecture_question_submission(
 
     tc_results_output_list = []
     for eval_dict in tc_results:
-        eval_correct = eval_dict.get('correct', None)
-        if eval_correct == 'no':
-            pass
-        else:
+        if 'program_output' in eval_dict:
             program_output = str(eval_dict['program_output'])
             expected_output = str(eval_dict['expected_output'])
             eval_dict['program_output'] = program_output
             eval_dict['expected_output'] = expected_output
+            tc_results_output_list.append(eval_dict)
+        else:
             tc_results_output_list.append(eval_dict)
 
     ai_response = op_ai_wrapper.generate_sync_response(
@@ -1517,7 +1516,6 @@ def fetch_problem_set_question_data(
             else:
                 output_values_str = output_value
 
-            print("OUTPUT VALUE STRING NEW:", output_values_str)
             test_case_rv_list.append({
                 'input': input_values_str.strip()[:-1],
                 'output': output_values_str

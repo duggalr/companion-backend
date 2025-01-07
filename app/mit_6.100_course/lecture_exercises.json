@@ -52,7 +52,7 @@
     {
         "name": "Finger Exercise Lecture 2",
         "exercise": "Assume you are given a variable named number (has a numerical value). Write a piece of Python code that prints out one of the following strings: positive if the variable number is positive, negative if the variable number is negative, zero if the variable number is equal to zero",
-        "starter_code": "# Write your code for the question below.\n# When submitting the solution, do not include any variables, simply the logic and the print(total) statement at the end.",
+        "starter_code": "# Write your code for the question below.\n\n# When submitting the solution, do not include any pre-defined variables (number = 4), simply the logic.\n\n",
         "mit_correct_solution": "if number > 0:\n  print('positive')\nelif number < 0:\n  print('negative')\nelse:\n  print('zero')",
         "function_name": "",
 
@@ -102,7 +102,7 @@
     {
         "name": "Finger Exercise Lecture 3",
         "exercise": "Assume you are given a positive integer variable named N. Write a piece of Python code that prints hello world on separate lines, N times. You can use either a while loop or a for loop.",
-        "starter_code": "#TODO: implement your here code",
+        "starter_code": "# Write your code for the question below.\n\n# When submitting the solution, do not include any pre-defined variables (ie. N=50), simply the logic.\n\n",
         "mit_correct_solution": "for i in range(N):\n  print('hello world')",
         "function_name": "",
 
@@ -147,7 +147,7 @@
     {
         "name": "Finger Exercise Lecture 4",
         "exercise": "Assume you are given a positive integer variable named N. Write a piece of Python code that finds the cube root of N. The code prints the cube root if N is a perfect cube or it prints error if N is not a perfect cube.",
-        "starter_code": "#TODO: implement your here code",
+        "starter_code": "# Write your code for the question below.\n\n# When submitting the solution, do not include any pre-defined variables (ie. N = 100), simply just the logic.\n\n",
         "mit_correct_solution": "i = 1\nwhile i**3 < N:\n    i += 1\nif i**3 == N:\n    print(i)\nelse:\n    print('error')",
         "function_name": "",
 
@@ -195,7 +195,7 @@
     {
         "name": "Finger Exercise Lecture 5",
         "exercise": "Assume you are given a string variable named my_str. Write a piece of Python code that prints out a new string containing the even indexed characters of my_str. For example, if my_str = 'abcdefg' then your code should print out aceg.",
-        "starter_code": "#TODO: implement your here code",
+        "starter_code": "# Write your code for the question below.\n\n# When submitting the solution, do not include any pre-defined variables (ie. my_str = 'hello'), simply just the logic.\n\n",
         "mit_correct_solution": "s = ''\nfor i in range(0,len(my_str),2):\n    s += my_str[i]\nprint(s)",
         "function_name": "",
 
@@ -242,7 +242,7 @@
     {
         "name": "Finger Exercise Lecture 6",
         "exercise": "Assume you are given an integer 0 <= N <= 1000. Write a piece of Python code that uses bisection search to guess N. The code prints two lines: count: with how many guesses it took to find N, and answer: with the value of N. Hints: If the halfway value is exactly in between two integers, choose the smaller one.",
-        "starter_code": "#TODO: implement your here code",
+        "starter_code": "# Write your code for the question below.\n\n",
         "mit_correct_solution": "low = 0\nhigh = 1001\nguess = (high+low)//2\ncount = 1\nwhile guess != N:\n   if guess < N:\n      low = guess\n   elif guess > N:\n      high = guess\n   guess = (high+low)//2\n   count += 1\nprint('count:',count)\nprint('answer:',guess)",
         "function_name": "",
 
