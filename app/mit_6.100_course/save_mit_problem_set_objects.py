@@ -6,14 +6,18 @@ from app.models import ProblemSetQuestion, LectureQuestion, LectureMain
 
 db = SessionLocal()
 
-problem_set_fp_list = [
-    "/Users/rahulduggal/Documents/new_projects/new_companion/companion_backend/app/mit_6.100_course/problem_set_json_files/problem_set_one_representation.json",
-    "/Users/rahulduggal/Documents/new_projects/new_companion/companion_backend/app/mit_6.100_course/problem_set_json_files/problem_set_two_representation.json",
-    "/Users/rahulduggal/Documents/new_projects/new_companion/companion_backend/app/mit_6.100_course/problem_set_json_files/problem_set_three_representation.json",
-    "/Users/rahulduggal/Documents/new_projects/new_companion/companion_backend/app/mit_6.100_course/problem_set_json_files/problem_set_four_representation.json",
-    "/Users/rahulduggal/Documents/new_projects/new_companion/companion_backend/app/mit_6.100_course/problem_set_json_files/problem_set_five_representation.json"
+import os
+dir_path = os.path.join(os.path.dirname(__file__), 'problem_set_json_files')
+
+problem_set_file_name_list = [
+    'problem_set_one_representation.json',
+    'problem_set_two_representation.json',
+    'problem_set_three_representation.json',
+    'problem_set_four_representation.json',
+    'problem_set_five_representation.json',
 ]
-for ps_json_fp in problem_set_fp_list:
+for ps_json_file_name in problem_set_file_name_list:
+    ps_json_fp = os.path.join(dir_path, ps_json_file_name)
     with open(ps_json_fp, 'r', encoding='utf-8') as file:
         data = json.load(file)
 
