@@ -113,7 +113,7 @@ class LectureMain(Base):
     thumbnail_image_url = Column(String, nullable=True)
     code_url = Column(String, nullable=True)
 
-    lecture_complete = Column(Boolean, default=False)
+    # lecture_complete = Column(Boolean, default=False)
 
     created_date = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
