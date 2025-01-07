@@ -178,6 +178,7 @@ def run_test_cases_without_function(user_code: str, test_case_list: list):
             code_expected_output=code_expected_output,
             function_params_string=code_input_string
         )
+
         results.append(rv_dict)
 
     return results
