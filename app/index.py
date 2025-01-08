@@ -1310,8 +1310,10 @@ def handle_lecture_question_submission(
                 LectureQuestion.lecture_main_object_id == current_lm_obj.id
             ).all()
             for crt_lecture_q_obj in all_current_lq_objects:
+                # filter for current user and lecture_question
                 user_completed_lecture_q_object = db.query(UserCreatedLectureQuestion).filter(
                     UserCreatedLectureQuestion.lecture_question_object_id == crt_lecture_q_obj.id,
+                    UserCreatedLectureQuestion.custom_user_id == authenticated_user_object.id,
                     UserCreatedLectureQuestion.complete == True
                 ).first()
                 if user_completed_lecture_q_object is not None:
@@ -1322,6 +1324,7 @@ def handle_lecture_question_submission(
         if (total_questions_passed >= total_questions_count):
             current_lecture_completed = True
 
+        # filter for current user and lecture object
         existing_user_lecture_main_obj = db.query(UserLectureMain).filter(
             UserLectureMain.lecture_main_object_id == parent_lecture_question_object.lecture_main_object_id,
             UserLectureMain.custom_user_id == authenticated_user_object.id
