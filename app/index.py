@@ -1301,35 +1301,27 @@ def handle_lecture_question_submission(
 
         # fetch lecture questions for lm object
         total_questions_passed = 0
-        total_questions_count = len(all_current_lm_objects)
+        # total_questions_count = len(all_current_lm_objects)
+        total_questions_count = db.query(LectureQuestion).filter(
+            LectureQuestion.lecture_main_object_id == parent_lm_object.id
+        ).count()
         for current_lm_obj in all_current_lm_objects:
-            tmp_lq_object = db.query(LectureQuestion).filter(
+            all_current_lq_objects = db.query(LectureQuestion).filter(
                 LectureQuestion.lecture_main_object_id == current_lm_obj.id
-            ).first()
-            
-            # filter for current user and lecture_question
-            user_created_q_for_lq_objects = db.query(UserCreatedLectureQuestion).filter(
-                UserCreatedLectureQuestion.lecture_question_object_id == tmp_lq_object.id,
-                UserCreatedLectureQuestion.custom_user_id == authenticated_user_object.id
             ).all()
-
-            for user_created_q_obj in user_created_q_for_lq_objects:
-                if user_created_q_obj.complete is True:
+            for crt_lecture_q_obj in all_current_lq_objects:
+                user_completed_lecture_q_object = db.query(UserCreatedLectureQuestion).filter(
+                    UserCreatedLectureQuestion.lecture_question_object_id == crt_lecture_q_obj.id,
+                    UserCreatedLectureQuestion.complete == True
+                ).first()
+                if user_completed_lecture_q_object is not None:
                     total_questions_passed += 1
-                # success_code_submission_count_for_lq = db.query(LectureCodeSubmissionHistory).filter(
-                #     LectureCodeSubmissionHistory.user_created_lecture_question_object_id == user_created_q_obj.id,
-                #     (LectureCodeSubmissionHistory.test_case_boolean_result) == True
-                # ).count()
-                # # print(f'success-submissions-count for lect-number {lm_obj.number} is {success_code_submission_count_for_lq}')
-                # if success_code_submission_count_for_lq > 0:
-                #     # question_passed = True
-                #     total_questions_passed += 1
 
         current_lecture_completed = False
+        print(f"Total Questions Passed: {total_questions_passed} || Total Questions Count: {total_questions_count}")
         if (total_questions_passed >= total_questions_count):
             current_lecture_completed = True
 
-        # filter for current user and lecture object
         existing_user_lecture_main_obj = db.query(UserLectureMain).filter(
             UserLectureMain.lecture_main_object_id == parent_lecture_question_object.lecture_main_object_id,
             UserLectureMain.custom_user_id == authenticated_user_object.id
@@ -1349,11 +1341,6 @@ def handle_lecture_question_submission(
             db.add(user_lec_main_object)
             db.commit()
             db.refresh(user_lec_main_object)
-
-        # parent_lm_object.lecture_complete = current_lecture_completed
-        # db.add(parent_lm_object)
-        # db.commit()
-        # db.refresh(parent_lm_object)
 
     return {
         'success': True,
