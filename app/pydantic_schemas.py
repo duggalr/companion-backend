@@ -59,3 +59,9 @@ class ProblemSetFetchSchema(BaseModel):
 class FetchDashboardSchema(BaseModel):
     user_access_token: str
 
+
+
+## New Course Schema
+
+class UserGoalSummarySchema(BaseModel):
+    user_conversation_string: str

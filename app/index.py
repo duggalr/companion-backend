@@ -17,7 +17,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.database import SessionLocal
 from app.llm import prompts, openai_wrapper
 from app.models import UserOAuth, CustomUser, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion, UserPlaygroundLectureCode, LecturePlaygroundChatConversation, LectureMain, LectureCodeSubmissionHistory, ProblemSetQuestion, PlaygroundProblemSetChatConversation, UserLectureMain
-from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema, FetchLessonQuestionDetailSchema, FetchLectureDetailSchema, LectureQuestionSubmissionSchema, ProblemSetFetchSchema
+from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema, FetchLessonQuestionDetailSchema, FetchLectureDetailSchema, LectureQuestionSubmissionSchema, ProblemSetFetchSchema, UserGoalSummarySchema
 from app.config import settings
 from app.utils import create_anon_user_object, _get_random_initial_pg_question, get_user_object, get_optional_token, clean_question_input_output_list, clean_question_test_case_list
 from app.llm.prompt_utils import _prepate_tutor_prompt, _prepare_solution_feedback_prompt
@@ -1593,3 +1593,143 @@ def fetch_problem_set_question_data(
         'data': final_return_dict,
         'current_question_state': final_return_dict[0]
     }
+
+
+
+## New Course Interface Related
+
+from app.new_course_interface import prompt_utils
+
+# TODO:
+@app.websocket("/ws_learn_about_user")
+async def ws_learn_about_user(
+    websocket: WebSocket,
+    db: Session = Depends(get_db),
+    op_ai_wrapper: openai_wrapper.OpenAIWrapper = Depends(get_openai_wrapper)
+):
+    await websocket.accept()
+    try:
+        while True:  # Keep receiving messages in a loop
+            data = await websocket.receive_json()
+            print('Data:', data)
+
+            if 'user_chat_history_string' in data:
+                user_chat_history_msg = data['user_chat_history_string'].strip()
+                prompt = f"""## Instructions:
+- Given the user chat history below with the AI, generate a summary which will be presented to the user explaining their goals and introducing them to the Introductory Python Course which will be related to help achieving their goals.
+- Please first start with the user's goals and then, how they can accomplish that by going through the course.
+- The whole point is to ensure the user has a strong amount of motivation when completing the course.
+- Also, please breakdown your answer down into multiple new lines, for easy readability on the frontend. 
+
+## Chat History:
+{user_chat_history_msg}
+
+## Output:
+"""
+                async for text in op_ai_wrapper.generate_async_response(
+                    prompt = prompt
+                ):
+                    # # Fetch conversation messages
+                    if text is None:
+                        json_response = {'type': 'user_summary', 'response': 'SUMMARY_GEN_COMPLETE'}
+                        await websocket.send_text(json.dumps(json_response))
+                        break  # stop sending further text; just in case
+                    else:
+                        json_response = {'type': 'user_summary', 'response': text}
+                        await websocket.send_text(json.dumps(json_response))
+
+                        # TODO: send json with {'summary': text} <-- render completely to here afterr Done on frontend and then, start showing 
+                        # the markdown text live <-- use ReactMarkdown here (test first on markdown text placeholder)
+                            # specify in prompt that this will be markdown text
+
+
+                # print('GENERATING SUMMARY...')
+                # ai_response = op_ai_wrapper.generate_sync_response(
+                #     prompt = prompt,
+                #     return_in_json = False
+                # )
+                # ai_response_message_string = ai_response.choices[0].message.content
+
+                # # print(f"SUMMARY: {ai_response_message_string}")
+                # # await websocket.send_text('MODEL_GEN_COMPLETE')
+
+                # # Prepare the message to send as JSON
+                # response = {
+                #     "status": "AI_SUMMARY_RESPONSE",
+                #     "ai_response": ai_response_message_string
+                # }
+                
+                # # Send the JSON response back to the client
+                # await websocket.send_text(json.dumps(response))
+
+            else:
+                # TODO: remove the summary feature for now --> proceed start to showing course syllabus and start
+
+                user_message = data['text'].strip()
+                past_messages_string = data['past_messages_string'].strip()
+
+                user_learn_model_prompt = prompt_utils.prepare_learn_about_user_prompt(
+                    current_message = user_message,
+                    all_message_history = past_messages_string
+                )
+
+                # TODO: setup mem-0
+                full_response_message = ""
+                async for text in op_ai_wrapper.generate_async_response(
+                    prompt = user_learn_model_prompt
+                ):
+                    # # Fetch conversation messages
+                    if text is None:
+                        json_response = {'type': 'user_goal_chat', 'response': 'MODEL_GEN_COMPLETE'}
+                        await websocket.send_text(json.dumps(json_response))
+                        # await websocket.send_text('MODEL_GEN_COMPLETE')
+                        break  # stop sending further text; just in case
+                    elif text == 'DONE':
+                        # TODO: message complete
+                        # await websocket.send_text(text)
+                        json_response = {'type': 'user_goal_chat', 'response': text, 'full_response_message': full_response_message}
+                        await websocket.send_text(json.dumps(json_response))
+                        break
+                    else:
+                        full_response_message += text
+                        json_response = {'type': 'user_goal_chat', 'response': text}
+                        # await websocket.send_text(text)
+                        await websocket.send_text(json.dumps(json_response))
+
+    except WebSocketDisconnect:
+        print("WebSocket connection closed")
+        await websocket.close()
+
+
+@app.post("/generate_user_goal_summary")
+def generate_user_goal_summary(
+    data: UserGoalSummarySchema,
+    db: Session = Depends(get_db),
+    op_ai_wrapper: openai_wrapper.OpenAIWrapper = Depends(get_openai_wrapper)
+):
+    user_chat_history_string = data.user_conversation_string
+    print(user_chat_history_string)
+
+    # TODO:
+    prompt = f"""## Instructions:
+- Given the user chat history below with the AI, generate a summary which will be presented to the user explaining their goals and introducing them to the Introductory Python Course which will be related to help achieving their goals.
+- Please do first start with the user's goals and then, how they can accomplish that by going through the course.
+- The whole point is to ensure the user has a strong amount of motivation when completing the course.
+- Also, please breakdown your answer down into multiple new lines, for easy readability on the frontend. 
+
+## Chat History:
+{user_chat_history_string}
+
+## Output:
+"""
+    ai_response = op_ai_wrapper.generate_sync_response(
+        prompt = prompt,
+        return_in_json = False
+    )
+    ai_response_message_string = ai_response.choices[0].message.content
+
+    return {
+        'success': True,
+        'ai_response_message_string': ai_response_message_string,
+    }
+
