@@ -1616,10 +1616,14 @@ async def ws_learn_about_user(
             if 'user_chat_history_string' in data:
                 user_chat_history_msg = data['user_chat_history_string'].strip()
                 prompt = f"""## Instructions:
-- Given the user chat history below with the AI, generate a summary which will be presented to the user explaining their goals and introducing them to the Introductory Python Course which will be related to help achieving their goals.
-- Please first start with the user's goals and then, how they can accomplish that by going through the course.
-- The whole point is to ensure the user has a strong amount of motivation when completing the course.
-- Also, please breakdown your answer down into multiple new lines, for easy readability on the frontend. 
+- Given the user chat history below with the AI, generate a 1-2 line summary literally just presenting their goals to them.
+- Also, generate a single line explaining why our introductory python course will be personalized for them, to help them with their goal.
+- Please start with the user's name that they provide (it's in the chat history shown below) as this message should be hyper-personalized for them!
+- Also start with thanking them for providing the information and chatting with you.
+- Wish them good luck at the end with some motivation, as they proceed to the Python Course which we provide and it is relevant to their goals.
+- Make it very personalized message for them.
+- Do not mention anything else and keep it brief, to the point.
+- No markdown, just plain text.
 
 ## Chat History:
 {user_chat_history_msg}
