@@ -1667,8 +1667,6 @@ async def ws_learn_about_user(
                 # await websocket.send_text(json.dumps(response))
 
             else:
-                # TODO: remove the summary feature for now --> proceed start to showing course syllabus and start
-
                 user_message = data['text'].strip()
                 past_messages_string = data['past_messages_string'].strip()
 
