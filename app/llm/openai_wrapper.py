@@ -73,3 +73,35 @@ class OpenAIWrapper(object):
                 content = chunk.choices[0].delta.content
                 if content:
                     yield content
+
+    
+    async def generate_async_json_response(self, prompt):
+        """
+        """
+        client = AsyncOpenAI(
+            api_key=self.api_key
+        )
+
+        response_stream = await client.chat.completions.create(
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                    ],
+                }
+            ],
+            model = self.model,
+            stream = True,
+            response_format={ "type": "json_object" }
+        )
+
+        async for chunk in response_stream:
+            if chunk.choices[0].finish_reason == 'stop':
+                yield None
+            else:
+                content = chunk.choices[0].delta.content
+                if content:
+                    yield content
+
+

@@ -1613,66 +1613,56 @@ async def ws_learn_about_user(
             data = await websocket.receive_json()
             print('Data:', data)
 
+            # TODO: have it stay loading there (likely go to next page with loading with phrases loading up...)
+                # generate user profile dict + text summary + syllabus
+                    # celery task to generate course after the above is complete so course is generated async on the backend
+                        # ^initially don't need to do that...
+                # save everything for current anon-user in backend
+                    # if the user has this course already setup
+                        # --> show it to them in the frontend
+                        # --> they have option to delete or "create a new course" (eventually make account to create multiple courses)
+                # type-writer effect in frontend display
+
             if 'user_chat_history_string' in data:
                 user_chat_history_msg = data['user_chat_history_string'].strip()
-                prompt = f"""## Instructions:
-- Given the user chat history below with the AI, generate a 1-2 line summary literally just presenting their goals to them.
-- Also, generate a single line explaining why our introductory python course will be personalized for them, to help them with their goal.
-- Please start with the user's name that they provide (it's in the chat history shown below) as this message should be hyper-personalized for them!
-- Also start with thanking them for providing the information and chatting with you.
-- Wish them good luck at the end with some motivation, as they proceed to the Python Course which we provide and it is relevant to their goals.
-- Make it very personalized message for them.
-- Do not mention anything else and keep it brief, to the point.
-- No markdown, just plain text.
 
-## Chat History:
-{user_chat_history_msg}
+                print('Generating Summary + User Profile...')
+                user_profile_summary_prompt = prompt_utils._create_user_summary_and_profile(
+                    user_chat_history_string = user_chat_history_msg
+                )
+                user_summary_ai_response = op_ai_wrapper.generate_sync_response(
+                    prompt = user_profile_summary_prompt,
+                    return_in_json = True
+                )
+                user_summary_ai_response_json = json.loads(user_summary_ai_response.choices[0].message.content)
+                # print(user_summary_ai_response_json)
 
-## Output:
-"""
-                async for text in op_ai_wrapper.generate_async_response(
-                    prompt = prompt
-                ):
-                    # # Fetch conversation messages
-                    if text is None:
-                        json_response = {'type': 'user_summary', 'response': 'SUMMARY_GEN_COMPLETE'}
-                        await websocket.send_text(json.dumps(json_response))
-                        break  # stop sending further text; just in case
-                    else:
-                        json_response = {'type': 'user_summary', 'response': text}
-                        await websocket.send_text(json.dumps(json_response))
+                print('Generating Course Syllabus...')
 
-                        # TODO: send json with {'summary': text} <-- render completely to here afterr Done on frontend and then, start showing 
-                        # the markdown text live <-- use ReactMarkdown here (test first on markdown text placeholder)
-                            # specify in prompt that this will be markdown text
+                user_profile_dictionary_str = user_summary_ai_response_json['student_profile_json_dictionary']
+                user_syllabus_prompt = prompt_utils._create_user_syllabus_prompt(
+                    user_profile_dictionary_string = user_profile_dictionary_str,
+                    user_chat_history_string = user_chat_history_msg
+                )
+                user_syllabus_ai_response = op_ai_wrapper.generate_sync_response(
+                    prompt = user_syllabus_prompt,
+                    return_in_json = True
+                )
 
-
-                # print('GENERATING SUMMARY...')
-                # ai_response = op_ai_wrapper.generate_sync_response(
-                #     prompt = prompt,
-                #     return_in_json = False
-                # )
-                # ai_response_message_string = ai_response.choices[0].message.content
-
-                # # print(f"SUMMARY: {ai_response_message_string}")
-                # # await websocket.send_text('MODEL_GEN_COMPLETE')
-
-                # # Prepare the message to send as JSON
-                # response = {
-                #     "status": "AI_SUMMARY_RESPONSE",
-                #     "ai_response": ai_response_message_string
-                # }
-                
-                # # Send the JSON response back to the client
-                # await websocket.send_text(json.dumps(response))
+                user_syllabus_ai_response_json = json.loads(user_syllabus_ai_response.choices[0].message.content)
+                final_rv = {
+                    'user_summary_json': user_summary_ai_response_json,
+                    'user_syllabus_json_list': user_syllabus_ai_response_json
+                }
+                await websocket.send_text(json.dumps(final_rv))
 
             else:
                 user_message = data['text'].strip()
                 past_messages_string = data['past_messages_string'].strip()
 
-                user_learn_model_prompt = prompt_utils.prepare_learn_about_user_prompt(
-                    current_message = user_message,
-                    all_message_history = past_messages_string
+                user_learn_model_prompt = prompt_utils._prepare_initial_learn_about_user(
+                    user_message = user_message,
+                    user_chat_history_string = past_messages_string
                 )
 
                 # TODO: setup mem-0
@@ -1697,6 +1687,93 @@ async def ws_learn_about_user(
                         json_response = {'type': 'user_goal_chat', 'response': text}
                         # await websocket.send_text(text)
                         await websocket.send_text(json.dumps(json_response))
+
+            # TODO: 
+
+#             if 'user_chat_history_string' in data:
+#                 user_chat_history_msg = data['user_chat_history_string'].strip()
+#                 prompt = f"""## Instructions:
+# - Given the user chat history below with the AI, generate a 1-2 line summary literally just presenting their goals to them.
+# - Also, generate a single line explaining why our introductory python course will be personalized for them, to help them with their goal.
+# - Please start with the user's name that they provide (it's in the chat history shown below) as this message should be hyper-personalized for them!
+# - Also start with thanking them for providing the information and chatting with you.
+# - Wish them good luck at the end with some motivation, as they proceed to the Python Course which we provide and it is relevant to their goals.
+# - Make it very personalized message for them.
+# - Do not mention anything else and keep it brief, to the point.
+# - No markdown, just plain text.
+
+# ## Chat History:
+# {user_chat_history_msg}
+
+# ## Output:
+# """
+#                 async for text in op_ai_wrapper.generate_async_response(
+#                     prompt = prompt
+#                 ):
+#                     # # Fetch conversation messages
+#                     if text is None:
+#                         json_response = {'type': 'user_summary', 'response': 'SUMMARY_GEN_COMPLETE'}
+#                         await websocket.send_text(json.dumps(json_response))
+#                         break  # stop sending further text; just in case
+#                     else:
+#                         json_response = {'type': 'user_summary', 'response': text}
+#                         await websocket.send_text(json.dumps(json_response))
+
+#                         # TODO: send json with {'summary': text} <-- render completely to here afterr Done on frontend and then, start showing 
+#                         # the markdown text live <-- use ReactMarkdown here (test first on markdown text placeholder)
+#                             # specify in prompt that this will be markdown text
+
+
+#                 # print('GENERATING SUMMARY...')
+#                 # ai_response = op_ai_wrapper.generate_sync_response(
+#                 #     prompt = prompt,
+#                 #     return_in_json = False
+#                 # )
+#                 # ai_response_message_string = ai_response.choices[0].message.content
+
+#                 # # print(f"SUMMARY: {ai_response_message_string}")
+#                 # # await websocket.send_text('MODEL_GEN_COMPLETE')
+
+#                 # # Prepare the message to send as JSON
+#                 # response = {
+#                 #     "status": "AI_SUMMARY_RESPONSE",
+#                 #     "ai_response": ai_response_message_string
+#                 # }
+                
+#                 # # Send the JSON response back to the client
+#                 # await websocket.send_text(json.dumps(response))
+
+#             else:
+#                 user_message = data['text'].strip()
+#                 past_messages_string = data['past_messages_string'].strip()
+
+#                 user_learn_model_prompt = prompt_utils.prepare_learn_about_user_prompt(
+#                     current_message = user_message,
+#                     all_message_history = past_messages_string
+#                 )
+
+#                 # TODO: setup mem-0
+#                 full_response_message = ""
+#                 async for text in op_ai_wrapper.generate_async_response(
+#                     prompt = user_learn_model_prompt
+#                 ):
+#                     # # Fetch conversation messages
+#                     if text is None:
+#                         json_response = {'type': 'user_goal_chat', 'response': 'MODEL_GEN_COMPLETE'}
+#                         await websocket.send_text(json.dumps(json_response))
+#                         # await websocket.send_text('MODEL_GEN_COMPLETE')
+#                         break  # stop sending further text; just in case
+#                     elif text == 'DONE':
+#                         # TODO: message complete
+#                         # await websocket.send_text(text)
+#                         json_response = {'type': 'user_goal_chat', 'response': text, 'full_response_message': full_response_message}
+#                         await websocket.send_text(json.dumps(json_response))
+#                         break
+#                     else:
+#                         full_response_message += text
+#                         json_response = {'type': 'user_goal_chat', 'response': text}
+#                         # await websocket.send_text(text)
+#                         await websocket.send_text(json.dumps(json_response))
 
     except WebSocketDisconnect:
         print("WebSocket connection closed")
