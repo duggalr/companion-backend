@@ -276,6 +276,87 @@ def update_user_question(
 
 
 ## Celery Tasks ##
+from app.new_course_interface.prompt_utils import _create_sub_topic_module_generation_prompt
+from app.models import StudentCourseModule, StudentCourseSubModule
+
+@celery_app.task(bind=True)
+def generate_student_course_task(
+    self,
+    student_course_parent_object_id: str,
+    user_syllabus_dict_string: str,
+    user_student_profile_dict_string: str
+):
+    db = get_db()
+    user_syllabus_dict = json.loads(user_syllabus_dict_string)
+
+    total_modules = len(user_syllabus_dict)
+    completed_modules = 0
+
+    for module_dict in user_syllabus_dict:
+        # Save the module to the database
+        student_course_module_object = StudentCourseModule(
+            module_name=module_dict['module_name'],
+            module_description=module_dict['module_description'],
+            module_sub_list_string=module_dict['sub_module_list'],
+            student_course_parent_object_id=student_course_parent_object_id
+        )
+        db.add(student_course_module_object)
+        db.commit()
+        db.refresh(student_course_module_object)
+
+        current_sub_module_list = module_dict['sub_module_list']
+
+        # Process sub-modules
+        for sub_topic in current_sub_module_list:
+            sub_topic_generation_prompt = _create_sub_topic_module_generation_prompt(
+                entire_syllabus_string=user_syllabus_dict_string,
+                current_module_dictionary_string=str(module_dict),
+                current_sub_module_topic_string=sub_topic,
+                student_profile_dictionary=user_student_profile_dict_string
+            )
+
+            op = openai_wrapper.OpenAIWrapper(
+                api_key=settings.openai_key,
+                model="gpt-4o-mini"
+            )
+            ai_response = op.generate_sync_response(
+                prompt=sub_topic_generation_prompt,
+                return_in_json=True
+            )
+            sub_topic_response_json = json.loads(ai_response.choices[0].message.content)
+
+            course_sub_module_object = StudentCourseSubModule(
+                sub_module_name=sub_topic,
+                sub_module_list_string=sub_topic_response_json,
+                student_course_module_object_id=student_course_module_object.id
+            )
+            db.add(course_sub_module_object)
+            db.commit()
+            db.refresh(course_sub_module_object)
+
+        # Update progress after each module
+        completed_modules += 1
+        progress = (completed_modules / total_modules) * 100
+        self.update_state(state='PROGRESS', meta={'progress': progress})
+
+    return {'status': 'Task completed!', 'progress': 100}
+
+
+@app.get("/course-gen-task-status/{task_id}")
+async def get_course_generation_task_status(task_id: str):
+    task_result = AsyncResult(task_id)
+    print('Course Task Result:', task_result)
+    if task_result.state == 'PENDING':
+        return {"state": task_result.state, "progress": 0}
+    elif task_result.state == 'PROGRESS':
+        return {"state": task_result.state, "progress": task_result.info.get('progress', 0)}
+    elif task_result.state == 'SUCCESS':
+        return {"state": task_result.state, "progress": 100}
+    else:
+        return {"state": task_result.state, "progress": 0, "error": str(task_result.info)}
+
+
+
 @celery_app.task
 def execute_code_in_container(language: str, code: str):
     """
@@ -1599,6 +1680,7 @@ def fetch_problem_set_question_data(
 ## New Course Interface Related
 
 from app.new_course_interface import prompt_utils
+from app.models import StudentLearnedProfile, StudentSyllabus, StudentCourseParent
 
 # TODO:
 @app.websocket("/ws_learn_about_user")
@@ -1640,6 +1722,7 @@ async def ws_learn_about_user(
                 print('Generating Course Syllabus...')
 
                 user_profile_dictionary_str = user_summary_ai_response_json['student_profile_json_dictionary']
+                # TODO: modify the output keys here to to adjust to new prompt
                 user_syllabus_prompt = prompt_utils._create_user_syllabus_prompt(
                     user_profile_dictionary_string = user_profile_dictionary_str,
                     user_chat_history_string = user_chat_history_msg
@@ -1650,9 +1733,52 @@ async def ws_learn_about_user(
                 )
 
                 user_syllabus_ai_response_json = json.loads(user_syllabus_ai_response.choices[0].message.content)
+
+                current_custom_user_object = db.query(CustomUser).filter(CustomUser.anon_user_id == data['anon_user_id']).first()
+
+                print('creating student profile object...')
+                sp_object = StudentLearnedProfile(
+                    user_summary_text = user_summary_ai_response_json['student_summary'],
+                    user_profile_dict = str(user_summary_ai_response_json['student_profile_json_dictionary']),
+                    user_syllabus_dict = str(user_syllabus_ai_response_json),
+                    custom_user_id = current_custom_user_object.id
+                )
+                db.add(sp_object)
+                db.commit()
+                db.refresh()
+
+                # TODO:
+                    # start here by now passing the student_course parent object id and other params to the celery task
+                    # get that implemented and working
+                    # implement the progress return and checker in the celery task
+                    # finalize all of this from there for anon user
+                
+                # task = execute_code_in_container.delay(
+                #     language = user_language,
+                #     code = user_code
+                # )
+
+                student_course_parent_object = StudentCourseParent(
+                    course_name = user_syllabus_ai_response_json['course_name'],
+                    course_description = user_syllabus_ai_response_json['course_description'],
+                    custom_user_id = current_custom_user_object.id
+                )
+                db.add(student_course_parent_object)
+                db.commit()
+                db.refresh()
+
+                # Execute Celery Task to generate course
+                task = generate_student_course_task.delay(
+                    student_course_parent_object_id = student_course_parent_object.id,
+                    user_syllabus_dict_string = str(user_syllabus_ai_response_json),
+                    user_student_profile_dict_string = user_profile_dictionary_str,
+                )
+
                 final_rv = {
+                    'type': 'user_summary_response',
                     'user_summary_json': user_summary_ai_response_json,
-                    'user_syllabus_json_list': user_syllabus_ai_response_json
+                    'user_syllabus_json_list': user_syllabus_ai_response_json['syllabus_json_list'],
+                    'task_id': task.id
                 }
                 await websocket.send_text(json.dumps(final_rv))
 

@@ -65,9 +65,11 @@ The conversation will be complete when you capture the following information fro
     - Final Project to Implement (2+ line description of the final project)
 
 It is very important you completely capture the above information and understand the student.
-Once you are confident that you have captured this information, please simply generate "DONE", nothing else.
-Below you are provided with the user's past messages, along with their current message.
+Once you believe that you have captured all the information, please confirm with the student.
+- Your final message to the user should simply be a request to confirm, where you simply present a summary and understanding of what the student provided. There background, motivation, and project they would like to work on. It should be nothing else but that, along with a final confirmation question asking the student to confirm if your understanding is correct.
+Once they confirmed, simply generate "DONE" and nothing else, to complete the chat.
 The chat will automatically end once you generate "DONE", ast that will be the final message.
+Below you are provided with the user's past messages, along with their current message.
 """
     # prompt += """# If it is a message response to the student, it will be a JSON object in the following exact format:\n{"type": "response", "message": "..."}\n"""
     # prompt += """# If it is the final summary JSON object, it will be in the following exact format:\n{"type": "final", "student_name": "...", "background": "...", "motivation": "...", "final_project": "..."}\n\n"""
@@ -111,18 +113,18 @@ Your goal is now to take this information, and generate the following 2 pieces o
     - No markdown, just plain text for this message.
 
 2. Create a Dictionary representing the student profile. Below is the exact format you will generate for this step.
-    {
+    {{
         "student_name": "...",
         "background": "...",
         "motivation": "...",
         "final_project": "..."
-    }
+    }}
 
 Return the above information as a JSON object, in the following format:
-{
+{{
     "student_summary": "...",
     "student_profile_json_dictionary": "..."
-}
+}}
 
 ## Chat History:
 {user_chat_history_string}
@@ -130,7 +132,6 @@ Return the above information as a JSON object, in the following format:
 ## Output:
 """
     return prompt
-
 
 
 def _create_user_syllabus_prompt(user_profile_dictionary_string, user_chat_history_string):
@@ -141,15 +142,23 @@ Below is both the summary and the full previous conversation you have add with t
 Your job is now to take all this critical information and develop a personalized learning syllabus for the student.
 - The syllabus should be well-thought out, consisting of the foundational concepts or review the student needs, dependent upon their skill level, along with the concepts that need to be taught or introduced, for their final project goal.
 
-Your output should be a JSON list string, consisting of the syllabus where each JSON dict will contain the:
-- module name
-- module description
-- sub-module-list (topics to be presented within this module)
+Your output should be a JSON dictionary with the following information:
+- course_name
+- course_description
+- syllabus_json_list
+    - This will be a JSON list, consisting of the syllabus where each JSON dict will contain the:
+        - module_name
+        - module_description
+        - sub_module_list (topics to be presented within this module)
 
 Critical Points to note when generating the syllabus:
 - For the foundational portion of learning Python, the student will be coding directly in the browser where the IDE is already setup. Thus, in the beginning, there is no need to talk or teach the student how to setup the python environment as it will already be setup for them, in the browser.
+    - DO NOT mention or have any module or sub-module on 'setting up the python environment or IDE' as all that will already be setup for the user.
+    - Please proceed straight to the material, right from the beginning.
 - Each module will have a quiz at the end of it (except the module with the project), to test the student's understanding and help identify and improve any weaknesses found.
 - For the project related module, that should obviously be towards the end, after the foundations have been taught and should end with a final project submission / review.
+    - Do not have any sub_module_list generated for the project module. This will be generated afterwards so leave it empty.
+        - Simply leave the sub_module_list as [].
 
 
 ## Student Past Chat Conversation:
@@ -162,4 +171,73 @@ Critical Points to note when generating the syllabus:
 
 ## Output:
 """
+    return prompt
+
+
+def _create_sub_topic_module_generation_prompt(
+    entire_syllabus_string,
+    current_module_dictionary_string,
+    current_sub_module_topic_string,
+    student_profile_dictionary
+):
+    prompt = f"""You are Companion, an energetic and motivating AI teacher and tutor for Python. You will be teaching the student Python, in a very personalized manner, ensuring they completely understand the material, and that they achieve their desired learning goals!
+
+Your job is to take the current sub-module topic presented below, and generate a very informative, meaningful, and structured course module material, which will be presented to the student.
+- More specifically, your task is to break down the concept into meaningful **modules** for teaching Python. Each module should represent a distinct topic that could stand on its own and be taught to a student.
+- I have also included the entire syllabus of the course the student is taking, along with the Module dictionary that this particular sub-module is part of, so you have all the additional context. However, your responsibility is to only generate the course module information for the provided sub-module below (shown in "Current Sub Module Dictionary").
+- I have also included the student's goals and objectives, or rather, why they are learning Python and what they hope to achieve from the course. When generating your notes and exercises, (when possible) please try to cater them or make them as relevant to the student's goals, objectives, and their current level.
+
+You will create a **JSON object** with the following structure:
+
+```json
+{
+    "sub_module_name": "...",
+    "notes": "...",
+    "information": [
+        {
+            "type": "example",
+            "description": "...",
+            "code": "..."
+        },
+        {
+            "type": "exercise",
+            "question": "...",
+            "example_input_output_list": "...",
+            "correct_code_solution": "..."
+        },
+        {
+            "type": "example",
+            "description": "...",
+            "code": "..."
+        },
+        {
+            "type": "exercise",
+            "question": "...",
+            "example_input_output_list": "...",
+            "correct_code_solution": "..."
+        },
+        ...
+    ]
+}
+```
+
+### Guidelines:
+1. **Content Format**:
+    - The **"notes"** section should contain a clear and thorough explanation of the concept. The critical thing here is to write it in a way that is very personalized to the student's level and their goals, allowing them to understand it in an optimal manner. Speak directly to the student, in a conversational manner as you generate your notes and examples. Avoid saying "Hey.." though as the notes won't naturally flow well, and more so, just speak directly with the student and refer directly to their name, etc. in a conversational, energetic manner.
+    - The **"examples"** section should contain multiple code snippets that demonstrate the concept in practice. For concepts that are harder or cover more ground, feel free to include more examples to help the student understand the concept.
+    - The **"exercises"** section should contain practice problems that allow students to apply the concept they've just learned. All exercises MUST be programming questions where the student needs to write code. Each exercise should be a dictionary, including the question, example input/outputs, and the correct solution (in python code). The correct solution should simply just contain the code solution, nothing else.
+    - As mentinoed above, try to personalize as much as possible to the student's profile and goals, obviously without overdoing it.
+    - Generally speaking, if the concept is relatively straight-forward to explain, leverage the "example -> exercise" approach where an exercise is given right after the example. HOWEVER, if the concept is more difficult and requires additional examples, feel free to show multiple examples first, before giving the student an exercise.
+
+2. **Example Breakdown**:
+    - For example, if the chapter explains how to create functions in Python, you could create a module named "Defining Functions in Python". This module would explain how functions work, provide examples of how to define and call functions, and then include exercises asking the student to create their own function to solve various problems.
+
+
+"""
+    prompt += f"## Entire Syllabus:\n{entire_syllabus_string}\n\n"
+    prompt += f"## Current Entire Module Dictionary:\n{current_module_dictionary_string}\n\n"
+    prompt += f"## Current Sub-Module Topic:\n{current_sub_module_topic_string}\n\n"
+    prompt += f"## Current Student Profile:\n{student_profile_dictionary}\n\n"
+    prompt += f"## Output:\n"
+
     return prompt

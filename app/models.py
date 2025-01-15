@@ -290,3 +290,73 @@ class PlaygroundProblemSetChatConversation(TutorConversationBaseModel):
     code = Column(String, nullable=True)
     problem_set_object_id = Column(UUID, ForeignKey('problem_set_question.id'), nullable=False)
     problem_set_object = relationship("ProblemSetQuestion")
+
+
+
+## New Course Interface - Related Models
+
+# TODO:
+    # start by saving this information for user once created
+    # go from there to fetching it and using it during generation of future stuff
+
+class StudentLearnedProfile(Base):
+    """
+    """
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    user_summary_text = Column(String)
+    user_profile_dict = Column(String)
+    user_syllabus_dict = Column(String)
+
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
+    custom_user = relationship("CustomUser")
+
+
+class StudentCourseParent(Base):
+    """
+    """
+    __tablename__ = 'student_course_parent'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    course_name = Column(String)
+    course_description = Column(String)
+
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
+    custom_user = relationship("CustomUser")
+
+
+class StudentCourseModule(Base):
+    """
+    """
+    __tablename__ = 'student_course_module'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)    
+
+    module_name = Column(String)
+    module_sub_list_string = Column(String)
+
+    student_course_parent_object_id = Column(UUID, ForeignKey('student_course_parent.id'), nullable=True)
+    student_course_parent_object = relationship("student_course_parent")
+
+
+class StudentCourseSubModule(Base):
+    """
+    """
+    __tablename__ = 'student_course_sub_module'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)    
+    
+    sub_module_name = Column(String)
+    sub_module_list_string = Column(String)
+
+    student_course_module_object_id = Column(UUID, ForeignKey('student_course_module.id'), nullable=True)
+    student_course_module_object = relationship('student_course_module')
+
+
