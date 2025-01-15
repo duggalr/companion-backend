@@ -306,6 +306,7 @@ def generate_student_course_task(
 
     user_course_syllabus_list = user_syllabus_dict['syllabus_json_list']
     total_sub_modules = sum([len(module_dict['sub_module_list']) for module_dict in user_course_syllabus_list])
+    print(f"Total number of sub-modules: {total_sub_modules}")
 
     for module_dict in user_course_syllabus_list:
         # Save the module to the database
@@ -354,6 +355,8 @@ def generate_student_course_task(
             progress = (completed_modules / total_sub_modules) * 100
             self.update_state(state='PROGRESS', meta={'progress': progress})
 
+            print(f"PROGRESS: {progress}")
+
     return {'status': 'Task completed!', 'progress': 100}
 
 
@@ -363,7 +366,6 @@ async def get_course_generation_task_status(task_id: str):
     task_result = AsyncResult(task_id)
     print('Course Task Result:', task_result)
     print('Course Task State:', task_result.state)
-    print('Course Task Get Progress:', task_result.info.get('progress', 0))
     if task_result.state == 'PENDING':
         return {"state": task_result.state, "progress": 0}
     elif task_result.state == 'PROGRESS':
