@@ -69,6 +69,7 @@ Once you believe that you have captured all the information, please confirm with
 - Your final message to the user should simply be a request to confirm, where you simply present a summary and understanding of what the student provided. There background, motivation, and project they would like to work on. It should be nothing else but that, along with a final confirmation question asking the student to confirm if your understanding is correct.
 Once they confirmed, simply generate "DONE" and nothing else, to complete the chat.
 The chat will automatically end once you generate "DONE", ast that will be the final message.
+Also, when responding back to the student, don't write "AI:" as possibly showin the user's past messages string below. Simply just return the message.
 Below you are provided with the user's past messages, along with their current message.
 """
     # prompt += """# If it is a message response to the student, it will be a JSON object in the following exact format:\n{"type": "response", "message": "..."}\n"""
@@ -180,7 +181,7 @@ def _create_sub_topic_module_generation_prompt(
     current_sub_module_topic_string,
     student_profile_dictionary
 ):
-    prompt = f"""You are Companion, an energetic and motivating AI teacher and tutor for Python. You will be teaching the student Python, in a very personalized manner, ensuring they completely understand the material, and that they achieve their desired learning goals!
+    prompt = """You are Companion, an energetic and motivating AI teacher and tutor for Python. You will be teaching the student Python, in a very personalized manner, ensuring they completely understand the material, and that they achieve their desired learning goals!
 
 Your job is to take the current sub-module topic presented below, and generate a very informative, meaningful, and structured course module material, which will be presented to the student.
 - More specifically, your task is to break down the concept into meaningful **modules** for teaching Python. Each module should represent a distinct topic that could stand on its own and be taught to a student.

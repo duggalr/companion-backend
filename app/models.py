@@ -302,6 +302,8 @@ class PlaygroundProblemSetChatConversation(TutorConversationBaseModel):
 class StudentLearnedProfile(Base):
     """
     """
+    __tablename__ = 'student_learned_profile'
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     user_summary_text = Column(String)
@@ -337,13 +339,14 @@ class StudentCourseModule(Base):
     """
     __tablename__ = 'student_course_module'
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     module_name = Column(String)
+    module_description = Column(String, nullable=True)
     module_sub_list_string = Column(String)
 
     student_course_parent_object_id = Column(UUID, ForeignKey('student_course_parent.id'), nullable=True)
-    student_course_parent_object = relationship("student_course_parent")
+    student_course_parent_object = relationship("StudentCourseParent")
 
 
 class StudentCourseSubModule(Base):
@@ -357,6 +360,6 @@ class StudentCourseSubModule(Base):
     sub_module_list_string = Column(String)
 
     student_course_module_object_id = Column(UUID, ForeignKey('student_course_module.id'), nullable=True)
-    student_course_module_object = relationship('student_course_module')
+    student_course_module_object = relationship('StudentCourseModule')
 
 

@@ -286,13 +286,28 @@ def generate_student_course_task(
     user_syllabus_dict_string: str,
     user_student_profile_dict_string: str
 ):
-    db = get_db()
-    user_syllabus_dict = json.loads(user_syllabus_dict_string)
+    db = next(get_db())
+    # user_syllabus_dict = json.loads(user_syllabus_dict_string)
+    # print(f"student_course_parent_object_id: {student_course_parent_object_id}")
+    print(f"DB: {db}")
+    print(f"Self: {self}")
+    print(f"SCP ID: {student_course_parent_object_id}")
+    print(f"Syllabus String: {user_syllabus_dict_string}")
+    print(f"User Student Profile: {user_student_profile_dict_string}")
 
-    total_modules = len(user_syllabus_dict)
+    user_syllabus_dict = ast.literal_eval(user_syllabus_dict_string)
+    user_student_profile_dict = ast.literal_eval(user_student_profile_dict_string)
+
+    print(f"User Syllabus Dict: {user_syllabus_dict}")
+    print(f"User Student Profile Dict: {user_student_profile_dict}")
+
+    # total_modules = len(user_syllabus_dict)
     completed_modules = 0
 
-    for module_dict in user_syllabus_dict:
+    user_course_syllabus_list = user_syllabus_dict['syllabus_json_list']
+    total_sub_modules = sum([len(module_dict['sub_module_list']) for module_dict in user_course_syllabus_list])
+
+    for module_dict in user_course_syllabus_list:
         # Save the module to the database
         student_course_module_object = StudentCourseModule(
             module_name=module_dict['module_name'],
@@ -326,26 +341,29 @@ def generate_student_course_task(
             sub_topic_response_json = json.loads(ai_response.choices[0].message.content)
 
             course_sub_module_object = StudentCourseSubModule(
-                sub_module_name=sub_topic,
-                sub_module_list_string=sub_topic_response_json,
-                student_course_module_object_id=student_course_module_object.id
+                sub_module_name = sub_topic,
+                sub_module_list_string = str(sub_topic_response_json),
+                student_course_module_object_id = student_course_module_object.id
             )
             db.add(course_sub_module_object)
             db.commit()
             db.refresh(course_sub_module_object)
 
-        # Update progress after each module
-        completed_modules += 1
-        progress = (completed_modules / total_modules) * 100
-        self.update_state(state='PROGRESS', meta={'progress': progress})
+            # Update progress after each sub-module
+            completed_modules += 1
+            progress = (completed_modules / total_sub_modules) * 100
+            self.update_state(state='PROGRESS', meta={'progress': progress})
 
     return {'status': 'Task completed!', 'progress': 100}
+
 
 
 @app.get("/course-gen-task-status/{task_id}")
 async def get_course_generation_task_status(task_id: str):
     task_result = AsyncResult(task_id)
     print('Course Task Result:', task_result)
+    print('Course Task State:', task_result.state)
+    print('Course Task Get Progress:', task_result.info.get('progress', 0))
     if task_result.state == 'PENDING':
         return {"state": task_result.state, "progress": 0}
     elif task_result.state == 'PROGRESS':
@@ -1680,7 +1698,7 @@ def fetch_problem_set_question_data(
 ## New Course Interface Related
 
 from app.new_course_interface import prompt_utils
-from app.models import StudentLearnedProfile, StudentSyllabus, StudentCourseParent
+from app.models import StudentLearnedProfile, StudentCourseParent
 
 # TODO:
 @app.websocket("/ws_learn_about_user")
@@ -1745,7 +1763,7 @@ async def ws_learn_about_user(
                 )
                 db.add(sp_object)
                 db.commit()
-                db.refresh()
+                db.refresh(sp_object)
 
                 # TODO:
                     # start here by now passing the student_course parent object id and other params to the celery task
@@ -1765,14 +1783,24 @@ async def ws_learn_about_user(
                 )
                 db.add(student_course_parent_object)
                 db.commit()
-                db.refresh()
+                db.refresh(student_course_parent_object)
 
-                # Execute Celery Task to generate course
+                print('SCP Object ID:', student_course_parent_object.id)
+                print('SCP Dict String:', str(user_syllabus_ai_response_json))
+                print('User Profile Dict:', user_profile_dictionary_str)
+
+                # # Execute Celery Task to generate course
+                # task = generate_student_course_task.delay(
+                #     student_course_parent_object_id = str(student_course_parent_object.id),
+                #     user_syllabus_dict_string = str(user_syllabus_ai_response_json),
+                #     user_student_profile_dict_string = str(user_profile_dictionary_str),
+                # )
                 task = generate_student_course_task.delay(
-                    student_course_parent_object_id = student_course_parent_object.id,
+                    student_course_parent_object_id = str(student_course_parent_object.id),
                     user_syllabus_dict_string = str(user_syllabus_ai_response_json),
-                    user_student_profile_dict_string = user_profile_dictionary_str,
+                    user_student_profile_dict_string = str(user_profile_dictionary_str)
                 )
+                print(f"TASK: {task}")
 
                 final_rv = {
                     'type': 'user_summary_response',
