@@ -330,6 +330,7 @@ class StudentCourseParent(Base):
     course_description = Column(String)
     prompt_to_generate_syllabus = Column(String)
     syllabus_list_string = Column(String)
+    is_course_generating = Column(Boolean, default=False)
 
     student_learned_profile_object_id = Column(UUID, ForeignKey('student_learned_profile.id'), nullable=True)
     student_learned_profile = relationship("StudentLearnedProfile")

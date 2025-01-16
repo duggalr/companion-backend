@@ -136,6 +136,30 @@ Return the above information as a JSON object, in the following format:
     return prompt
 
 
+def _create_user_profile_dictionary_prompt_one(user_chat_history_string):
+    prompt = f"""You are Companion, an energetic and motivating AI teacher and tutor for Python. You will be teaching the student Python, in a very personalized manner, ensuring they completely understand the material, and that they achieve their desired learning goals!
+    
+Below you are provided the full chat between you and the student, where the student discussed their background, motivation, and goal for why they want to learn Python, along with the project they have decided to work on.
+
+Your goal is now to take this information, and generate the following piece of information:
+1. Create a Dictionary representing the student profile. Below is the exact format you will generate for this step.
+    {{
+        "student_name": "...",
+        "background": "...",
+        "motivation": "...",
+        "final_project": "..."
+    }}
+
+Return the above information as a JSON object.
+
+## Chat History:
+{user_chat_history_string}
+
+## Output:
+"""
+    return prompt
+
+
 def _create_user_syllabus_prompt(user_profile_dictionary_string, user_chat_history_string):
     prompt = f"""You are Companion, an energetic and motivating AI teacher and tutor for Python. You will be teaching the student Python, in a very personalized manner, ensuring they completely understand the material, and that they achieve their desired learning goals!
 
@@ -143,7 +167,7 @@ Below is both the summary and the full previous conversation you have add with t
 
 Your job is now to take all this critical information and develop a personalized learning syllabus for the student.
 - The syllabus should be well-thought out, consisting of the foundational concepts or review the student needs, dependent upon their skill level, along with the concepts that need to be taught or introduced, for their final project goal.
-- When generating thec course_description, please generate it in a personalized manner, as if you are speaking directly with the student.
+- When generating thec course_description, please generate it in a personalized manner, as if you are speaking directly with the student. Keep it short, describing the course to the student. Please end off with a motivational note, as the student proceeds on their programming journey.
 
 Your output should be a JSON dictionary with the following information:
 - course_name
