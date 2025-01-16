@@ -16,7 +16,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.database import SessionLocal
 from app.llm import prompts, openai_wrapper
-from app.models import UserOAuth, CustomUser, UserCreatedPlaygroundQuestion, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion, UserPlaygroundLectureCode, LecturePlaygroundChatConversation, LectureMain, LectureCodeSubmissionHistory, ProblemSetQuestion, PlaygroundProblemSetChatConversation, UserLectureMain
+from app.models import UserOAuth, CustomUser, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion, UserPlaygroundLectureCode, LecturePlaygroundChatConversation, LectureMain, LectureCodeSubmissionHistory, ProblemSetQuestion, PlaygroundProblemSetChatConversation, UserLectureMain, StudentLearnedProfile, StudentCourseParent, StudentCourseModule, StudentCourseSubModule
 from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema, FetchLessonQuestionDetailSchema, FetchLectureDetailSchema, LectureQuestionSubmissionSchema, ProblemSetFetchSchema, UserGoalSummarySchema
 from app.config import settings
 from app.utils import create_anon_user_object, _get_random_initial_pg_question, get_user_object, get_optional_token, clean_question_input_output_list, clean_question_test_case_list
@@ -24,7 +24,12 @@ from app.llm.prompt_utils import _prepate_tutor_prompt, _prepare_solution_feedba
 from app.scripts.verify_auth_zero_jwt import verify_jwt
 from app.code_execution_utils import run_test_cases_without_function, run_test_cases_with_function, run_test_cases_with_class
 
+# New Course Interface Related Script Imports
+# from app.new_course_interface import prompt_utils
+from app.new_course_interface.prompt_utils import _create_sub_topic_module_generation_prompt, _create_user_summary_and_profile, _create_user_syllabus_prompt, _prepare_initial_learn_about_user
 
+
+# Initialize FastAPI app
 app = FastAPI(
     docs_url="/api/py/docs",
     openapi_url="/api/py/openapi.json",
@@ -276,8 +281,25 @@ def update_user_question(
 
 
 ## Celery Tasks ##
-from app.new_course_interface.prompt_utils import _create_sub_topic_module_generation_prompt
-from app.models import StudentCourseModule, StudentCourseSubModule
+@celery_app.task(bind=True)
+def fake_generate_student_course_task(
+    self,
+):
+    import time
+
+    total_steps = 50  # Number of steps for progress updates
+    for step in range(total_steps):
+        # Simulate some work with a time delay
+        time.sleep(2)
+
+        # Update progress
+        progress = ((step + 1) / total_steps) * 100
+        self.update_state(state="PROGRESS", meta={"progress": progress})
+        print(f"Step {step + 1}/{total_steps} completed: {progress}%")
+
+    # Return a success response when done
+    return {"status": "Task completed!", "progress": 100}
+
 
 @celery_app.task(bind=True)
 def generate_student_course_task(
@@ -1697,12 +1719,7 @@ def fetch_problem_set_question_data(
 
 
 
-## New Course Interface Related
-
-from app.new_course_interface import prompt_utils
-from app.models import StudentLearnedProfile, StudentCourseParent
-
-# TODO:
+## TODO: New Course Interface Related
 @app.websocket("/ws_learn_about_user")
 async def ws_learn_about_user(
     websocket: WebSocket,
@@ -1715,21 +1732,11 @@ async def ws_learn_about_user(
             data = await websocket.receive_json()
             print('Data:', data)
 
-            # TODO: have it stay loading there (likely go to next page with loading with phrases loading up...)
-                # generate user profile dict + text summary + syllabus
-                    # celery task to generate course after the above is complete so course is generated async on the backend
-                        # ^initially don't need to do that...
-                # save everything for current anon-user in backend
-                    # if the user has this course already setup
-                        # --> show it to them in the frontend
-                        # --> they have option to delete or "create a new course" (eventually make account to create multiple courses)
-                # type-writer effect in frontend display
-
             if 'user_chat_history_string' in data:
                 user_chat_history_msg = data['user_chat_history_string'].strip()
 
                 print('Generating Summary + User Profile...')
-                user_profile_summary_prompt = prompt_utils._create_user_summary_and_profile(
+                user_profile_summary_prompt = _create_user_summary_and_profile(
                     user_chat_history_string = user_chat_history_msg
                 )
                 user_summary_ai_response = op_ai_wrapper.generate_sync_response(
@@ -1740,10 +1747,8 @@ async def ws_learn_about_user(
                 # print(user_summary_ai_response_json)
 
                 print('Generating Course Syllabus...')
-
                 user_profile_dictionary_str = user_summary_ai_response_json['student_profile_json_dictionary']
-                # TODO: modify the output keys here to to adjust to new prompt
-                user_syllabus_prompt = prompt_utils._create_user_syllabus_prompt(
+                user_syllabus_prompt = _create_user_syllabus_prompt(
                     user_profile_dictionary_string = user_profile_dictionary_str,
                     user_chat_history_string = user_chat_history_msg
                 )
@@ -1753,61 +1758,44 @@ async def ws_learn_about_user(
                 )
 
                 user_syllabus_ai_response_json = json.loads(user_syllabus_ai_response.choices[0].message.content)
-
                 current_custom_user_object = db.query(CustomUser).filter(CustomUser.anon_user_id == data['anon_user_id']).first()
 
                 print('creating student profile object...')
                 sp_object = StudentLearnedProfile(
-                    user_summary_text = user_summary_ai_response_json['student_summary'],
+                    user_profile_summary_text = user_summary_ai_response_json['student_summary'],
                     user_profile_dict = str(user_summary_ai_response_json['student_profile_json_dictionary']),
-                    user_syllabus_dict = str(user_syllabus_ai_response_json),
+                    user_full_chat_history = user_chat_history_msg,
+                    prompt_to_generate_profile_dict = user_profile_summary_prompt,
                     custom_user_id = current_custom_user_object.id
                 )
                 db.add(sp_object)
                 db.commit()
                 db.refresh(sp_object)
 
-                # TODO:
-                    # start here by now passing the student_course parent object id and other params to the celery task
-                    # get that implemented and working
-                    # implement the progress return and checker in the celery task
-                    # finalize all of this from there for anon user
-                
-                # task = execute_code_in_container.delay(
-                #     language = user_language,
-                #     code = user_code
-                # )
-
                 student_course_parent_object = StudentCourseParent(
                     course_name = user_syllabus_ai_response_json['course_name'],
                     course_description = user_syllabus_ai_response_json['course_description'],
-                    custom_user_id = current_custom_user_object.id
+                    prompt_to_generate_syllabus = user_syllabus_prompt,
+                    syllabus_list_string = str(user_syllabus_ai_response_json['syllabus_json_list']),
+                    student_learned_profile_object_id = sp_object.id
                 )
                 db.add(student_course_parent_object)
                 db.commit()
                 db.refresh(student_course_parent_object)
 
-                print('SCP Object ID:', student_course_parent_object.id)
-                print('SCP Dict String:', str(user_syllabus_ai_response_json))
-                print('User Profile Dict:', user_profile_dictionary_str)
+                # Execute Celery Task to generate course
+                # # TODO: generate a fake progress task with state updates to prevent paid-api calls constantly? go from there
+                task = fake_generate_student_course_task.delay()
 
-                # # Execute Celery Task to generate course
                 # task = generate_student_course_task.delay(
                 #     student_course_parent_object_id = str(student_course_parent_object.id),
                 #     user_syllabus_dict_string = str(user_syllabus_ai_response_json),
-                #     user_student_profile_dict_string = str(user_profile_dictionary_str),
+                #     user_student_profile_dict_string = str(user_profile_dictionary_str)
                 # )
-                task = generate_student_course_task.delay(
-                    student_course_parent_object_id = str(student_course_parent_object.id),
-                    user_syllabus_dict_string = str(user_syllabus_ai_response_json),
-                    user_student_profile_dict_string = str(user_profile_dictionary_str)
-                )
-                print(f"TASK: {task}")
-
                 final_rv = {
                     'type': 'user_summary_response',
                     'user_summary_json': user_summary_ai_response_json,
-                    'user_syllabus_json_list': user_syllabus_ai_response_json['syllabus_json_list'],
+                    'user_syllabus_ai_response_json': user_syllabus_ai_response_json,
                     'task_id': task.id
                 }
                 await websocket.send_text(json.dumps(final_rv))
@@ -1816,7 +1804,7 @@ async def ws_learn_about_user(
                 user_message = data['text'].strip()
                 past_messages_string = data['past_messages_string'].strip()
 
-                user_learn_model_prompt = prompt_utils._prepare_initial_learn_about_user(
+                user_learn_model_prompt = _prepare_initial_learn_about_user(
                     user_message = user_message,
                     user_chat_history_string = past_messages_string
                 )
@@ -1843,94 +1831,7 @@ async def ws_learn_about_user(
                         json_response = {'type': 'user_goal_chat', 'response': text}
                         # await websocket.send_text(text)
                         await websocket.send_text(json.dumps(json_response))
-
-            # TODO: 
-
-#             if 'user_chat_history_string' in data:
-#                 user_chat_history_msg = data['user_chat_history_string'].strip()
-#                 prompt = f"""## Instructions:
-# - Given the user chat history below with the AI, generate a 1-2 line summary literally just presenting their goals to them.
-# - Also, generate a single line explaining why our introductory python course will be personalized for them, to help them with their goal.
-# - Please start with the user's name that they provide (it's in the chat history shown below) as this message should be hyper-personalized for them!
-# - Also start with thanking them for providing the information and chatting with you.
-# - Wish them good luck at the end with some motivation, as they proceed to the Python Course which we provide and it is relevant to their goals.
-# - Make it very personalized message for them.
-# - Do not mention anything else and keep it brief, to the point.
-# - No markdown, just plain text.
-
-# ## Chat History:
-# {user_chat_history_msg}
-
-# ## Output:
-# """
-#                 async for text in op_ai_wrapper.generate_async_response(
-#                     prompt = prompt
-#                 ):
-#                     # # Fetch conversation messages
-#                     if text is None:
-#                         json_response = {'type': 'user_summary', 'response': 'SUMMARY_GEN_COMPLETE'}
-#                         await websocket.send_text(json.dumps(json_response))
-#                         break  # stop sending further text; just in case
-#                     else:
-#                         json_response = {'type': 'user_summary', 'response': text}
-#                         await websocket.send_text(json.dumps(json_response))
-
-#                         # TODO: send json with {'summary': text} <-- render completely to here afterr Done on frontend and then, start showing 
-#                         # the markdown text live <-- use ReactMarkdown here (test first on markdown text placeholder)
-#                             # specify in prompt that this will be markdown text
-
-
-#                 # print('GENERATING SUMMARY...')
-#                 # ai_response = op_ai_wrapper.generate_sync_response(
-#                 #     prompt = prompt,
-#                 #     return_in_json = False
-#                 # )
-#                 # ai_response_message_string = ai_response.choices[0].message.content
-
-#                 # # print(f"SUMMARY: {ai_response_message_string}")
-#                 # # await websocket.send_text('MODEL_GEN_COMPLETE')
-
-#                 # # Prepare the message to send as JSON
-#                 # response = {
-#                 #     "status": "AI_SUMMARY_RESPONSE",
-#                 #     "ai_response": ai_response_message_string
-#                 # }
-                
-#                 # # Send the JSON response back to the client
-#                 # await websocket.send_text(json.dumps(response))
-
-#             else:
-#                 user_message = data['text'].strip()
-#                 past_messages_string = data['past_messages_string'].strip()
-
-#                 user_learn_model_prompt = prompt_utils.prepare_learn_about_user_prompt(
-#                     current_message = user_message,
-#                     all_message_history = past_messages_string
-#                 )
-
-#                 # TODO: setup mem-0
-#                 full_response_message = ""
-#                 async for text in op_ai_wrapper.generate_async_response(
-#                     prompt = user_learn_model_prompt
-#                 ):
-#                     # # Fetch conversation messages
-#                     if text is None:
-#                         json_response = {'type': 'user_goal_chat', 'response': 'MODEL_GEN_COMPLETE'}
-#                         await websocket.send_text(json.dumps(json_response))
-#                         # await websocket.send_text('MODEL_GEN_COMPLETE')
-#                         break  # stop sending further text; just in case
-#                     elif text == 'DONE':
-#                         # TODO: message complete
-#                         # await websocket.send_text(text)
-#                         json_response = {'type': 'user_goal_chat', 'response': text, 'full_response_message': full_response_message}
-#                         await websocket.send_text(json.dumps(json_response))
-#                         break
-#                     else:
-#                         full_response_message += text
-#                         json_response = {'type': 'user_goal_chat', 'response': text}
-#                         # await websocket.send_text(text)
-#                         await websocket.send_text(json.dumps(json_response))
-
+            
     except WebSocketDisconnect:
         print("WebSocket connection closed")
         await websocket.close()

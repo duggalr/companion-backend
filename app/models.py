@@ -299,6 +299,7 @@ class PlaygroundProblemSetChatConversation(TutorConversationBaseModel):
     # start by saving this information for user once created
     # go from there to fetching it and using it during generation of future stuff
 
+
 class StudentLearnedProfile(Base):
     """
     """
@@ -306,15 +307,16 @@ class StudentLearnedProfile(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    user_summary_text = Column(String)
+    user_profile_summary_text = Column(String)
     user_profile_dict = Column(String)
-    user_syllabus_dict = Column(String)
-
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+    user_full_chat_history = Column(String)
+    prompt_to_generate_profile_dict = Column(String)
 
     custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
     custom_user = relationship("CustomUser")
+
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
 
 class StudentCourseParent(Base):
@@ -323,15 +325,14 @@ class StudentCourseParent(Base):
     __tablename__ = 'student_course_parent'
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    
+
     course_name = Column(String)
     course_description = Column(String)
+    prompt_to_generate_syllabus = Column(String)
+    syllabus_list_string = Column(String)
 
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
-
-    custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
-    custom_user = relationship("CustomUser")
+    student_learned_profile_object_id = Column(UUID, ForeignKey('student_learned_profile.id'), nullable=True)
+    student_learned_profile = relationship("StudentLearnedProfile")
 
 
 class StudentCourseModule(Base):
@@ -361,5 +362,77 @@ class StudentCourseSubModule(Base):
 
     student_course_module_object_id = Column(UUID, ForeignKey('student_course_module.id'), nullable=True)
     student_course_module_object = relationship('StudentCourseModule')
+
+
+# class StudentCourseSubModuleSubmission(Base):
+#     Link back to the student and sub-module -- use this to track progress (total-completed-challenges/total-challenges in sub-module)
+#     Another completion will be the parent-module-quiz
+#     pass
+
+
+
+
+# class StudentLearnedProfile(Base):
+#     """
+#     """
+#     __tablename__ = 'student_learned_profile'
+
+#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+#     user_summary_text = Column(String)
+#     user_profile_dict = Column(String)
+#     user_syllabus_dict = Column(String)
+
+#     created_at = Column(DateTime, server_default=func.now(), nullable=False)
+#     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+#     custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
+#     custom_user = relationship("CustomUser")
+
+
+# class StudentCourseParent(Base):
+#     """
+#     """
+#     __tablename__ = 'student_course_parent'
+    
+#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+#     course_name = Column(String)
+#     course_description = Column(String)
+
+#     created_at = Column(DateTime, server_default=func.now(), nullable=False)
+#     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+#     custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
+#     custom_user = relationship("CustomUser")
+
+
+# class StudentCourseModule(Base):
+#     """
+#     """
+#     __tablename__ = 'student_course_module'
+
+#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+#     module_name = Column(String)
+#     module_description = Column(String, nullable=True)
+#     module_sub_list_string = Column(String)
+
+#     student_course_parent_object_id = Column(UUID, ForeignKey('student_course_parent.id'), nullable=True)
+#     student_course_parent_object = relationship("StudentCourseParent")
+
+
+# class StudentCourseSubModule(Base):
+#     """
+#     """
+#     __tablename__ = 'student_course_sub_module'
+
+#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)    
+    
+#     sub_module_name = Column(String)
+#     sub_module_list_string = Column(String)
+
+#     student_course_module_object_id = Column(UUID, ForeignKey('student_course_module.id'), nullable=True)
+#     student_course_module_object = relationship('StudentCourseModule')
 
 

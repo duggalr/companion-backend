@@ -109,8 +109,9 @@ Below you are provided the full chat between you and the student, where the stud
 Your goal is now to take this information, and generate the following 2 pieces of information:
 1. Create a 2 line summary, talking to the student, which summarizes their goals along with next steps on the personalized course that is generated for them!
     - In this summary, start by thanking them for providing the information and chatting with you.
+    - Also mention that they can view the course syllabus on the right (as it will be presented on the right hand of the screen).
     - Wish them good luck at the end with some motivation, as they proceed to the Python Course that has been generated for them.
-    - Make it very personalized message for them.
+    - Make it very personalized message for them, as if you are speaking directly to them.
     - No markdown, just plain text for this message.
 
 2. Create a Dictionary representing the student profile. Below is the exact format you will generate for this step.
@@ -142,6 +143,7 @@ Below is both the summary and the full previous conversation you have add with t
 
 Your job is now to take all this critical information and develop a personalized learning syllabus for the student.
 - The syllabus should be well-thought out, consisting of the foundational concepts or review the student needs, dependent upon their skill level, along with the concepts that need to be taught or introduced, for their final project goal.
+- When generating thec course_description, please generate it in a personalized manner, as if you are speaking directly with the student.
 
 Your output should be a JSON dictionary with the following information:
 - course_name
