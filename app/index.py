@@ -17,7 +17,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.database import SessionLocal
 from app.llm import prompts, openai_wrapper
 from app.models import UserOAuth, CustomUser, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion, UserPlaygroundLectureCode, LecturePlaygroundChatConversation, LectureMain, LectureCodeSubmissionHistory, ProblemSetQuestion, PlaygroundProblemSetChatConversation, UserLectureMain, StudentLearnedProfile, StudentCourseParent, StudentCourseModule, StudentCourseSubModule
-from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema, FetchLessonQuestionDetailSchema, FetchLectureDetailSchema, LectureQuestionSubmissionSchema, ProblemSetFetchSchema, UserGoalSummarySchema
+from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema, FetchLessonQuestionDetailSchema, FetchLectureDetailSchema, LectureQuestionSubmissionSchema, ProblemSetFetchSchema, UserGoalSummarySchema, UserSubModuleSchema
 from app.config import settings
 from app.utils import create_anon_user_object, _get_random_initial_pg_question, get_user_object, get_optional_token, clean_question_input_output_list, clean_question_test_case_list
 from app.llm.prompt_utils import _prepate_tutor_prompt, _prepare_solution_feedback_prompt
@@ -281,24 +281,24 @@ def update_user_question(
 
 
 ## Celery Tasks ##
-@celery_app.task(bind=True)
-def fake_generate_student_course_task(
-    self,
-):
-    import time
+# @celery_app.task(bind=True)
+# def fake_generate_student_course_task(
+#     self,
+# ):
+#     import time
 
-    total_steps = 50  # Number of steps for progress updates
-    for step in range(total_steps):
-        # Simulate some work with a time delay
-        time.sleep(2)
+#     total_steps = 50  # Number of steps for progress updates
+#     for step in range(total_steps):
+#         # Simulate some work with a time delay
+#         time.sleep(2)
 
-        # Update progress
-        progress = ((step + 1) / total_steps) * 100
-        self.update_state(state="PROGRESS", meta={"progress": progress})
-        print(f"Step {step + 1}/{total_steps} completed: {progress}%")
+#         # Update progress
+#         progress = ((step + 1) / total_steps) * 100
+#         self.update_state(state="PROGRESS", meta={"progress": progress})
+#         print(f"Step {step + 1}/{total_steps} completed: {progress}%")
 
-    # Return a success response when done
-    return {"status": "Task completed!", "progress": 100}
+#     # Return a success response when done
+#     return {"status": "Task completed!", "progress": 100}
 
 
 @celery_app.task(bind=True)
@@ -329,6 +329,11 @@ def generate_student_course_task(
     user_course_syllabus_list = user_syllabus_dict['syllabus_json_list']
     total_sub_modules = sum([len(module_dict['sub_module_list']) for module_dict in user_course_syllabus_list])
     print(f"Total number of sub-modules: {total_sub_modules}")
+
+    # TODO: 
+        # start here by saving the task ID with the user in the DB
+        # fetch this with anon-user-id on course-details fetch
+        # proceed from there to finish the course-home-layout, etc.
 
     for module_dict in user_course_syllabus_list:
         # Save the module to the database
@@ -382,7 +387,7 @@ def generate_student_course_task(
     sc_parent_object = db.query(StudentCourseParent).filter(
         StudentCourseParent.id == student_course_parent_object_id
     ).first()
-    sc_parent_object.is_course_generating = True
+    sc_parent_object.is_course_generating = False
     db.commit()
     db.refresh(sc_parent_object)
     
@@ -390,7 +395,7 @@ def generate_student_course_task(
 
 
 @app.get("/course-gen-task-status/{task_id}")
-async def get_course_generation_task_status(task_id: str):    
+async def get_course_generation_task_status(task_id: str):
     task_result = AsyncResult(task_id)
     print('Course Task Result:', task_result)
     print('Course Task State:', task_result.state)
@@ -398,7 +403,7 @@ async def get_course_generation_task_status(task_id: str):
         return {"state": task_result.state, "progress": 0}
     elif task_result.state == 'PROGRESS':
         db = next(get_db())
-        student_course_parent_object_id = task_result.info.get('student_course_parent_object_id', None)        
+        student_course_parent_object_id = task_result.info.get('student_course_parent_object_id', None)
         if student_course_parent_object_id is not None:
             # sc_parent_object = db.query(StudentCourseParent).filter(
             #     StudentCourseParent.id == student_course_parent_object_id
@@ -419,17 +424,32 @@ async def get_course_generation_task_status(task_id: str):
                     })
                 
                 current_course_module_list.append({
+                    'parent_module_object_id': course_mod_obj.id,
                     'parent_module_name': course_mod_obj.module_name,
                     'parent_module_description': course_mod_obj.module_description,
                     'sub_modules': sub_modules_rv
+                    # 'parent_module_name': course_mod_obj.module_name,
+                    # 'parent_module_description': course_mod_obj.module_description,
+                    # 'sub_modules': sub_modules_rv
                 })
+
+
+            student_course_parent_object = db.query(StudentCourseParent).filter(
+                StudentCourseParent.student_learned_profile_object_id == student_course_parent_object_id
+            ).first()
+
+            rv = {}
+            rv['course_name'] = student_course_parent_object.course_name
+            rv['course_description'] = student_course_parent_object.course_description
+            rv['is_course_generating'] = student_course_parent_object.is_course_generating
+            rv['current_course_module_list'] = current_course_module_list
 
             return {
                 "state": task_result.state,
                 "progress": task_result.info.get('progress', 0),
-                'current_course_module_list': current_course_module_list
+                'user_course_object': rv
             }
-        
+
         else:
             return {
                 "state": task_result.state,
@@ -1966,18 +1986,13 @@ def fetch_user_course_details(
                 'sub_module_object_id': sub_mod_obj.id,
                 'sub_module_name': sub_mod_obj.sub_module_name
             })
-        
+
         current_course_module_list.append({
             'parent_module_object_id': course_mod_obj.id,
             'parent_module_name': course_mod_obj.module_name,
             'parent_module_description': course_mod_obj.module_description,
             'sub_modules': sub_modules_rv
         })
-
-    # TODO:
-        # simply just need the syllabus and sub-modules per module in the syllabus
-        # first --> complete progress bar
-            # check if is_course_generating = True <-- if so, show progress bar, else, don't
 
     rv = {}
     rv['course_name'] = student_course_parent_object.course_name
@@ -1992,29 +2007,68 @@ def fetch_user_course_details(
         'user_course_object': rv
     }
 
-    # all_module_rv_list = []
-    # for module_obj in student_course_module_object_list:
-    #     sub_module_object_list = db.query(StudentCourseSubModule).filter(
-    #         StudentCourseSubModule.student_course_module_object_id == module_obj.id
-    #     ).all()
 
-    #     sub_module_rv_list = []
-    #     for sm_obj in sub_module_object_list:
-    #         sub_module_course_information_dict = ast.literal_eval(sm_obj.sub_module_list_string)
-    #         sub_module_rv_list.append({
-    #             'name': sm_obj.sub_module_name,
-    #             'notes': sub_module_course_information_dict['notes'],
-    #             'course_detail_list': sub_module_course_information_dict['information']
-    #         })
 
-    #     all_module_rv_list.append({
-    #         'module_name': module_obj.module_name,
-    #         'module_description': module_obj.module_description,
-    #         'sub_module_rv_list': sub_module_rv_list
-    #     })
+@app.post("/fetch_course_module_details")
+def fetch_course_module_details(
+    data: UserSubModuleSchema,
+    db: Session = Depends(get_db)
+):
+    print(f"data: {data}")
+    user_id = data.user_id
 
-    # return {
-    #     'success': True,
-    #     'course_module_'
-    # }
+    custom_user_object = db.query(CustomUser).filter(
+        CustomUser.anon_user_id == user_id
+    ).first()
+
+    print('cu-tmp:', custom_user_object, custom_user_object.id)
+    if custom_user_object is None:
+        return {'success': False, 'message': 'User not found.'}
+
+
+    student_learned_profile_object = db.query(StudentLearnedProfile).filter(
+        StudentLearnedProfile.custom_user_id == custom_user_object.id
+    ).first()
+
+    print('student_learned_profile_object', student_learned_profile_object)
+
+    # TODO:
+    student_course_parent_object = db.query(StudentCourseParent).filter(
+        StudentCourseParent.student_learned_profile_object_id == student_learned_profile_object.id
+    ).first()
+    print('student_course_parent_object', student_course_parent_object)
+
+    course_module_object_id = data.course_module_object_id    
+    student_course_module_object = db.query(StudentCourseModule).filter(
+        StudentCourseModule.id == course_module_object_id,
+        StudentCourseModule.student_course_parent_object_id == student_course_parent_object.id
+    ).first()
+    
+    all_current_sub_module_objects = db.query(StudentCourseSubModule).filter(
+        StudentCourseSubModule.student_course_module_object_id == student_course_module_object.id
+    ).all()
+
+    sub_modules_rv = []
+    for sub_module_obj in all_current_sub_module_objects:
+        current_sub_module_object_information_dict = ast.literal_eval(sub_module_obj.sub_module_list_string)
+        introduction_note = current_sub_module_object_information_dict['notes']
+        note_information_list = current_sub_module_object_information_dict['information']
+        sub_modules_rv.append({
+            'sub_module_name': sub_module_obj.sub_module_name,
+            'introduction_note': introduction_note,
+            'note_information_list': note_information_list
+            # 'sub_module_list': ast.literal_eval(sub_module_obj.sub_module_list_string)
+        })
+
+    rv = {}
+    rv['course_module_name'] = student_course_module_object.module_name
+    rv['course_module_description'] = student_course_module_object.module_description
+    rv['sub_modules_list'] = sub_modules_rv
+
+    # TODO: start here by rendering this in module-layout; proceed from there to full finalization of module layout
+
+    return {
+        'success': True,
+        'module_dict': rv
+    }
 

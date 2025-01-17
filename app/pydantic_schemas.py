@@ -65,3 +65,8 @@ class FetchDashboardSchema(BaseModel):
 
 class UserGoalSummarySchema(BaseModel):
     user_conversation_string: str
+
+class UserSubModuleSchema(BaseModel):
+    user_id: str
+    course_module_object_id: str
+
