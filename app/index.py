@@ -2043,7 +2043,15 @@ def fetch_course_module_details(
         StudentCourseModule.id == course_module_object_id,
         StudentCourseModule.student_course_parent_object_id == student_course_parent_object.id
     ).first()
-    
+
+    # TODO: fetch next course module
+    student_course_module_object_list = db.query(StudentCourseModule).filter(
+        StudentCourseModule.student_course_parent_object_id == student_course_parent_object.id
+    ).all()
+
+    scm_object_id_list = [scm_obj.id for scm_obj in student_course_module_object_list]
+    next_student_course_module_object_id = scm_object_id_list[scm_object_id_list.index(student_course_module_object.id) + 1]
+
     all_current_sub_module_objects = db.query(StudentCourseSubModule).filter(
         StudentCourseSubModule.student_course_module_object_id == student_course_module_object.id
     ).all()
@@ -2064,6 +2072,7 @@ def fetch_course_module_details(
     rv['course_module_name'] = student_course_module_object.module_name
     rv['course_module_description'] = student_course_module_object.module_description
     rv['sub_modules_list'] = sub_modules_rv
+    rv['next_student_course_module_object_id'] = next_student_course_module_object_id
 
     # TODO: start here by rendering this in module-layout; proceed from there to full finalization of module layout
 
