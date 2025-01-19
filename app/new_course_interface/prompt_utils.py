@@ -218,9 +218,12 @@ You will create a **JSON object** with the following structure:
 
 ```json
 {
-    "sub_module_name": "...",
-    "notes": "...",
+    "sub_module_name": "...",    
     "information": [
+        {
+            "type": "introduction_note",
+            "description": "..."
+        },
         {
             "type": "example",
             "description": "...",
@@ -229,7 +232,6 @@ You will create a **JSON object** with the following structure:
         {
             "type": "exercise",
             "question": "...",
-            "example_input_output_list": "...",
             "correct_code_solution": "..."
         },
         {
@@ -250,14 +252,15 @@ You will create a **JSON object** with the following structure:
 
 ### Guidelines:
 1. **Content Format**:
-    - The **"notes"** section should contain a clear and thorough explanation of the concept. The critical thing here is to write it in a way that is very personalized to the student's level and their goals, allowing them to understand it in an optimal manner. Speak directly to the student, in a conversational manner as you generate your notes and examples. Avoid saying "Hey.." though as the notes won't naturally flow well, and more so, just speak directly with the student and refer directly to their name, etc. in a conversational, energetic manner.
-    - The **"examples"** section should contain multiple code snippets that demonstrate the concept in practice. For concepts that are harder or cover more ground, feel free to include more examples to help the student understand the concept.
-    - The **"exercises"** section should contain practice problems that allow students to apply the concept they've just learned. All exercises MUST be programming questions where the student needs to write code. Each exercise should be a dictionary, including the question, example input/outputs, and the correct solution (in python code). The correct solution should simply just contain the code solution, nothing else.
-    - As mentinoed above, try to personalize as much as possible to the student's profile and goals, obviously without overdoing it.
-    - Generally speaking, if the concept is relatively straight-forward to explain, leverage the "example -> exercise" approach where an exercise is given right after the example. HOWEVER, if the concept is more difficult and requires additional examples, feel free to show multiple examples first, before giving the student an exercise.
+    - The **"introduction_note"** should contain a clear and thorough explanation of the concept that will be presented. The critical thing here is to write it in a way that is very personalized to the student's level and their goals, allowing them to understand it in an optimal manner. Speak directly to the student, in a conversational manner as you generate your notes and examples. Avoid saying "Hey.." though as the notes won't naturally flow well, and more so, just speak directly with the student and refer directly to their name, etc. in a conversational, energetic manner.
 
-2. **Example Breakdown**:
-    - For example, if the chapter explains how to create functions in Python, you could create a module named "Defining Functions in Python". This module would explain how functions work, provide examples of how to define and call functions, and then include exercises asking the student to create their own function to solve various problems.
+    - The **"examples"** section should contain multiple code snippets that demonstrate the concept in practice. For concepts that are harder or cover more ground, feel free to include more examples to help the student understand the concept. Please ensure you explain yourself well to the student, in the 'description' key in the example dictionary. It is critical a thorough explanation is given, with the code provided.
+
+    - The **"exercises"** section should contain practice problems that allow students to apply the concept they've just learned. All exercises MUST ONLY BE programming questions where the student needs to write code. Each exercise should be a dictionary, including the question, and the correct solution (in python code). The correct solution should simply just contain the code solution, nothing else.
+    
+    - As mentinoed above, try to personalize as much as possible to the student's profile and goals, obviously without overdoing it.
+
+    - Generally speaking, if the concept is relatively straight-forward to explain, leverage the "example -> exercise" approach where an exercise is given right after the example. HOWEVER, if the concept is more difficult and requires additional examples, feel free to show multiple examples first, before giving the student an exercise.
 
 
 """
@@ -268,3 +271,7 @@ You will create a **JSON object** with the following structure:
     prompt += f"## Output:\n"
 
     return prompt
+
+
+# 2. **Example Breakdown**:
+    # - For example, if the chapter explains how to create functions in Python, you could create a module named "Defining Functions in Python". This module would explain how functions work, provide examples of how to define and call functions, and then include exercises asking the student to create their own function to solve various problems.

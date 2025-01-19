@@ -356,7 +356,7 @@ class StudentCourseSubModule(Base):
     """
     __tablename__ = 'student_course_sub_module'
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
     sub_module_name = Column(String)
     sub_module_list_string = Column(String)
@@ -364,6 +364,48 @@ class StudentCourseSubModule(Base):
     student_course_module_object_id = Column(UUID, ForeignKey('student_course_module.id'), nullable=True)
     student_course_module_object = relationship('StudentCourseModule')
 
+
+class SubModuleInformationListElement(Base):
+    """
+    """
+    __tablename__ = 'student_sub_module_information_list_element'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    type = Column(String)
+    text = Column(String)
+    code = Column(String, nullable=True)
+    correct_solution = Column(String, nullable=True)
+
+    course_sub_module_object_id = Column(UUID, ForeignKey('student_course_sub_module.id'), nullable=True)
+    course_sub_module_object = relationship('StudentCourseSubModule')
+
+
+class SubModuleInformationListExerciseSubmissionHistory(Base):
+    """
+    """
+    __tablename__ = 'sub_module_information_list_exercise_submission_history'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    user_code = Column(String)
+    solution_passed = Column(Boolean)
+    ai_solution_feedback = Column(String)
+
+    custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
+    custom_user = relationship("CustomUser")
+
+    sub_module_exercise_object_id = Column(UUID, ForeignKey('student_sub_module_information_list_element.id'), nullable=True)
+    sub_module_exercise_object_id = relationship('SubModuleInformationListElement')
+
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+
+
+# TODO:
+    # start here now by properly creating the new DB table for the course-generation
+    # should be information-list as it's own table (see notes)
+    # also, modify prompt with new feedback before running the course-generation again
+    # proceed to finalize and execute from there
 
 # class StudentCourseSubModuleSubmission(Base):
 #     Link back to the student and sub-module -- use this to track progress (total-completed-challenges/total-challenges in sub-module)

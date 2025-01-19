@@ -377,6 +377,31 @@ def generate_student_course_task(
             db.commit()
             db.refresh(course_sub_module_object)
 
+            sub_module_information_list = sub_topic_response_json['information']
+            for info_element in sub_module_information_list:
+                current_element_type = info_element['type']
+                if current_element_type == 'example':
+                    sub_module_element_object = SubModuleInformationListElement(
+                        type = info_element['type'],
+                        text = info_element['description'],
+                        code = info_element['code'],
+                        course_sub_module_object_id = course_sub_module_object.id,
+                    )
+                    db.add(sub_module_element_object)
+                    db.commit()
+                    db.refresh(sub_module_element_object)
+
+                elif current_element_type == 'exercise':
+                    sub_module_element_object = SubModuleInformationListElement(
+                        type = info_element['type'],
+                        text = info_element['question'],
+                        correct_solution = info_element['correct_code_solution'],
+                        course_sub_module_object_id = course_sub_module_object.id,
+                    )
+                    db.add(sub_module_element_object)
+                    db.commit()
+                    db.refresh(sub_module_element_object)
+
             # Update progress after each sub-module
             completed_modules += 1
             progress = (completed_modules / total_sub_modules) * 100
@@ -432,7 +457,6 @@ async def get_course_generation_task_status(task_id: str):
                     # 'parent_module_description': course_mod_obj.module_description,
                     # 'sub_modules': sub_modules_rv
                 })
-
 
             student_course_parent_object = db.query(StudentCourseParent).filter(
                 StudentCourseParent.student_learned_profile_object_id == student_course_parent_object_id
@@ -2060,13 +2084,34 @@ def fetch_course_module_details(
     for sub_module_obj in all_current_sub_module_objects:
         current_sub_module_object_information_dict = ast.literal_eval(sub_module_obj.sub_module_list_string)
         introduction_note = current_sub_module_object_information_dict['notes']
-        note_information_list = current_sub_module_object_information_dict['information']
+
+        # note_information_list = current_sub_module_object_information_dict['information']
+        sub_module_information_element_list = db.query(SubModuleInformationListElement).filter(
+            SubModuleInformationListElement.course_sub_module_object_id == sub_module_obj.id
+        ).all()
+        note_information_list_rv = []
+        for sub_module_obj_element in sub_module_information_element_list:
+            note_information_list_rv.append({
+                'element_object_id': sub_module_obj_element.id,
+                'type': sub_module_obj_element.type,
+                'text': sub_module_obj_element.text,
+                'code': sub_module_obj_element.code,
+                'correct_solution': sub_module_obj_element.correct_solution
+            })
+
+        # TODO: update frontend with new code / update prompts with new feedback / proceed to implement from there 
+
         sub_modules_rv.append({
+            'sub_module_object_id': sub_module_obj.id,
             'sub_module_name': sub_module_obj.sub_module_name,
             'introduction_note': introduction_note,
-            'note_information_list': note_information_list
+            'note_information_list': note_information_list_rv
+            # 'note_information_list': note_information_list
             # 'sub_module_list': ast.literal_eval(sub_module_obj.sub_module_list_string)
         })
+
+
+
 
     rv = {}
     rv['course_module_name'] = student_course_module_object.module_name
@@ -2081,3 +2126,116 @@ def fetch_course_module_details(
         'module_dict': rv
     }
 
+
+
+from app.pydantic_schemas import UserSubModuleSolutionSubmitSchema
+from app.models import SubModuleInformationListElement, SubModuleInformationListExerciseSubmissionHistory
+
+# TODO: start here by implementing this logic and proceed from there
+@app.post("/handle_sub_module_exercise_solution_submit")
+def handle_sub_module_solution_submit(
+    data: UserSubModuleSolutionSubmitSchema,
+    db: Session = Depends(get_db),
+    op_ai_wrapper: openai_wrapper.OpenAIWrapper = Depends(get_openai_wrapper)
+):
+
+    print('submission-data:', data)
+
+    user_id = data.user_id
+    user_code = data.code
+    # sub_module_course_object_id = data.sub_module_course_object_id
+    current_exercise_object_id = data.current_exercise_object_id
+
+    current_custom_user_object = db.query(CustomUser).filter(
+        CustomUser.anon_user_id == user_id
+    ).first()
+
+    current_exercise_object = db.query(SubModuleInformationListElement).filter(
+        SubModuleInformationListElement.id == current_exercise_object_id
+    ).first()
+
+    if current_exercise_object is None:
+        raise HTTPException(status_code=404, detail="Exercise object not found or unauthorized.")
+
+    current_exercise_question = current_exercise_object.text
+    current_exercise_correct_solution_code = current_exercise_object.correct_solution
+
+    submission_evaluation_prompt = f"""Your task is to evaluate the student's's code below, and determine if it is the right answer, given the question.
+You are also given the correct solution to the problem, which you can use for reference, when evaluating the student's code.
+- Please note --> the correct solution provided is just one way to solve the given question. The student's code does not need to exactly match the given solution for it to be right. As long as the student's logic in the solution is correct and achieve's the correct final answer, then they are correct.
+     
+Return your response in JSON format, containing the following 2 values:
+- binary_correct: True or False
+- solution_feedback: Provide a 1-2 line feedback on the solution.
+    - If the solution is correct, let the student know the solution is correct along with providing any valuable feedback for the student's code (say potential improvements).
+    - If the solution is incorrect, DO NOT provide the correct solution. Rather, provide meaningful hint on how they might correct their code, to achieve the right solution.
+
+Question:
+{current_exercise_question}
+
+Correct Solution Code:
+{current_exercise_correct_solution_code}
+
+Current Student Solution:
+{user_code}
+
+## Output:
+"""
+    
+    # # TODO: fill in the prompts with the input / output and proceed from there to implementing this in frontend/backend
+
+    op = openai_wrapper.OpenAIWrapper(
+        api_key=settings.openai_key,
+        model="gpt-4o-mini"
+    )
+    ai_response = op.generate_sync_response(
+        prompt = submission_evaluation_prompt,
+        return_in_json = True
+    )
+    ai_response_json_dict = json.loads(ai_response.choices[0].message.content)
+
+    submission_history_object = SubModuleInformationListExerciseSubmissionHistory(
+        user_code = user_code,
+        solution_passed = ai_response_json_dict['binary_correct'],
+        ai_solution_feedback = ai_response_json_dict['solution_feedback'],
+
+        custom_user_id = current_custom_user_object.id,
+        sub_module_exercise_object_id = current_exercise_object.id
+    )
+    db.add(submission_history_object)
+    db.commit()
+    db.refresh(submission_history_object)
+
+    rv = {
+        'user_code': user_code,
+        'solution_passed': ai_response_json_dict['binary_correct'],
+        'solution_feedback': ai_response_json_dict['solution_feedback'],
+    }
+    return {
+        'success': True,
+        'submission_feedback_json': rv,
+    }
+
+    #  course_sub_module_object = StudentCourseSubModule(
+    #     sub_module_name = sub_topic,
+    #     sub_module_list_string = str(sub_topic_response_json),
+    #     student_course_module_object_id = student_course_module_object.id
+    # )
+    # db.add(course_sub_module_object)
+    # db.commit()
+    # db.refresh(course_sub_module_object)
+
+    
+    # db.query(SubModuleInformationListExerciseSubmissionHistory).filter(
+    #     SubModuleInformationListExerciseSubmissionHistory.id == current_exercise_object_id
+    # )
+
+    # SubModuleInformationListExerciseSubmissionHistory
+
+    # sub_topic_generation_prompt = _create_sub_topic_module_generation_prompt(
+    #     entire_syllabus_string=user_syllabus_dict_string,
+    #     current_module_dictionary_string=str(module_dict),
+    #     current_sub_module_topic_string=sub_topic,
+    #     student_profile_dictionary=user_student_profile_dict_string
+    # )
+    

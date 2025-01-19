@@ -70,3 +70,8 @@ class UserSubModuleSchema(BaseModel):
     user_id: str
     course_module_object_id: str
 
+class UserSubModuleSolutionSubmitSchema(BaseModel):
+    user_id: str
+    code: str
+    # sub_module_course_object_id: str
+    current_exercise_object_id: str
