@@ -331,6 +331,7 @@ class StudentCourseParent(Base):
     prompt_to_generate_syllabus = Column(String)
     syllabus_list_string = Column(String)
     is_course_generating = Column(Boolean, default=False)
+    celery_task_id = Column(String, nullable=True)  # course-generation-celery-task-id to fetch task status
 
     student_learned_profile_object_id = Column(UUID, ForeignKey('student_learned_profile.id'), nullable=True)
     student_learned_profile = relationship("StudentLearnedProfile")
@@ -386,19 +387,31 @@ class SubModuleInformationListExerciseSubmissionHistory(Base):
     """
     __tablename__ = 'sub_module_information_list_exercise_submission_history'
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    # id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
+    # user_code = Column(String)
+    # solution_passed = Column(Boolean)
+    # ai_solution_feedback = Column(String)
+    # created_at = Column(DateTime, server_default=func.now(), nullable=False)
+
+    # custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
+    # custom_user = relationship("CustomUser")
+
+    # sub_module_exercise_object_id = Column(UUID, ForeignKey('student_sub_module_information_list_element.id'), nullable=True)
+    # sub_module_exercise_object_id = relationship('SubModuleInformationListElement')
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_code = Column(String)
     solution_passed = Column(Boolean)
     ai_solution_feedback = Column(String)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
 
     custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
     custom_user = relationship("CustomUser")
 
     sub_module_exercise_object_id = Column(UUID, ForeignKey('student_sub_module_information_list_element.id'), nullable=True)
-    sub_module_exercise_object_id = relationship('SubModuleInformationListElement')
-
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    sub_module_exercise_object = relationship('SubModuleInformationListElement')
+    
 
 
 # TODO:

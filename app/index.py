@@ -402,6 +402,16 @@ def generate_student_course_task(
                     db.commit()
                     db.refresh(sub_module_element_object)
 
+                elif current_element_type == 'introduction_note':
+                    sub_module_element_object = SubModuleInformationListElement(
+                        type = info_element['type'],
+                        text = info_element['description'],
+                        course_sub_module_object_id = course_sub_module_object.id,
+                    )
+                    db.add(sub_module_element_object)
+                    db.commit()
+                    db.refresh(sub_module_element_object)
+
             # Update progress after each sub-module
             completed_modules += 1
             progress = (completed_modules / total_sub_modules) * 100
@@ -420,20 +430,21 @@ def generate_student_course_task(
 
 
 @app.get("/course-gen-task-status/{task_id}")
-async def get_course_generation_task_status(task_id: str):
+async def get_course_generation_task_status(
+    task_id: str,
+    db: Session = Depends(get_db)
+):
     task_result = AsyncResult(task_id)
     print('Course Task Result:', task_result)
     print('Course Task State:', task_result.state)
     if task_result.state == 'PENDING':
         return {"state": task_result.state, "progress": 0}
     elif task_result.state == 'PROGRESS':
-        db = next(get_db())
         student_course_parent_object_id = task_result.info.get('student_course_parent_object_id', None)
         if student_course_parent_object_id is not None:
             # sc_parent_object = db.query(StudentCourseParent).filter(
             #     StudentCourseParent.id == student_course_parent_object_id
             # ).first()
-
             current_course_module_list = []
             course_module_object_list = db.query(StudentCourseModule).filter(
                 StudentCourseModule.student_course_parent_object_id == student_course_parent_object_id
@@ -447,7 +458,7 @@ async def get_course_generation_task_status(task_id: str):
                     sub_modules_rv.append({
                         'sub_module_name': sub_mod_obj.sub_module_name
                     })
-                
+
                 current_course_module_list.append({
                     'parent_module_object_id': course_mod_obj.id,
                     'parent_module_name': course_mod_obj.module_name,
@@ -459,8 +470,10 @@ async def get_course_generation_task_status(task_id: str):
                 })
 
             student_course_parent_object = db.query(StudentCourseParent).filter(
-                StudentCourseParent.student_learned_profile_object_id == student_course_parent_object_id
+                StudentCourseParent.id == student_course_parent_object_id
             ).first()
+
+            print('student_course_parent_object:', student_course_parent_object)
 
             rv = {}
             rv['course_name'] = student_course_parent_object.course_name
@@ -1885,6 +1898,15 @@ async def ws_learn_about_user(
                     user_syllabus_dict_string = str(user_syllabus_ai_response_json),
                     user_student_profile_dict_string = str(user_profile_dictionary_str)
                 )
+
+                # Update Student Course Parent Object with Task ID
+                current_scp_object = db.query(StudentCourseParent).filter(
+                    StudentCourseParent.id == student_course_parent_object.id
+                ).first()
+                current_scp_object.celery_task_id = task.id
+                db.commit()
+                db.refresh(current_scp_object)
+
                 final_rv = {
                     'type': 'user_summary_response',
                     'user_summary_json': user_summary_ai_response_json,
@@ -2022,6 +2044,7 @@ def fetch_user_course_details(
     rv['course_name'] = student_course_parent_object.course_name
     rv['course_description'] = student_course_parent_object.course_description
     rv['is_course_generating'] = student_course_parent_object.is_course_generating
+    rv['current_celery_task_id'] = student_course_parent_object.celery_task_id
     rv['current_course_module_list'] = current_course_module_list
 
     print('RV:', rv)
@@ -2083,7 +2106,8 @@ def fetch_course_module_details(
     sub_modules_rv = []
     for sub_module_obj in all_current_sub_module_objects:
         current_sub_module_object_information_dict = ast.literal_eval(sub_module_obj.sub_module_list_string)
-        introduction_note = current_sub_module_object_information_dict['notes']
+        # # TODO: start here by adjusting this with the new data and proceed from there to implementing entire submission functionality and finalizing all module stuff 
+        # introduction_note = current_sub_module_object_information_dict['notes']
 
         # note_information_list = current_sub_module_object_information_dict['information']
         sub_module_information_element_list = db.query(SubModuleInformationListElement).filter(
@@ -2091,12 +2115,30 @@ def fetch_course_module_details(
         ).all()
         note_information_list_rv = []
         for sub_module_obj_element in sub_module_information_element_list:
+
+            current_exercise_submission_history_rv = []
+            if sub_module_obj_element.type == 'exercise':
+                # fetch and store past submissions
+                current_exercise_submission_history_objects = db.query(SubModuleInformationListExerciseSubmissionHistory).filter(
+                    SubModuleInformationListExerciseSubmissionHistory.sub_module_exercise_object_id == sub_module_obj_element.id
+                ).all()
+                
+                for subm_exercise_obj in current_exercise_submission_history_objects:
+                    current_exercise_submission_history_rv.append({
+                        'key': subm_exercise_obj.id,
+                        'date': subm_exercise_obj.created_at,
+                        'solution_passed': subm_exercise_obj.solution_passed,
+                        'code': subm_exercise_obj.user_code,
+                        'feedback': subm_exercise_obj.ai_solution_feedback
+                    })
+
             note_information_list_rv.append({
                 'element_object_id': sub_module_obj_element.id,
                 'type': sub_module_obj_element.type,
                 'text': sub_module_obj_element.text,
                 'code': sub_module_obj_element.code,
-                'correct_solution': sub_module_obj_element.correct_solution
+                'correct_solution': sub_module_obj_element.correct_solution,
+                'current_exercise_submission_history': current_exercise_submission_history_rv
             })
 
         # TODO: update frontend with new code / update prompts with new feedback / proceed to implement from there 
@@ -2104,13 +2146,11 @@ def fetch_course_module_details(
         sub_modules_rv.append({
             'sub_module_object_id': sub_module_obj.id,
             'sub_module_name': sub_module_obj.sub_module_name,
-            'introduction_note': introduction_note,
+            # 'introduction_note': introduction_note,
             'note_information_list': note_information_list_rv
             # 'note_information_list': note_information_list
             # 'sub_module_list': ast.literal_eval(sub_module_obj.sub_module_list_string)
         })
-
-
 
 
     rv = {}
@@ -2207,10 +2247,16 @@ Current Student Solution:
     db.refresh(submission_history_object)
 
     rv = {
-        'user_code': user_code,
-        'solution_passed': ai_response_json_dict['binary_correct'],
-        'solution_feedback': ai_response_json_dict['solution_feedback'],
+        # 'user_code': user_code,
+        # 'solution_passed': ai_response_json_dict['binary_correct'],
+        # 'solution_feedback': ai_response_json_dict['solution_feedback'],
+        'key': submission_history_object.id,
+        'date': submission_history_object.created_at,
+        'solution_passed': submission_history_object.solution_passed,
+        'code': submission_history_object.user_code,
+        'feedback': submission_history_object.ai_solution_feedback
     }
+
     return {
         'success': True,
         'submission_feedback_json': rv,
