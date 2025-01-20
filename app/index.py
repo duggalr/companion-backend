@@ -1985,6 +1985,79 @@ def generate_user_goal_summary(
     }
 
 
+
+
+
+def generate_user_course_progress_dict(db, custom_user_id):
+    student_learned_profile_object = db.query(StudentLearnedProfile).filter(
+        StudentLearnedProfile.custom_user_id == custom_user_id
+    ).first()
+
+    student_course_parent_object = db.query(StudentCourseParent).filter(
+        StudentCourseParent.student_learned_profile_object_id == student_learned_profile_object.id
+    ).first()
+
+    course_module_objects = db.query(StudentCourseModule).filter(
+        StudentCourseModule.student_course_parent_object_id == student_course_parent_object.id
+    ).all()
+
+    final_rv = {}
+    for course_mod_object in course_module_objects:
+
+        current_course_sub_module_objects = db.query(StudentCourseSubModule).filter(
+            StudentCourseSubModule.student_course_module_object_id == course_mod_object.id
+        ).all()
+
+        course_sub_module_progress_dict = {}
+        for current_sub_module_object in current_course_sub_module_objects:
+            information_exercise_element_objects = db.query(SubModuleInformationListElement).filter(
+                SubModuleInformationListElement.course_sub_module_object_id == current_sub_module_object.id,
+                SubModuleInformationListElement.type == 'exercise'
+            ).all()
+
+            total_info_element_exercises_count = len(information_exercise_element_objects)
+            completed_info_element_exercises_count = 0
+            for exercise_elem_obj in information_exercise_element_objects:
+                current_passed_count = db.query(SubModuleInformationListExerciseSubmissionHistory).filter(
+                    SubModuleInformationListExerciseSubmissionHistory.sub_module_exercise_object_id == exercise_elem_obj.id,
+                    SubModuleInformationListExerciseSubmissionHistory.solution_passed == True
+                ).count()
+                if current_passed_count > 0:
+                    completed_info_element_exercises_count += 1
+            
+            if completed_info_element_exercises_count == total_info_element_exercises_count:
+                passed = True
+            else:
+                passed = False
+            course_sub_module_progress_dict[current_sub_module_object.id] = {
+                'completed_count': completed_info_element_exercises_count,
+                'total_count': total_info_element_exercises_count,
+                'passed': passed
+            }
+
+        total_course_module_exercises = 0
+        completed_course_module_exercises = 0
+        for cm_id in course_sub_module_progress_dict:
+            total_course_module_exercises += course_sub_module_progress_dict[cm_id]['total_count']
+            completed_course_module_exercises += course_sub_module_progress_dict[cm_id]['completed_count']
+
+        if (completed_course_module_exercises == total_course_module_exercises):
+            course_module_passed = True
+        else:
+            course_module_passed = False
+
+        course_module_rv_dict = {
+            'course_sub_module_progress_dict': course_sub_module_progress_dict,
+            'total_course_module_exercises': total_course_module_exercises,
+            'completed_course_module_exercises': completed_course_module_exercises,
+            'course_module_passed': course_module_passed
+        }
+
+        final_rv[course_mod_object.id] = course_module_rv_dict
+
+    return final_rv
+
+
 @app.post("/fetch_user_course_details")
 def fetch_user_course_details(
     data: RequiredAnonUserSchema,
@@ -2040,12 +2113,27 @@ def fetch_user_course_details(
             'sub_modules': sub_modules_rv
         })
 
+
+    course_progress_dictionary = generate_user_course_progress_dict(
+        db = db,
+        custom_user_id = custom_user_object.id
+    )
+    new_current_course_modules_list = []
+    for cm_tmp_dict in current_course_module_list:
+        current_cm_object_id = cm_tmp_dict['parent_module_object_id']
+        current_cm_progress_dict = course_progress_dictionary[current_cm_object_id]
+        cm_tmp_dict['cm_progress_dict'] = current_cm_progress_dict
+        new_current_course_modules_list.append(cm_tmp_dict)
+    # TODO: prepare this for entire course and render to home
+
     rv = {}
     rv['course_name'] = student_course_parent_object.course_name
     rv['course_description'] = student_course_parent_object.course_description
     rv['is_course_generating'] = student_course_parent_object.is_course_generating
     rv['current_celery_task_id'] = student_course_parent_object.celery_task_id
-    rv['current_course_module_list'] = current_course_module_list
+    # rv['current_course_module_list'] = current_course_module_list
+    rv['current_course_module_list'] = new_current_course_modules_list
+    rv['course_progress_dictionary'] = course_progress_dictionary
 
     print('RV:', rv)
 
@@ -2104,25 +2192,49 @@ def fetch_course_module_details(
     ).all()
 
     sub_modules_rv = []
+    total_sub_module_exercises = 0
+    total_sub_module_completed_exercises = 0
     for sub_module_obj in all_current_sub_module_objects:
         current_sub_module_object_information_dict = ast.literal_eval(sub_module_obj.sub_module_list_string)
-        # # TODO: start here by adjusting this with the new data and proceed from there to implementing entire submission functionality and finalizing all module stuff 
+        # TODO:
+            # get the sub module progress and render in frontend for module layout <-- finalize this and course home layout
+
         # introduction_note = current_sub_module_object_information_dict['notes']
 
         # note_information_list = current_sub_module_object_information_dict['information']
         sub_module_information_element_list = db.query(SubModuleInformationListElement).filter(
             SubModuleInformationListElement.course_sub_module_object_id == sub_module_obj.id
         ).all()
+        # number of exercises / # of completed 
+
+        all_sub_module_info_list_exercise_objects = db.query(SubModuleInformationListElement).filter(
+            SubModuleInformationListElement.course_sub_module_object_id == sub_module_obj.id,
+            SubModuleInformationListElement.type == 'exercise'
+        ).all()
+        total_completed_sub_module_info_list_execises = 0
+        for sub_mod_exer_obj in all_sub_module_info_list_exercise_objects:
+            successful_passed_object_count = db.query(SubModuleInformationListExerciseSubmissionHistory).filter(
+                SubModuleInformationListExerciseSubmissionHistory.sub_module_exercise_object_id == sub_mod_exer_obj.id,
+                SubModuleInformationListExerciseSubmissionHistory.solution_passed == True
+            ).count()
+            if successful_passed_object_count > 0:
+                total_completed_sub_module_info_list_execises += 1
+    
+        # sub_module_exercise_completed_over_ratio = total_completed_sub_module_info_list_execises / len(all_sub_module_info_list_exercise_objects)
+        # print(f"Total SM Exercise Ratio: {sub_module_exercise_completed_over_ratio}")
+        
+        total_sub_module_completed_exercises += total_completed_sub_module_info_list_execises
+        total_sub_module_exercises += len(all_sub_module_info_list_exercise_objects)
+
         note_information_list_rv = []
         for sub_module_obj_element in sub_module_information_element_list:
-
             current_exercise_submission_history_rv = []
             if sub_module_obj_element.type == 'exercise':
                 # fetch and store past submissions
                 current_exercise_submission_history_objects = db.query(SubModuleInformationListExerciseSubmissionHistory).filter(
-                    SubModuleInformationListExerciseSubmissionHistory.sub_module_exercise_object_id == sub_module_obj_element.id
+                    SubModuleInformationListExerciseSubmissionHistory.sub_module_exercise_object_id == sub_module_obj_element.id,
                 ).all()
-                
+
                 for subm_exercise_obj in current_exercise_submission_history_objects:
                     current_exercise_submission_history_rv.append({
                         'key': subm_exercise_obj.id,
@@ -2138,7 +2250,8 @@ def fetch_course_module_details(
                 'text': sub_module_obj_element.text,
                 'code': sub_module_obj_element.code,
                 'correct_solution': sub_module_obj_element.correct_solution,
-                'current_exercise_submission_history': current_exercise_submission_history_rv
+                'current_exercise_submission_history': current_exercise_submission_history_rv,
+                
             })
 
         # TODO: update frontend with new code / update prompts with new feedback / proceed to implement from there 
@@ -2147,17 +2260,26 @@ def fetch_course_module_details(
             'sub_module_object_id': sub_module_obj.id,
             'sub_module_name': sub_module_obj.sub_module_name,
             # 'introduction_note': introduction_note,
-            'note_information_list': note_information_list_rv
+            'note_information_list': note_information_list_rv,
             # 'note_information_list': note_information_list
             # 'sub_module_list': ast.literal_eval(sub_module_obj.sub_module_list_string)
-        })
 
+            'sub_module_exercise_completed_count': total_completed_sub_module_info_list_execises,
+            'sub_module_exercise_total_count': len(all_sub_module_info_list_exercise_objects),
+            'sub_module_exercise_completed_over_ratio': total_completed_sub_module_info_list_execises / len(all_sub_module_info_list_exercise_objects)
+        })
 
     rv = {}
     rv['course_module_name'] = student_course_module_object.module_name
     rv['course_module_description'] = student_course_module_object.module_description
     rv['sub_modules_list'] = sub_modules_rv
     rv['next_student_course_module_object_id'] = next_student_course_module_object_id
+    
+    # total_sub_module_exercises = 0
+    # total_sub_module_completed_exercises = 0
+    rv['total_sub_module_completed_exercises'] = total_sub_module_completed_exercises
+    rv['total_sub_module_exercises'] = total_sub_module_exercises
+    rv['total_completed_over_all_ratio'] = (total_sub_module_completed_exercises / total_sub_module_exercises)
 
     # TODO: start here by rendering this in module-layout; proceed from there to full finalization of module layout
 
