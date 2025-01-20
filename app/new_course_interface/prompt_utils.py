@@ -262,7 +262,8 @@ You will create a **JSON object** with the following structure:
 
     - Generally speaking, if the concept is relatively straight-forward to explain, leverage the "example -> exercise" approach where an exercise is given right after the example. HOWEVER, if the concept is more difficult and requires additional examples, feel free to show multiple examples first, before giving the student an exercise.
 
-
+    - Following the exaxt JSON format presented above, ensuring all keys mentioned are provided.
+    
 """
     prompt += f"## Entire Syllabus:\n{entire_syllabus_string}\n\n"
     prompt += f"## Current Entire Module Dictionary:\n{current_module_dictionary_string}\n\n"

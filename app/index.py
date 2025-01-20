@@ -463,7 +463,8 @@ async def get_course_generation_task_status(
                     'parent_module_object_id': course_mod_obj.id,
                     'parent_module_name': course_mod_obj.module_name,
                     'parent_module_description': course_mod_obj.module_description,
-                    'sub_modules': sub_modules_rv
+                    'sub_modules': sub_modules_rv,
+
                     # 'parent_module_name': course_mod_obj.module_name,
                     # 'parent_module_description': course_mod_obj.module_description,
                     # 'sub_modules': sub_modules_rv
