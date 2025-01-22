@@ -26,7 +26,7 @@ from app.code_execution_utils import run_test_cases_without_function, run_test_c
 
 # New Course Interface Related Script Imports
 # from app.new_course_interface import prompt_utils
-from app.new_course_interface.prompt_utils import _create_sub_topic_module_generation_prompt, _create_user_summary_and_profile, _create_user_syllabus_prompt, _prepare_initial_learn_about_user, _create_user_profile_dictionary_prompt_one
+from app.new_course_interface.prompt_utils import _create_sub_topic_module_generation_prompt_new, _create_user_summary_and_profile, _create_user_syllabus_prompt, _prepare_initial_learn_about_user, _create_user_profile_dictionary_prompt_one
 
 
 # Initialize FastAPI app
@@ -346,7 +346,7 @@ def generate_student_course_task(
 
         # Process sub-modules
         for sub_topic in current_sub_module_list:
-            sub_topic_generation_prompt = _create_sub_topic_module_generation_prompt(
+            sub_topic_generation_prompt = _create_sub_topic_module_generation_prompt_new(
                 entire_syllabus_string=user_syllabus_dict_string,
                 current_module_dictionary_string=str(module_dict),
                 current_sub_module_topic_string=sub_topic,
