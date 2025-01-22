@@ -330,11 +330,6 @@ def generate_student_course_task(
     total_sub_modules = sum([len(module_dict['sub_module_list']) for module_dict in user_course_syllabus_list])
     print(f"Total number of sub-modules: {total_sub_modules}")
 
-    # TODO: 
-        # start here by saving the task ID with the user in the DB
-        # fetch this with anon-user-id on course-details fetch
-        # proceed from there to finish the course-home-layout, etc.
-
     for module_dict in user_course_syllabus_list:
         # Save the module to the database
         student_course_module_object = StudentCourseModule(
@@ -501,7 +496,6 @@ async def get_course_generation_task_status(
         return {"state": task_result.state, "progress": 0, "error": str(task_result.info)}
 
 
-
 @celery_app.task
 def execute_code_in_container(language: str, code: str):
     """
@@ -509,7 +503,8 @@ def execute_code_in_container(language: str, code: str):
     """
     # Set up language-specific Docker image
     docker_image = {
-        "python": "python:3.12-slim",
+        # "python": "python:3.12-slim",
+        "python": "python:3.12-slim-custom",
     }.get(language)
 
     if not docker_image:
