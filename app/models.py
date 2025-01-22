@@ -345,7 +345,8 @@ class StudentCourseModule(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     module_name = Column(String)
-    module_description = Column(String, nullable=True)
+    module_description = Column(String)
+    module_type = Column(String)
     module_sub_list_string = Column(String)
 
     student_course_parent_object_id = Column(UUID, ForeignKey('student_course_parent.id'), nullable=True)

@@ -281,24 +281,24 @@ def update_user_question(
 
 
 ## Celery Tasks ##
-# @celery_app.task(bind=True)
-# def fake_generate_student_course_task(
-#     self,
-# ):
-#     import time
+@celery_app.task(bind=True)
+def fake_generate_student_course_task(
+    self,
+):
+    import time
 
-#     total_steps = 50  # Number of steps for progress updates
-#     for step in range(total_steps):
-#         # Simulate some work with a time delay
-#         time.sleep(2)
+    total_steps = 50  # Number of steps for progress updates
+    for step in range(total_steps):
+        # Simulate some work with a time delay
+        time.sleep(2)
 
-#         # Update progress
-#         progress = ((step + 1) / total_steps) * 100
-#         self.update_state(state="PROGRESS", meta={"progress": progress})
-#         print(f"Step {step + 1}/{total_steps} completed: {progress}%")
+        # Update progress
+        progress = ((step + 1) / total_steps) * 100
+        self.update_state(state="PROGRESS", meta={"progress": progress})
+        print(f"Step {step + 1}/{total_steps} completed: {progress}%")
 
-#     # Return a success response when done
-#     return {"status": "Task completed!", "progress": 100}
+    # Return a success response when done
+    return {"status": "Task completed!", "progress": 100}
 
 
 @celery_app.task(bind=True)
@@ -335,6 +335,7 @@ def generate_student_course_task(
         student_course_module_object = StudentCourseModule(
             module_name=module_dict['module_name'],
             module_description=module_dict['module_description'],
+            module_type=module_dict['module_type'],
             module_sub_list_string=module_dict['sub_module_list'],
             student_course_parent_object_id=student_course_parent_object_id
         )
@@ -1817,7 +1818,8 @@ def fetch_problem_set_question_data(
 
 
 
-## TODO: New Course Interface Related
+### New Course Interface Related ###
+
 @app.websocket("/ws_learn_about_user")
 async def ws_learn_about_user(
     websocket: WebSocket,
@@ -1887,13 +1889,13 @@ async def ws_learn_about_user(
 
                 # # Execute Celery Task to generate course
                 # # # TODO: generate a fake progress task with state updates to prevent paid-api calls constantly? go from there
-                # task = fake_generate_student_course_task.delay()
+                task = fake_generate_student_course_task.delay()
 
-                task = generate_student_course_task.delay(
-                    student_course_parent_object_id = str(student_course_parent_object.id),
-                    user_syllabus_dict_string = str(user_syllabus_ai_response_json),
-                    user_student_profile_dict_string = str(user_profile_dictionary_str)
-                )
+                # task = generate_student_course_task.delay(
+                #     student_course_parent_object_id = str(student_course_parent_object.id),
+                #     user_syllabus_dict_string = str(user_syllabus_ai_response_json),
+                #     user_student_profile_dict_string = str(user_profile_dictionary_str)
+                # )
 
                 # Update Student Course Parent Object with Task ID
                 current_scp_object = db.query(StudentCourseParent).filter(
