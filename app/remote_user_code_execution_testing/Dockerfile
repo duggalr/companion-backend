@@ -9,16 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install --no-cache-dir \
     numpy \
     pandas \
-    matplotlib \
     requests \
-    flask \
-    jinja2 \
-    sqlalchemy \
-    pytest \
-    openpyxl \
     beautifulsoup4 \
-    black \
-    flake8
 
 # Set a working directory
 WORKDIR /app

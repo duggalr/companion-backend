@@ -375,9 +375,12 @@ class SubModuleInformationListElement(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     type = Column(String)
+    title = Column(String, nullable=True)
     text = Column(String)
     code = Column(String, nullable=True)
+    starter_code = Column(String, nullable=True)
     correct_solution = Column(String, nullable=True)
+    is_runnable = Column(Boolean, default=False)
 
     course_sub_module_object_id = Column(UUID, ForeignKey('student_course_sub_module.id'), nullable=True)
     course_sub_module_object = relationship('StudentCourseSubModule')
@@ -413,6 +416,58 @@ class SubModuleInformationListExerciseSubmissionHistory(Base):
     sub_module_exercise_object_id = Column(UUID, ForeignKey('student_sub_module_information_list_element.id'), nullable=True)
     sub_module_exercise_object = relationship('SubModuleInformationListElement')
     
+
+class CourseModuleQuiz(Base):
+    """
+    """
+    __tablename__ = 'course_module_quiz'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    quiz_name = Column(String)
+    questions_list = Column(String)
+
+    student_course_module_object_id = Column(UUID, ForeignKey('student_course_module.id'), nullable=True)
+    student_course_module_object = relationship('StudentCourseModule')
+
+
+class CourseModuleQuizQuestion(Base):
+    """
+    """
+    __tablename__ = 'course_module_quiz_question'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    type = Column(String)
+    text = Column(String)
+    multiple_choice_list = Column(String, nullable=True)
+    multiple_choice_solution = Column(String, nullable=True)
+    code_solution = Column(String, nullable=True)
+    starter_code = Column(String, nullable=True)
+    is_runnable = Column(Boolean, default=False)
+
+    # "type": "multiple_choice or code",
+    # "question": "...",
+    # "multiple_choice_list": "will be a python list of choices for the question if multiple choice, ie. ['choice_one', 'choice_two', ...]","multiple_choice_solution": "the python index from the multiple_choice_list corresponding to the right answer.",
+    # "code_solution": "if coding problem, the coding solution",
+    # "starter_code": "if coding question, add starter or boilerplate code for the question.. this could be as simple as a comment or some boilerplate function, etc.",
+    # is_runnable: "boolean (true or false)"
+
+    quiz_parent_object_id = Column(UUID, ForeignKey('course_module_quiz.id'), nullable=True)
+    quiz_parent_object = relationship('CourseModuleQuiz')
+
+
+class CourseModuleQuizParentSubmission(Base):
+    """
+    """
+    pass
+
+class CourseModuleQuizQuestionSubmission(Base):
+    """
+    """
+    pass
+
+
 
 
 # TODO:

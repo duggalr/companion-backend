@@ -16,7 +16,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.database import SessionLocal
 from app.llm import prompts, openai_wrapper
-from app.models import UserOAuth, CustomUser, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion, UserPlaygroundLectureCode, LecturePlaygroundChatConversation, LectureMain, LectureCodeSubmissionHistory, ProblemSetQuestion, PlaygroundProblemSetChatConversation, UserLectureMain, StudentLearnedProfile, StudentCourseParent, StudentCourseModule, StudentCourseSubModule
+from app.models import UserOAuth, CustomUser, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion, UserPlaygroundLectureCode, LecturePlaygroundChatConversation, LectureMain, LectureCodeSubmissionHistory, ProblemSetQuestion, PlaygroundProblemSetChatConversation, UserLectureMain, StudentLearnedProfile, StudentCourseParent, StudentCourseModule, StudentCourseSubModule, CourseModuleQuiz, CourseModuleQuizQuestion
 from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema, FetchLessonQuestionDetailSchema, FetchLectureDetailSchema, LectureQuestionSubmissionSchema, ProblemSetFetchSchema, UserGoalSummarySchema, UserSubModuleSchema
 from app.config import settings
 from app.utils import create_anon_user_object, _get_random_initial_pg_question, get_user_object, get_optional_token, clean_question_input_output_list, clean_question_test_case_list
@@ -26,7 +26,7 @@ from app.code_execution_utils import run_test_cases_without_function, run_test_c
 
 # New Course Interface Related Script Imports
 # from app.new_course_interface import prompt_utils
-from app.new_course_interface.prompt_utils import _create_sub_topic_module_generation_prompt_new, _create_user_summary_and_profile, _create_user_syllabus_prompt, _prepare_initial_learn_about_user, _create_user_profile_dictionary_prompt_one
+from app.new_course_interface.prompt_utils import _create_sub_topic_module_generation_prompt_new, _create_user_summary_and_profile, _create_user_syllabus_prompt, _prepare_initial_learn_about_user, _create_user_profile_dictionary_prompt_one, quiz_generation_prompt
 
 
 # Initialize FastAPI app
@@ -309,13 +309,10 @@ def generate_student_course_task(
     user_student_profile_dict_string: str
 ):
     db = next(get_db())
-    # user_syllabus_dict = json.loads(user_syllabus_dict_string)
-    # print(f"student_course_parent_object_id: {student_course_parent_object_id}")
-    print(f"DB: {db}")
-    print(f"Self: {self}")
-    print(f"SCP ID: {student_course_parent_object_id}")
-    print(f"Syllabus String: {user_syllabus_dict_string}")
-    print(f"User Student Profile: {user_student_profile_dict_string}")
+    op = openai_wrapper.OpenAIWrapper(
+        api_key=settings.openai_key,
+        model="gpt-4o-mini"
+    )
 
     user_syllabus_dict = ast.literal_eval(user_syllabus_dict_string)
     user_student_profile_dict = ast.literal_eval(user_student_profile_dict_string)
@@ -323,14 +320,13 @@ def generate_student_course_task(
     print(f"User Syllabus Dict: {user_syllabus_dict}")
     print(f"User Student Profile Dict: {user_student_profile_dict}")
 
-    # total_modules = len(user_syllabus_dict)
     completed_modules = 0
-
     user_course_syllabus_list = user_syllabus_dict['syllabus_json_list']
     total_sub_modules = sum([len(module_dict['sub_module_list']) for module_dict in user_course_syllabus_list])
     print(f"Total number of sub-modules: {total_sub_modules}")
-
-    for module_dict in user_course_syllabus_list:
+    
+    running_course_module_completed_list = []
+    for module_dict in user_course_syllabus_list[:1]:  # TODO: only generating one for testing
         # Save the module to the database
         student_course_module_object = StudentCourseModule(
             module_name=module_dict['module_name'],
@@ -343,21 +339,24 @@ def generate_student_course_task(
         db.commit()
         db.refresh(student_course_module_object)
 
+        # Keep track of list of all completed course modules
+        running_course_module_completed_list.append(module_dict['module_name'])
+
         current_sub_module_list = module_dict['sub_module_list']
 
         # Process sub-modules
+        running_exercise_question_completed_list = []
         for sub_topic in current_sub_module_list:
             sub_topic_generation_prompt = _create_sub_topic_module_generation_prompt_new(
                 entire_syllabus_string=user_syllabus_dict_string,
                 current_module_dictionary_string=str(module_dict),
                 current_sub_module_topic_string=sub_topic,
-                student_profile_dictionary=user_student_profile_dict_string
-            )
+                student_profile_dictionary=user_student_profile_dict_string,
 
-            op = openai_wrapper.OpenAIWrapper(
-                api_key=settings.openai_key,
-                model="gpt-4o-mini"
+                past_user_completed_modules_string = "\n".join(running_course_module_completed_list),
+                past_user_exercises_completed_string = "\n".join(running_exercise_question_completed_list)
             )
+            
             ai_response = op.generate_sync_response(
                 prompt=sub_topic_generation_prompt,
                 return_in_json=True
@@ -379,8 +378,10 @@ def generate_student_course_task(
                 if current_element_type == 'example':
                     sub_module_element_object = SubModuleInformationListElement(
                         type = info_element['type'],
+                        title = info_element['title'],
                         text = info_element['description'],
                         code = info_element['code'],
+                        is_runnable = info_element['is_runnable'],
                         course_sub_module_object_id = course_sub_module_object.id,
                     )
                     db.add(sub_module_element_object)
@@ -391,12 +392,17 @@ def generate_student_course_task(
                     sub_module_element_object = SubModuleInformationListElement(
                         type = info_element['type'],
                         text = info_element['question'],
+                        starter_code = info_element['starter_code'],
                         correct_solution = info_element['correct_code_solution'],
+                        is_runnable = info_element['is_runnable'],
                         course_sub_module_object_id = course_sub_module_object.id,
                     )
                     db.add(sub_module_element_object)
                     db.commit()
                     db.refresh(sub_module_element_object)
+
+                    # save in backend
+                    running_exercise_question_completed_list.append(info_element['question'])
 
                 elif current_element_type == 'introduction_note':
                     sub_module_element_object = SubModuleInformationListElement(
@@ -414,6 +420,46 @@ def generate_student_course_task(
             self.update_state(state='PROGRESS', meta={'progress': progress, 'student_course_parent_object_id': student_course_parent_object_id})
             print(f"PROGRESS: {progress}")
 
+        
+        # TODO: generate sub-module quiz
+        q_gen_prompt = quiz_generation_prompt(
+            past_user_exercises_completed_string = running_exercise_question_completed_list,
+            current_module_dictionary_string = module_dict
+        )
+
+        ai_current_module_quiz_generation_response = op.generate_sync_response(
+            prompt = q_gen_prompt,
+            return_in_json = True
+        )
+        ai_current_module_quiz_generation_response_json = json.loads(ai_current_module_quiz_generation_response.choices[0].message.content)
+
+        course_module_quiz_object = CourseModuleQuiz(
+            quiz_name = ai_current_module_quiz_generation_response_json['quiz_name'],
+            questions_list = ai_current_module_quiz_generation_response_json['questions'],
+            student_course_module_object_id = student_course_module_object.id
+        )
+        db.add(course_module_quiz_object)
+        db.commit()
+        db.refresh(course_module_quiz_object)
+
+        current_quiz_questions_list = ai_current_module_quiz_generation_response_json['questions']
+        for quiz_question_dict in current_quiz_questions_list:
+            course_module_quiz_question_object = CourseModuleQuizQuestion(
+                type = quiz_question_dict['type'],
+                text = quiz_question_dict['question'],
+                multiple_choice_list = quiz_question_dict['multiple_choice_list'],
+                multiple_choice_solution = quiz_question_dict['multiple_choice_solution'],
+                code_solution = quiz_question_dict['code_solution'],
+                starter_code = quiz_question_dict['starter_code'],
+                is_runnable = quiz_question_dict['is_runnable'],
+                quiz_parent_object_id = course_module_quiz_object.id
+            )
+            db.add(course_module_quiz_question_object)
+            db.commit()
+            db.refresh(course_module_quiz_question_object)
+
+        # TODO: add this to the data list to show this information on fetch_course_
+
     # Update Student Course Parent Object
     sc_parent_object = db.query(StudentCourseParent).filter(
         StudentCourseParent.id == student_course_parent_object_id
@@ -421,7 +467,7 @@ def generate_student_course_task(
     sc_parent_object.is_course_generating = False
     db.commit()
     db.refresh(sc_parent_object)
-    
+
     return {'status': 'Task completed!', 'progress': 100}
 
 
@@ -1889,13 +1935,13 @@ async def ws_learn_about_user(
 
                 # # Execute Celery Task to generate course
                 # # # TODO: generate a fake progress task with state updates to prevent paid-api calls constantly? go from there
-                task = fake_generate_student_course_task.delay()
+                # task = fake_generate_student_course_task.delay()
 
-                # task = generate_student_course_task.delay(
-                #     student_course_parent_object_id = str(student_course_parent_object.id),
-                #     user_syllabus_dict_string = str(user_syllabus_ai_response_json),
-                #     user_student_profile_dict_string = str(user_profile_dictionary_str)
-                # )
+                task = generate_student_course_task.delay(
+                    student_course_parent_object_id = str(student_course_parent_object.id),
+                    user_syllabus_dict_string = str(user_syllabus_ai_response_json),
+                    user_student_profile_dict_string = str(user_profile_dictionary_str)
+                )
 
                 # Update Student Course Parent Object with Task ID
                 current_scp_object = db.query(StudentCourseParent).filter(
@@ -2183,7 +2229,11 @@ def fetch_course_module_details(
     ).all()
 
     scm_object_id_list = [scm_obj.id for scm_obj in student_course_module_object_list]
-    next_student_course_module_object_id = scm_object_id_list[scm_object_id_list.index(student_course_module_object.id) + 1]
+    if len(scm_object_id_list) > 1:
+        next_student_course_module_object_id = scm_object_id_list[scm_object_id_list.index(student_course_module_object.id) + 1]
+    else:
+        next_student_course_module_object_id = None
+    
 
     all_current_sub_module_objects = db.query(StudentCourseSubModule).filter(
         StudentCourseSubModule.student_course_module_object_id == student_course_module_object.id
@@ -2245,11 +2295,14 @@ def fetch_course_module_details(
             note_information_list_rv.append({
                 'element_object_id': sub_module_obj_element.id,
                 'type': sub_module_obj_element.type,
+                'title': sub_module_obj_element.title,
                 'text': sub_module_obj_element.text,
                 'code': sub_module_obj_element.code,
+                'starter_code': sub_module_obj_element.starter_code,
                 'correct_solution': sub_module_obj_element.correct_solution,
+                'is_runnable': sub_module_obj_element.is_runnable,
+                # 'is_runnable': False,
                 'current_exercise_submission_history': current_exercise_submission_history_rv,
-                
             })
 
         # TODO: update frontend with new code / update prompts with new feedback / proceed to implement from there 

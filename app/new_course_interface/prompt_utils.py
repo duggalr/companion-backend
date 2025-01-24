@@ -291,6 +291,7 @@ def _create_sub_topic_module_generation_prompt_new(
     current_module_dictionary_string,
     current_sub_module_topic_string,
     student_profile_dictionary,
+    past_user_completed_modules_string,
     past_user_exercises_completed_string
 ):
     prompt = """You are Companion, an energetic and motivating AI teacher and tutor for Python. Your role is to teach Python in a highly personalized, engaging, and structured manner, ensuring the student comprehensively understands the material and reaches their learning goals!
@@ -311,13 +312,12 @@ Generate a **JSON object** that presents a thorough breakdown of the sub-module.
 ## Additional Context on Student Environment:
 - The student will primarily be viewing and running their code in an online web-based IDE environment.
     - The online IDE environment has access to the following python libraries:
-        - numpy, pandas, matplotlib, requests, flask, jinja2, sqlalchemy, pytest, openpyxl, beautifulsoup4, black, flake8
-    - The online IDE environment does not have access to input(), as mentioned below.    
+        - numpy, pandas, requests, beautifulsoup4, black, flake8
+    - The online IDE environment does not have access to input().
+        - Please do not use the input() in any of your examples or exercises as it won't be available.
     - For each exercise and example, for the "is_runnable" key, add a True or False to indicate if this is runnable within the browser-IDE, given the above constraints.
-        - Any web server, program requiring user input, program requiring multiple files or reading files from local file system or database, or program that requires an external GUI (ie. tkinter) should be false to is_runnable by default.
+        - Any web server, program requiring user input, program requiring multiple files or reading files from local file system or database, or program that requires an external GUI (ie. tkinter, matplotlib, any sort of graphing library) should be false to is_runnable by default.
 
-- Note:
-    - Please do not use the input() in any of your examples or exercises as it won't be available.
 
 ### Structure of the Output JSON:
 ```json
@@ -332,13 +332,15 @@ Generate a **JSON object** that presents a thorough breakdown of the sub-module.
             "type": "example",
             "title": "title for example",
             "description": "...",
-            "code": "..."
+            "code": "...",
+            is_runnable: "boolean (true or false)"
         },
         {
             "type": "exercise",
             "question": "...",
             "correct_code_solution": "...",
-            "starter_code": "add starter or boilerplate code for the question.. this could be as simple as a comment or some boilerplate function, etc."
+            "starter_code": "add starter or boilerplate code for the question.. this could be as simple as a comment or some boilerplate function, etc.",
+            is_runnable: "boolean (true or false)"
         },
         ...
     ]
@@ -350,10 +352,70 @@ Generate a **JSON object** that presents a thorough breakdown of the sub-module.
     prompt += f"## Entire Syllabus:\n{entire_syllabus_string}\n\n"
     prompt += f"## Current Entire Module Dictionary:\n{current_module_dictionary_string}\n\n"
     prompt += f"## Current Sub-Module Topic:\n{current_sub_module_topic_string}\n\n"
+    prompt += f"## Here are past modules the student has completed:\n{past_user_completed_modules_string}\n\n"
     prompt += f"## Here are past exercises the student has completed:\n{past_user_exercises_completed_string}\n\n"
     prompt += f"## Current Student Profile:\n{student_profile_dictionary}\n\n"
     prompt += "## Output:\n"
 
+    print(prompt)
+
+    return prompt
+
+
+
+
+def quiz_generation_prompt(
+    past_user_exercises_completed_string,
+    current_module_dictionary_string
+):
+    prompt = """You are Companion, an energetic and motivating AI teacher and tutor for Python. Your role is to teach Python in a highly personalized, engaging, and structured manner, ensuring the student comprehensively understands the material and reaches their learning goals!
+
+
+### Objective:
+Your objective is to create a very high-quality, intellectually stimulating quiz for the student on the current module they have completed.
+Below, you are provided with:
+- A current module dictionary, representing what topics were covered in that module.
+- All past exercises they successfully completed in this current module.
+
+Based on the information from above, your goal is now to generate a final module quiz.
+- The quiz should be a mixture of multiple-choice and programming exercises.
+    -- It should approx. be a 40-60 split where 40% percent of the exercises are multiple-choice and 60% of the questions are where the user will have to write code.
+    -- 6-8 total questions seems to be good.
+- The questions must be very thought out and challenging for the user and they shouldn't be similar or repeats to the previous exercsies the user already completed.
+
+
+## Additional Context on Student Environment:
+- The student will primarily be viewing and running their code in an online web-based IDE environment.
+    - The online IDE environment has access to the following python libraries:
+        - numpy, pandas, requests, beautifulsoup4
+    - The online IDE environment does not have access to input().
+        - Please do not use the input() in any of your examples or exercises as it won't be available.
+    - For each exercise and example, for the "is_runnable" key, add a True or False to indicate if this is runnable within the browser-IDE, given the above constraints.
+        - Any web server, program requiring user input, program requiring multiple files or reading files from local file system or database, or program that requires an external GUI (ie. tkinter, matplotlib), etc. should be false to is_runnable by default.
+        - All multiple_choice questions should have "is_runnable" as True since they won't require any writing or running of code. The "is_runnable" key applies to questions that require writing code.
+
+
+## JSON Output Format:
+{
+    "quiz_name": "...",
+    "questions": [
+        {
+            "type": "multiple_choice or code",
+            "question": "...",
+            "multiple_choice_list": "will be a python list of choices for the question if multiple choice, ie. ['choice_one', 'choice_two', ...]","multiple_choice_solution": "the python index from the multiple_choice_list corresponding to the right answer.",
+            "code_solution": "if coding problem, the coding solution",
+            "starter_code": "if coding question, add starter or boilerplate code for the question.. this could be as simple as a comment or some boilerplate function, etc.",
+            is_runnable: "boolean (true or false)"
+        }, 
+        ...
+    ]
+}
+
+
+"""
+    prompt += f"## Current Entire Module Dictionary:\n{current_module_dictionary_string}\n\n"
+    prompt += f"## Here are past exercises the student has completed:\n{past_user_exercises_completed_string}\n\n"
+    prompt += "## Output:\n"
     return prompt
 
 
