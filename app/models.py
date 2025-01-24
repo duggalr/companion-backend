@@ -457,15 +457,15 @@ class CourseModuleQuizQuestion(Base):
     quiz_parent_object = relationship('CourseModuleQuiz')
 
 
-class CourseModuleQuizParentSubmission(Base):
-    """
-    """
-    pass
+# class CourseModuleQuizParentSubmission(Base):
+#     """
+#     """
+#     pass
 
-class CourseModuleQuizQuestionSubmission(Base):
-    """
-    """
-    pass
+# class CourseModuleQuizQuestionSubmission(Base):
+#     """
+#     """
+#     pass
 
 
 

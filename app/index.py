@@ -435,7 +435,7 @@ def generate_student_course_task(
 
         course_module_quiz_object = CourseModuleQuiz(
             quiz_name = ai_current_module_quiz_generation_response_json['quiz_name'],
-            questions_list = ai_current_module_quiz_generation_response_json['questions'],
+            questions_list = str(ai_current_module_quiz_generation_response_json['questions']),
             student_course_module_object_id = student_course_module_object.id
         )
         db.add(course_module_quiz_object)
@@ -504,6 +504,7 @@ async def get_course_generation_task_status(
                 course_module_quiz_object = db.query(CourseModuleQuiz).filter(
                     CourseModuleQuiz.student_course_module_object_id == course_mod_obj.id
                 ).first()
+                # TODO: quiz_name doesn't seem to work here
                 course_module_quiz_object_dict = {}
                 course_module_quiz_object_dict['quiz_name'] = course_module_quiz_object.quiz_name
                 course_module_quiz_object_dict['questions_list'] = course_module_quiz_object.questions_list
@@ -2158,13 +2159,22 @@ def fetch_user_course_details(
                 'sub_module_name': sub_mod_obj.sub_module_name
             })
 
+        course_mod_quiz_object = db.query(CourseModuleQuiz).filter(
+            CourseModuleQuiz.student_course_module_object_id == course_mod_obj.id
+        ).first()
+        # 'course_mod_quiz_name': course_mod_quiz_object.quiz_name,
+        # 'course_mod_quiz_list': course_mod_quiz_object.questions_list
+        sub_modules_rv.append({
+            'sub_module_id': course_mod_quiz_object.id,
+            'sub_module_name': course_mod_quiz_object.quiz_name,
+        })
+        
         current_course_module_list.append({
             'parent_module_object_id': course_mod_obj.id,
             'parent_module_name': course_mod_obj.module_name,
             'parent_module_description': course_mod_obj.module_description,
-            'sub_modules': sub_modules_rv
+            'sub_modules': sub_modules_rv,            
         })
-
 
     course_progress_dictionary = generate_user_course_progress_dict(
         db = db,
@@ -2177,7 +2187,8 @@ def fetch_user_course_details(
         cm_tmp_dict['cm_progress_dict'] = current_cm_progress_dict
         new_current_course_modules_list.append(cm_tmp_dict)
     # TODO: prepare this for entire course and render to home
-
+    
+   
     rv = {}
     rv['course_name'] = student_course_parent_object.course_name
     rv['course_description'] = student_course_parent_object.course_description
@@ -2185,7 +2196,7 @@ def fetch_user_course_details(
     rv['current_celery_task_id'] = student_course_parent_object.celery_task_id
     # rv['current_course_module_list'] = current_course_module_list
     rv['current_course_module_list'] = new_current_course_modules_list
-    rv['course_progress_dictionary'] = course_progress_dictionary
+    rv['course_progress_dictionary'] = course_progress_dictionary    
 
     print('RV:', rv)
 
@@ -2335,14 +2346,14 @@ def fetch_course_module_details(
 
     course_module_quiz_object_dict = {}
     course_module_quiz_object_dict['quiz_name'] = course_module_quiz_object.quiz_name
-    course_module_quiz_object_dict['questions_list'] = course_module_quiz_object.questions_list
+    course_module_quiz_object_dict['questions_list'] = ast.literal_eval(course_module_quiz_object.questions_list)
+    course_module_quiz_object_dict['quiz_introduction_text'] = f"Welcome to the End of the Module Quiz! This quiz will be {len(ast.literal_eval(course_module_quiz_object.questions_list))} questions long. The AI tutor will not be available during this time. Good Luck! 😊"
 
     rv = {}
     rv['course_module_name'] = student_course_module_object.module_name
     rv['course_module_description'] = student_course_module_object.module_description
     rv['sub_modules_list'] = sub_modules_rv
     rv['quiz_object_dict'] = course_module_quiz_object_dict
-    rv['quiz_introductory_text'] = f"Welcome to the End of the Module Quiz! This quiz will be {len(course_module_quiz_object.questions_list)} long. The AI tutor will not be available during this time. Good Luck! 😊"
     rv['next_student_course_module_object_id'] = next_student_course_module_object_id
     
     # total_sub_module_exercises = 0
