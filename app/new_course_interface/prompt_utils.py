@@ -421,6 +421,32 @@ Based on the information from above, your goal is now to generate a final module
 
 
 
+def handle_quiz_code_question_submission_prompt(
+    current_exercise_question,
+    current_exercise_correct_solution_code,
+    user_code
+):
+    submission_evaluation_prompt = f"""Your task is to evaluate the student's code below, and determine if it is the right answer, given the question.
+You are also given the correct solution to the problem, which you can use for reference, when evaluating the student's code.
+- Please note --> the correct solution provided is just one way to solve the given question. The student's code does not need to exactly match the given solution for it to be right. As long as the student's logic in the solution is correct and achieve's the correct final answer, then they are correct.
+    
+Return your response in JSON format, containing the following value:
+- binary_correct: True or False
+
+Question:
+{current_exercise_question}
+
+Correct Solution Code:
+{current_exercise_correct_solution_code}
+
+Current Student Solution:
+{user_code}
+
+## Output:
+"""
+    return submission_evaluation_prompt
+
+
 # # TODO: 
 # def _user_summary_prompt(user_chat_history_string):
 #     prompt = f"""## Instructions:

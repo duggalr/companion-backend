@@ -446,13 +446,6 @@ class CourseModuleQuizQuestion(Base):
     starter_code = Column(String, nullable=True)
     is_runnable = Column(Boolean, default=False)
 
-    # "type": "multiple_choice or code",
-    # "question": "...",
-    # "multiple_choice_list": "will be a python list of choices for the question if multiple choice, ie. ['choice_one', 'choice_two', ...]","multiple_choice_solution": "the python index from the multiple_choice_list corresponding to the right answer.",
-    # "code_solution": "if coding problem, the coding solution",
-    # "starter_code": "if coding question, add starter or boilerplate code for the question.. this could be as simple as a comment or some boilerplate function, etc.",
-    # is_runnable: "boolean (true or false)"
-
     quiz_parent_object_id = Column(UUID, ForeignKey('course_module_quiz.id'), nullable=True)
     quiz_parent_object = relationship('CourseModuleQuiz')
 
@@ -462,10 +455,24 @@ class CourseModuleQuizQuestion(Base):
 #     """
 #     pass
 
-# class CourseModuleQuizQuestionSubmission(Base):
-#     """
-#     """
-#     pass
+class CourseModuleQuizQuestionSubmission(Base):
+    """
+    """
+    __tablename__ = 'course_module_quiz_question_submission'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    user_answer = Column(String)
+    correct_answer = Column(String)
+    correct_submission = Column(Boolean, default=False)
+
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+
+    custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
+    custom_user = relationship("CustomUser")
+
+    quiz_question_object_id = Column(UUID, ForeignKey('course_module_quiz_question.id'), nullable=True)
+    quiz_question_object = relationship('CourseModuleQuizQuestion')
 
 
 

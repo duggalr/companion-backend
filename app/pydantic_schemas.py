@@ -75,3 +75,13 @@ class UserSubModuleSolutionSubmitSchema(BaseModel):
     code: str
     # sub_module_course_object_id: str
     current_exercise_object_id: str
+
+class UserQuizQuestionSubmitSchema(BaseModel):
+    user_id: str
+    quiz_question_object_id: str
+    question_type: str
+    answer: str
+
+class UserQuizFinalResultSchema(BaseModel):
+    user_id: str
+    course_module_quiz_object_id: str

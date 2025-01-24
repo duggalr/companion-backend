@@ -26,7 +26,7 @@ from app.code_execution_utils import run_test_cases_without_function, run_test_c
 
 # New Course Interface Related Script Imports
 # from app.new_course_interface import prompt_utils
-from app.new_course_interface.prompt_utils import _create_sub_topic_module_generation_prompt_new, _create_user_summary_and_profile, _create_user_syllabus_prompt, _prepare_initial_learn_about_user, _create_user_profile_dictionary_prompt_one, quiz_generation_prompt
+from app.new_course_interface.prompt_utils import _create_sub_topic_module_generation_prompt_new, _create_user_summary_and_profile, _create_user_syllabus_prompt, _prepare_initial_learn_about_user, _create_user_profile_dictionary_prompt_one, quiz_generation_prompt, handle_quiz_code_question_submission_prompt
 
 
 # Initialize FastAPI app
@@ -2346,8 +2346,26 @@ def fetch_course_module_details(
 
     course_module_quiz_object_dict = {}
     course_module_quiz_object_dict['quiz_name'] = course_module_quiz_object.quiz_name
-    course_module_quiz_object_dict['questions_list'] = ast.literal_eval(course_module_quiz_object.questions_list)
-    course_module_quiz_object_dict['quiz_introduction_text'] = f"Welcome to the End of the Module Quiz! This quiz will be {len(ast.literal_eval(course_module_quiz_object.questions_list))} questions long. The AI tutor will not be available during this time. Good Luck! 😊"
+    # course_module_quiz_object_dict['questions_list'] = ast.literal_eval(course_module_quiz_object.questions_list)
+
+    quiz_questions_list_rv = []
+    current_course_module_quiz_question_objects = db.query(CourseModuleQuizQuestion).filter(
+        CourseModuleQuizQuestion.quiz_parent_object_id == course_module_quiz_object.id
+    ).all()
+    for quiz_question_obj in current_course_module_quiz_question_objects:
+        quiz_questions_list_rv.append({
+            'question_object_id': quiz_question_obj.id,
+            'type': quiz_question_obj.type,
+            'text': quiz_question_obj.text,
+            'multiple_choice_list': quiz_question_obj.multiple_choice_list,
+            'code_solution': quiz_question_obj.code_solution,
+            'starter_code': quiz_question_obj.starter_code,
+            'is_runnable': quiz_question_obj.is_runnable
+        })
+
+    course_module_quiz_object_dict['course_module_quiz_object_id'] = course_module_quiz_object.id
+    course_module_quiz_object_dict['questions_list'] = quiz_questions_list_rv
+    course_module_quiz_object_dict['quiz_introduction_text'] = f"Welcome to the End of the Module Quiz! This quiz will be {len(quiz_questions_list_rv)} questions long. The AI tutor will not be available during this time. Good Luck! 😊"
 
     rv = {}
     rv['course_module_name'] = student_course_module_object.module_name
@@ -2370,9 +2388,8 @@ def fetch_course_module_details(
     }
 
 
-
-from app.pydantic_schemas import UserSubModuleSolutionSubmitSchema
-from app.models import SubModuleInformationListElement, SubModuleInformationListExerciseSubmissionHistory
+from app.pydantic_schemas import UserSubModuleSolutionSubmitSchema, UserQuizQuestionSubmitSchema, UserQuizFinalResultSchema
+from app.models import SubModuleInformationListElement, SubModuleInformationListExerciseSubmissionHistory, CourseModuleQuizQuestionSubmission
 
 # TODO: start here by implementing this logic and proceed from there
 @app.post("/handle_sub_module_exercise_solution_submit")
@@ -2488,3 +2505,199 @@ Current Student Solution:
     #     student_profile_dictionary=user_student_profile_dict_string
     # )
     
+
+
+
+@app.post("/handle_quiz_question_submission")
+def handle_quiz_question_submission(
+    data: UserQuizQuestionSubmitSchema,
+    db: Session = Depends(get_db),
+    op_ai_wrapper: openai_wrapper.OpenAIWrapper = Depends(get_openai_wrapper)
+):
+    # class UserQuizQuestionSubmitSchema(BaseModel):
+    # user_id: str
+    # question_object_id: str
+    # question_type: str
+    # answer: str
+
+    user_id = data.user_id
+    current_custom_user_object = db.query(CustomUser).filter(
+        CustomUser.anon_user_id == user_id
+    ).first()
+
+    current_quiz_question_object = db.query(CourseModuleQuizQuestion).filter(
+        CourseModuleQuizQuestion.id == data.quiz_question_object_id
+    ).first()
+
+    user_submission_answer = str(data.answer)
+    if current_quiz_question_object.type == 'multiple_choice':
+        correct_multiple_choice_index = current_quiz_question_object.multiple_choice_solution
+        user_submission_result = False
+        if str(correct_multiple_choice_index) == user_submission_answer:
+            user_submission_result = True
+        
+        course_mod_quiz_question_submission_object = CourseModuleQuizQuestionSubmission(
+            user_answer = user_submission_answer,
+            correct_answer = correct_multiple_choice_index,
+            correct_submission = user_submission_result,
+            custom_user_id = user_id,
+            quiz_question_object_id = current_quiz_question_object.id,
+        )
+        db.add(course_mod_quiz_question_submission_object)
+        db.commit()
+        db.refresh(course_mod_quiz_question_submission_object)
+    
+    else:
+        # Handle code question submission
+        # TODO: 
+        quiz_question_submission_prompt = handle_quiz_code_question_submission_prompt(
+            current_exercise_question = current_quiz_question_object.text,
+            current_exercise_correct_solution_code = current_quiz_question_object.code_solution,
+            user_code = user_submission_answer
+        )
+        print(quiz_question_submission_prompt)
+
+        ai_response = op_ai_wrapper.generate_sync_response(
+            prompt = quiz_question_submission_prompt,
+            return_in_json = True
+        )
+        ai_response_json_dict = json.loads(ai_response.choices[0].message.content)
+        user_submission_result = False
+        if ai_response_json_dict['binary_correct'] is True:
+            user_submission_result = True
+
+        course_mod_quiz_question_submission_object = CourseModuleQuizQuestionSubmission(
+            user_answer = user_submission_answer,
+            correct_answer = current_quiz_question_object.code_solution,
+            correct_submission = user_submission_result,
+            custom_user_id = user_id,
+            quiz_question_object_id = current_quiz_question_object.id,
+        )
+        db.add(course_mod_quiz_question_submission_object)
+        db.commit()
+        db.refresh(course_mod_quiz_question_submission_object)
+
+    return {'success': True}
+
+    # correct_quiz_answer = current_quiz_question_object.
+
+    # # TODO: assuming not none
+    # user_answer = Column(String)
+    # correct_answer = Column(String)
+    # correct_submission = Column(Boolean, default=False)
+
+    # custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
+    # custom_user = relationship("CustomUser")
+
+    # quiz_question_object_id = Column(UUID, ForeignKey('course_module_quiz_question.id'), nullable=True)
+    # quiz_question_object = relationship('CourseModuleQuizQuestion')
+
+
+# TODO: implement final quiz submission results; then add eveything to frontend and test all
+@app.post("/fetch_final_course_module_quiz_result")
+def fetch_final_course_module_quiz_results(
+    data: UserQuizFinalResultSchema,
+    db: Session = Depends(get_db),
+    op_ai_wrapper: openai_wrapper.OpenAIWrapper = Depends(get_openai_wrapper)
+
+):
+    user_id = data.user_id
+    current_custom_user_object = db.query(CustomUser).filter(
+        CustomUser.anon_user_id == user_id
+    ).first()
+
+    course_module_quiz_object = db.query(CourseModuleQuiz).filter(
+        CourseModuleQuiz.id == data.course_module_quiz_object_id
+    ).first()
+
+    course_module_quiz_questions_list = db.query(CourseModuleQuizQuestion).filter(
+        CourseModuleQuizQuestion.quiz_parent_object_id == course_module_quiz_object.id
+    )
+
+    total_quiz_length = len(course_module_quiz_questions_list)
+    correct_answers = 0
+    incorrect_answers = 0
+    quiz_questions_responses_rv = []
+    for quiz_question_obj in course_module_quiz_questions_list:
+        quiz_question_most_recent_submission_object = db.query(CourseModuleQuizQuestionSubmission).filter(
+            CourseModuleQuizQuestionSubmission.quiz_question_object_id == quiz_question_obj.id
+        ).order_by(
+            desc(CourseModuleQuizQuestionSubmission.created_at)
+        ).first()
+
+        if quiz_question_most_recent_submission_object.correct_submission is True:
+            correct_answers += 1
+        else:
+            incorrect_answers += 1
+
+        if quiz_question_obj.type == 'multiple_choice':
+            quiz_questions_responses_rv.append(f"""Question: {quiz_question_obj.text}\n\n Multiple Choice Options: {quiz_question_obj.multiple_choice_list}
+User Answer: {quiz_question_most_recent_submission_object.user_answer}
+Correct Answer: {quiz_question_obj.multiple_choice_solution}
+""")
+            # quiz_questions_responses_rv.append({
+            #     'question': ,
+            #     'user_answer': quiz_question_most_recent_submission_object.user_answer,
+            #     'correct_answer': quiz_question_obj.multiple_choice_solution
+            # })
+        
+        else:
+            # quiz_questions_responses_rv.append({
+            #     'question': f"Question: {quiz_question_obj.text}",
+            #     'user_answer': quiz_question_most_recent_submission_object.user_answer,
+            #     'correct_answer': quiz_question_obj.multiple_choice_solution
+            # })
+            quiz_questions_responses_rv.append(f"""Question: {quiz_question_obj.text}
+User Answer: {quiz_question_most_recent_submission_object.user_answer}
+Correct Answer: {quiz_question_obj.code_solution}
+""")
+
+
+    final_user_score = incorrect_answers / total_quiz_length
+    
+    if correct_answers != total_quiz_length:
+        all_quiz_answers_string = "\n".join(quiz_questions_responses_rv)
+
+        ai_feedback_prompt = f"""Your task is to evaluate the student's answers for their quiz questions below.
+You will be given each of the questions the student worked on, along with their answer and the correct answer.
+You will also be given the total number of questions the student got correct and incorrect.
+Based on this information, please provide 2-4 sentences worth of helpful and useful feedback for the student, specifically identifying specific concepts they should further practice or understand better, to help them answer all the questions correctly for the quiz.
+        
+## JSON Output Format:
+- Return your feedback as a string, under the "quiz_feedback" key in the JSON dict.
+
+
+## Student Quiz Result: {incorrect_answers} / {total_quiz_length}
+
+
+## Student All Quiz Answers:
+{all_quiz_answers_string}
+
+
+## Output:
+"""
+
+        ai_response = op_ai_wrapper.generate_sync_response(
+            prompt = ai_feedback_prompt,
+            return_in_json = True
+        )
+        ai_response_json_dict = json.loads(ai_response.choices[0].message.content)            
+        ai_feedback_for_quiz = ai_response_json_dict['quiz_feedback']
+
+    else: 
+        ai_feedback_for_quiz = "Congrats 🎉 You have answered everything correctly in this quiz! Keep up the great work!"
+
+    user_passed_quiz = False
+    if correct_answers == total_quiz_length:
+        user_passed_quiz = True
+
+    return {
+        'success': True,
+        "correct_answers": correct_answers,
+        "incorrect_answers": incorrect_answers,
+        "total_quiz_length": total_quiz_length,
+        "result_score": round((correct_answers / total_quiz_length) * 100),
+        "ai_feedback_for_quiz": ai_feedback_for_quiz,
+        "user_passed_quiz": user_passed_quiz
+    }
+
