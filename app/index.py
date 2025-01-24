@@ -458,7 +458,7 @@ def generate_student_course_task(
             db.commit()
             db.refresh(course_module_quiz_question_object)
 
-        # TODO: add this to the data list to show this information on fetch_course_
+        # TODO: add this to the data list to show this information on fetch_course in task and fetch_course_module_details
 
     # Update Student Course Parent Object
     sc_parent_object = db.query(StudentCourseParent).filter(
@@ -501,10 +501,18 @@ async def get_course_generation_task_status(
                         'sub_module_name': sub_mod_obj.sub_module_name
                     })
 
+                course_module_quiz_object = db.query(CourseModuleQuiz).filter(
+                    CourseModuleQuiz.student_course_module_object_id == course_mod_obj.id
+                ).first()
+                course_module_quiz_object_dict = {}
+                course_module_quiz_object_dict['quiz_name'] = course_module_quiz_object.quiz_name
+                course_module_quiz_object_dict['questions_list'] = course_module_quiz_object.questions_list
+
                 current_course_module_list.append({
                     'parent_module_object_id': course_mod_obj.id,
                     'parent_module_name': course_mod_obj.module_name,
                     'parent_module_description': course_mod_obj.module_description,
+                    'course_module_quiz_object': course_module_quiz_object,
                     'sub_modules': sub_modules_rv,
 
                     # 'parent_module_name': course_mod_obj.module_name,
@@ -2187,7 +2195,6 @@ def fetch_user_course_details(
     }
 
 
-
 @app.post("/fetch_course_module_details")
 def fetch_course_module_details(
     data: UserSubModuleSchema,
@@ -2320,10 +2327,22 @@ def fetch_course_module_details(
             'sub_module_exercise_completed_over_ratio': total_completed_sub_module_info_list_execises / len(all_sub_module_info_list_exercise_objects)
         })
 
+
+    # Fetch course module quiz object
+    course_module_quiz_object = db.query(CourseModuleQuiz).filter(
+        CourseModuleQuiz.student_course_module_object_id == student_course_module_object.id
+    ).first()
+
+    course_module_quiz_object_dict = {}
+    course_module_quiz_object_dict['quiz_name'] = course_module_quiz_object.quiz_name
+    course_module_quiz_object_dict['questions_list'] = course_module_quiz_object.questions_list
+
     rv = {}
     rv['course_module_name'] = student_course_module_object.module_name
     rv['course_module_description'] = student_course_module_object.module_description
     rv['sub_modules_list'] = sub_modules_rv
+    rv['quiz_object_dict'] = course_module_quiz_object_dict
+    rv['quiz_introductory_text'] = f"Welcome to the End of the Module Quiz! This quiz will be {len(course_module_quiz_object.questions_list)} long. The AI tutor will not be available during this time. Good Luck! 😊"
     rv['next_student_course_module_object_id'] = next_student_course_module_object_id
     
     # total_sub_module_exercises = 0
