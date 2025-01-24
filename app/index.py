@@ -2353,14 +2353,21 @@ def fetch_course_module_details(
         CourseModuleQuizQuestion.quiz_parent_object_id == course_module_quiz_object.id
     ).all()
     for quiz_question_obj in current_course_module_quiz_question_objects:
+        # TODO: ensure ast.literal_eval works for mc_list
         quiz_questions_list_rv.append({
             'question_object_id': quiz_question_obj.id,
             'type': quiz_question_obj.type,
-            'text': quiz_question_obj.text,
-            'multiple_choice_list': quiz_question_obj.multiple_choice_list,
-            'code_solution': quiz_question_obj.code_solution,
-            'starter_code': quiz_question_obj.starter_code,
-            'is_runnable': quiz_question_obj.is_runnable
+            "question": quiz_question_obj.text,
+            "multiple_choice_list": ast.literal_eval(quiz_question_obj.multiple_choice_list),
+            "starter_code": quiz_question_obj.starter_code,
+            "is_runnable": quiz_question_obj.is_runnable
+
+            # 'type': quiz_question_obj.type,
+            # 'text': quiz_question_obj.text,
+            # 'multiple_choice_list': quiz_question_obj.multiple_choice_list,
+            # 'code_solution': quiz_question_obj.code_solution,
+            # 'starter_code': quiz_question_obj.starter_code,
+            # 'is_runnable': quiz_question_obj.is_runnable
         })
 
     course_module_quiz_object_dict['course_module_quiz_object_id'] = course_module_quiz_object.id
@@ -2540,7 +2547,7 @@ def handle_quiz_question_submission(
             user_answer = user_submission_answer,
             correct_answer = correct_multiple_choice_index,
             correct_submission = user_submission_result,
-            custom_user_id = user_id,
+            custom_user_id = current_custom_user_object.id,
             quiz_question_object_id = current_quiz_question_object.id,
         )
         db.add(course_mod_quiz_question_submission_object)
@@ -2570,7 +2577,7 @@ def handle_quiz_question_submission(
             user_answer = user_submission_answer,
             correct_answer = current_quiz_question_object.code_solution,
             correct_submission = user_submission_result,
-            custom_user_id = user_id,
+            custom_user_id = current_custom_user_object.id,
             quiz_question_object_id = current_quiz_question_object.id,
         )
         db.add(course_mod_quiz_question_submission_object)
