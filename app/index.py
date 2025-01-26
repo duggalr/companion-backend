@@ -16,8 +16,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.database import SessionLocal
 from app.llm import prompts, openai_wrapper
-from app.models import UserOAuth, CustomUser, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion, UserPlaygroundLectureCode, LecturePlaygroundChatConversation, LectureMain, LectureCodeSubmissionHistory, ProblemSetQuestion, PlaygroundProblemSetChatConversation, UserLectureMain, StudentLearnedProfile, StudentCourseParent, StudentCourseModule, StudentCourseSubModule, CourseModuleQuiz, CourseModuleQuizQuestion
-from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema, FetchLessonQuestionDetailSchema, FetchLectureDetailSchema, LectureQuestionSubmissionSchema, ProblemSetFetchSchema, UserGoalSummarySchema, UserSubModuleSchema
+from app.models import UserOAuth, CustomUser, PlaygroundCode, UserCreatedPlaygroundQuestion, PlaygroundChatConversation, LandingPageEmail, LectureQuestion, UserCreatedLectureQuestion, UserPlaygroundLectureCode, LecturePlaygroundChatConversation, LectureMain, LectureCodeSubmissionHistory, ProblemSetQuestion, PlaygroundProblemSetChatConversation, UserLectureMain, StudentLearnedProfile, StudentCourseParent, StudentCourseModule, StudentCourseSubModule, CourseModuleQuiz, CourseModuleQuizQuestion, CourseModuleProject, CourseModuleProjectPart, CourseModuleProjectPartSubmission
+from app.pydantic_schemas import NotRequiredAnonUserSchema, RequiredAnonUserSchema, UpdateQuestionSchema, CodeExecutionRequestSchema, SaveCodeSchema, SaveLandingPageEmailSchema, FetchQuestionDetailsSchema, ValidateAuthZeroUserSchema, FetchLessonQuestionDetailSchema, FetchLectureDetailSchema, LectureQuestionSubmissionSchema, ProblemSetFetchSchema, UserGoalSummarySchema, UserSubModuleSchema, UserCourseModuleProjectFetchSchema, UserProjectTaskSubmissionSchema
 from app.config import settings
 from app.utils import create_anon_user_object, _get_random_initial_pg_question, get_user_object, get_optional_token, clean_question_input_output_list, clean_question_test_case_list
 from app.llm.prompt_utils import _prepate_tutor_prompt, _prepare_solution_feedback_prompt
@@ -26,7 +26,7 @@ from app.code_execution_utils import run_test_cases_without_function, run_test_c
 
 # New Course Interface Related Script Imports
 # from app.new_course_interface import prompt_utils
-from app.new_course_interface.prompt_utils import _create_sub_topic_module_generation_prompt_new, _create_user_summary_and_profile, _create_user_syllabus_prompt, _prepare_initial_learn_about_user, _create_user_profile_dictionary_prompt_one, quiz_generation_prompt, handle_quiz_code_question_submission_prompt
+from app.new_course_interface.prompt_utils import _create_sub_topic_module_generation_prompt_new, _create_user_summary_and_profile, _create_user_syllabus_prompt, _prepare_initial_learn_about_user, _create_user_profile_dictionary_prompt_one, quiz_generation_prompt, handle_quiz_code_question_submission_prompt, handle_module_project_generation_prompt
 
 
 # Initialize FastAPI app
@@ -306,7 +306,8 @@ def generate_student_course_task(
     self,
     student_course_parent_object_id: str,
     user_syllabus_dict_string: str,
-    user_student_profile_dict_string: str
+    user_student_profile_dict_string: str,
+    custom_user_object_id: str
 ):
     db = next(get_db())
     op = openai_wrapper.OpenAIWrapper(
@@ -460,6 +461,55 @@ def generate_student_course_task(
 
         # TODO: add this to the data list to show this information on fetch_course in task and fetch_course_module_details
 
+    
+    # TODO: generate and save final project
+
+    past_completed_modules_string = """Introduction to Python
+Control Structures
+Functions and Modules
+Data Structures
+Error Handling and Debugging
+Basic Networking Concepts
+"""
+    module_generation_prompt = handle_module_project_generation_prompt(
+        past_completed_modules_string = past_completed_modules_string,
+        student_profile_dictionary = user_student_profile_dict
+    )
+
+    ai_project_generation_response = op.generate_sync_response(
+        prompt = module_generation_prompt,
+        return_in_json = True
+    )
+    ai_project_generation_response_json = json.loads(ai_project_generation_response.choices[0].message.content)
+
+    course_module_project_object = CourseModuleProject(
+        name = ai_project_generation_response_json['project_name'],
+        description = ai_project_generation_response_json['project_description'],
+        output_summary = ai_project_generation_response_json['output_summary'],
+        project_generation_prompt = module_generation_prompt,
+        model_response_string = str(ai_project_generation_response_json),
+        student_course_parent_object_id = student_course_parent_object_id,
+        custom_user_id = custom_user_object_id
+    )
+    db.add(course_module_project_object)
+    db.commit()
+    db.refresh(course_module_project_object)
+
+    output_parts_list = ai_project_generation_response_json['project_parts']
+    for part_dict in output_parts_list:
+        project_part_object = CourseModuleProjectPart(
+            part = part_dict['part'],
+            task = part_dict['task'],
+            example_input_output = part_dict['example_input_output'],
+            starter_code = part_dict['starter_code'],
+            potential_correct_code_solution = part_dict['potential_correct_code_solution'],
+            is_runnable = part_dict['is_runnable'],
+            course_module_project_object_id = course_module_project_object.id
+        )
+        db.add(project_part_object)
+        db.commit()
+        db.refresh(project_part_object)
+
     # Update Student Course Parent Object
     sc_parent_object = db.query(StudentCourseParent).filter(
         StudentCourseParent.id == student_course_parent_object_id
@@ -506,8 +556,9 @@ async def get_course_generation_task_status(
                 ).first()
                 # TODO: quiz_name doesn't seem to work here
                 course_module_quiz_object_dict = {}
-                course_module_quiz_object_dict['quiz_name'] = course_module_quiz_object.quiz_name
-                course_module_quiz_object_dict['questions_list'] = course_module_quiz_object.questions_list
+                if course_module_quiz_object is not None:
+                    course_module_quiz_object_dict['quiz_name'] = course_module_quiz_object.quiz_name
+                    course_module_quiz_object_dict['questions_list'] = course_module_quiz_object.questions_list
 
                 current_course_module_list.append({
                     'parent_module_object_id': course_mod_obj.id,
@@ -2164,10 +2215,12 @@ def fetch_user_course_details(
         ).first()
         # 'course_mod_quiz_name': course_mod_quiz_object.quiz_name,
         # 'course_mod_quiz_list': course_mod_quiz_object.questions_list
-        sub_modules_rv.append({
-            'sub_module_id': course_mod_quiz_object.id,
-            'sub_module_name': course_mod_quiz_object.quiz_name,
-        })
+        
+        if course_mod_quiz_object is not None:
+            sub_modules_rv.append({
+                'sub_module_id': course_mod_quiz_object.id,
+                'sub_module_name': course_mod_quiz_object.quiz_name,
+            })
         
         current_course_module_list.append({
             'parent_module_object_id': course_mod_obj.id,
@@ -2358,7 +2411,7 @@ def fetch_course_module_details(
             'question_object_id': quiz_question_obj.id,
             'type': quiz_question_obj.type,
             "question": quiz_question_obj.text,
-            "multiple_choice_list": ast.literal_eval(quiz_question_obj.multiple_choice_list),
+            "multiple_choice_list": quiz_question_obj.multiple_choice_list,
             "starter_code": quiz_question_obj.starter_code,
             "is_runnable": quiz_question_obj.is_runnable
 
@@ -2600,7 +2653,7 @@ def handle_quiz_question_submission(
     # quiz_question_object = relationship('CourseModuleQuizQuestion')
 
 
-# TODO: implement final quiz submission results; then add eveything to frontend and test all
+
 @app.post("/fetch_final_course_module_quiz_result")
 def fetch_final_course_module_quiz_results(
     data: UserQuizFinalResultSchema,
@@ -2619,18 +2672,21 @@ def fetch_final_course_module_quiz_results(
 
     course_module_quiz_questions_list = db.query(CourseModuleQuizQuestion).filter(
         CourseModuleQuizQuestion.quiz_parent_object_id == course_module_quiz_object.id
-    )
+    ).all()
 
     total_quiz_length = len(course_module_quiz_questions_list)
     correct_answers = 0
     incorrect_answers = 0
     quiz_questions_responses_rv = []
     for quiz_question_obj in course_module_quiz_questions_list:
+        print(quiz_question_obj.id, current_custom_user_object.id)
         quiz_question_most_recent_submission_object = db.query(CourseModuleQuizQuestionSubmission).filter(
-            CourseModuleQuizQuestionSubmission.quiz_question_object_id == quiz_question_obj.id
+            CourseModuleQuizQuestionSubmission.quiz_question_object_id == quiz_question_obj.id,
+            CourseModuleQuizQuestionSubmission.custom_user_id == current_custom_user_object.id
         ).order_by(
             desc(CourseModuleQuizQuestionSubmission.created_at)
         ).first()
+        print('quiz_question_most_recent_submission_object:', quiz_question_most_recent_submission_object)
 
         if quiz_question_most_recent_submission_object.correct_submission is True:
             correct_answers += 1
@@ -2659,9 +2715,6 @@ User Answer: {quiz_question_most_recent_submission_object.user_answer}
 Correct Answer: {quiz_question_obj.code_solution}
 """)
 
-
-    final_user_score = incorrect_answers / total_quiz_length
-    
     if correct_answers != total_quiz_length:
         all_quiz_answers_string = "\n".join(quiz_questions_responses_rv)
 
@@ -2669,17 +2722,16 @@ Correct Answer: {quiz_question_obj.code_solution}
 You will be given each of the questions the student worked on, along with their answer and the correct answer.
 You will also be given the total number of questions the student got correct and incorrect.
 Based on this information, please provide 2-4 sentences worth of helpful and useful feedback for the student, specifically identifying specific concepts they should further practice or understand better, to help them answer all the questions correctly for the quiz.
+Please provide them feedback for this specific quiz.
         
 ## JSON Output Format:
 - Return your feedback as a string, under the "quiz_feedback" key in the JSON dict.
 
 
-## Student Quiz Result: {incorrect_answers} / {total_quiz_length}
-
+## Student Quiz Result: {correct_answers} / {total_quiz_length}
 
 ## Student All Quiz Answers:
 {all_quiz_answers_string}
-
 
 ## Output:
 """
@@ -2706,5 +2758,174 @@ Based on this information, please provide 2-4 sentences worth of helpful and use
         "result_score": round((correct_answers / total_quiz_length) * 100),
         "ai_feedback_for_quiz": ai_feedback_for_quiz,
         "user_passed_quiz": user_passed_quiz
+    }
+
+
+@app.post("/fetch_course_module_project_details")
+def fetch_course_module_project_details(
+    data: UserCourseModuleProjectFetchSchema,
+    db: Session = Depends(get_db),
+    op_ai_wrapper: openai_wrapper.OpenAIWrapper = Depends(get_openai_wrapper)
+
+):
+    user_id = data.user_id
+    current_custom_user_object = db.query(CustomUser).filter(
+        CustomUser.anon_user_id == user_id
+    ).first()
+
+    # TODO: ensure user has access to the course module parent object
+
+    course_module_object_id = data.course_module_object_id
+
+    course_module_project_object = db.query(CourseModuleProject).filter(
+        CourseModuleProject.id == course_module_object_id
+    ).first()
+
+    if course_module_project_object is None:
+        raise HTTPException(status_code=404, detail="Project object not found or unauthorized.")
+
+    course_module_project_part_list = db.query(CourseModuleProjectPart).filter(
+        CourseModuleProjectPart.course_module_project_object_id == course_module_object_id
+    ).all()
+
+    rv = {}
+    rv['project_id'] = course_module_project_object.id
+    rv['project_name'] = course_module_project_object.name
+    rv['description'] = course_module_project_object.description
+    rv['output_summary'] = course_module_project_object.output_summary
+    project_parts_list = []
+    for cm_part_object in course_module_project_part_list:
+        project_parts_list.append({
+            'id': cm_part_object.id,
+            'part': cm_part_object.part,
+            "part_name": cm_part_object.part_name,
+            'task': cm_part_object.task,
+            'example_input_output': cm_part_object.example_input_output,
+            'starter_code': cm_part_object.starter_code,
+            'potential_correct_code_solution': cm_part_object.potential_correct_code_solution,
+            'is_runnable': cm_part_object.is_runnable
+        })
+
+    rv['project_parts_list'] = project_parts_list
+
+    # Fetch Submission History Objects
+    user_project_submission_objects = db.query(CourseModuleProjectPartSubmission).filter(
+        CourseModuleProjectPartSubmission.course_module_project_part_object_id == course_module_project_object.id,
+        CourseModuleProjectPartSubmission.custom_user_id == current_custom_user_object.id
+    )
+    user_project_submission_history_rv = []
+    for sub_obj in user_project_submission_objects:
+        user_project_submission_history_rv.append({
+            'key': sub_obj.id,
+            'created_date': sub_obj.created_at,
+            'user_solution': sub_obj.user_code,
+            'solution_passed': sub_obj.is_correct,
+            'ai_solution_feedback': sub_obj.ai_solution_feedback,
+        })
+
+    return {
+        'success': True,
+        'project_detail_dict': rv,
+        'user_project_submission_history_rv': user_project_submission_history_rv
+    }
+
+
+@app.post("/handle_project_task_submission")
+def handle_project_task_submission(
+    data: UserProjectTaskSubmissionSchema,
+    db: Session = Depends(get_db),
+    op_ai_wrapper: openai_wrapper.OpenAIWrapper = Depends(get_openai_wrapper)
+):
+    user_id = data.user_id
+    current_custom_user_object = db.query(CustomUser).filter(
+        CustomUser.anon_user_id == user_id
+    ).first()
+
+    # TODO: ensure user has access to the project-task-object
+    
+    project_task_object_id = data.project_task_object_id
+    course_module_project_part_object = db.query(CourseModuleProjectPart).filter(
+        CourseModuleProjectPart.id  == project_task_object_id
+    ).first()
+
+    if course_module_project_part_object is None:
+        # TODO: return 404
+        raise HTTPException(status_code=404, detail="Project Part object not found or unauthorized.")
+
+    # user_id: str
+    # project_task_object_id = str
+    # code_solution = str
+
+    course_module_parent_project_object = db.query(CourseModuleProject).filter(
+        CourseModuleProject.id == course_module_project_part_object.course_module_project_object_id
+    ).first()
+
+    overall_project_details_string = f"""Project Name: {course_module_parent_project_object.name}
+
+Project Description: {course_module_parent_project_object.description}
+
+Overall Project Output Summary: {course_module_parent_project_object.output_summary}
+"""
+
+    current_student_solution = data.code_solution
+    current_student_project_task = course_module_project_part_object.task
+    current_task_potential_solution = course_module_project_part_object.potential_correct_code_solution
+
+    valid_submission_prompt =  f"""Your task is to evaluate the student's answer to the project task question.
+You will be given the task the student is working on, along with their solution.
+You will also be given a potential correct solution to the problem.
+Leverage this information to evaluate the student's solution, determining if the solution is correct or not, along with providing the student with feedback.
+You are also provided with the overal project that the student is working on and below is specific part of that project they have currently submitted.
+
+## JSON Output Format (keys for the JSON show below):
+- "correct_solution": "binary True/False indicating if solution is correct"
+- "solution_feedback": "additional fedback on the stduent's solution"
+
+## Overall Project Description
+{overall_project_details_string}
+
+## Current Student Task
+{current_student_project_task}
+
+## Potential Solution To Current Task
+{current_task_potential_solution}
+
+## Current Student Solution
+{current_student_solution}
+
+## Output:
+"""
+    
+    print(valid_submission_prompt)
+
+    ai_submission_response = op_ai_wrapper.generate_sync_response(
+        prompt = valid_submission_prompt,
+        return_in_json=True
+    )
+    ai_submission_response_dict = json.loads(ai_submission_response.choices[0].message.content)
+    is_solution_correct = ai_submission_response_dict['correct_solution']
+    ai_solution_feedback = ai_submission_response_dict['solution_feedback']
+
+    cm_project_part_submission_object = CourseModuleProjectPartSubmission(
+        user_code = current_student_solution,
+        is_correct = is_solution_correct,
+        ai_solution_feedback = ai_solution_feedback,
+        course_module_project_part_object_id = course_module_project_part_object.id,
+        custom_user_id = current_custom_user_object.id
+    )
+    db.add(cm_project_part_submission_object)
+    db.commit()
+    db.refresh(cm_project_part_submission_object)
+
+    return {
+        'success': True,
+        'submission_result_dict': {
+            'key': cm_project_part_submission_object.id,
+            'created_date': cm_project_part_submission_object.created_at,
+            'user_solution': current_student_solution,
+            'solution_passed': is_solution_correct,
+            'ai_solution_feedback': ai_solution_feedback,
+        }
+        
     }
 

@@ -362,8 +362,6 @@ Generate a **JSON object** that presents a thorough breakdown of the sub-module.
     return prompt
 
 
-
-
 def quiz_generation_prompt(
     past_user_exercises_completed_string,
     current_module_dictionary_string
@@ -395,6 +393,10 @@ Based on the information from above, your goal is now to generate a final module
         - All multiple_choice questions should have "is_runnable" as True since they won't require any writing or running of code. The "is_runnable" key applies to questions that require writing code.
 
 
+- For the output below, specifically for "multiple_choice_list", ensure it is a valid python list as this is the only data structure valid.
+    - Example --> ['choice_one', 'choice_two', 'choice_three', 'choice_four']
+
+
 ## JSON Output Format:
 {
     "quiz_name": "...",
@@ -402,7 +404,8 @@ Based on the information from above, your goal is now to generate a final module
         {
             "type": "multiple_choice or code",
             "question": "...",
-            "multiple_choice_list": "will be a python list of choices for the question if multiple choice, ie. ['choice_one', 'choice_two', ...]","multiple_choice_solution": "the python index from the multiple_choice_list corresponding to the right answer.",
+            "multiple_choice_list": "['choice_one', 'choice_two', 'choice_three', 'choice_four']",
+            "multiple_choice_solution": "the python index from the multiple_choice_list corresponding to the right answer.",
             "code_solution": "if coding problem, the coding solution",
             "starter_code": "if coding question, add starter or boilerplate code for the question.. this could be as simple as a comment or some boilerplate function, etc.",
             is_runnable: "boolean (true or false)"
@@ -417,8 +420,6 @@ Based on the information from above, your goal is now to generate a final module
     prompt += f"## Here are past exercises the student has completed:\n{past_user_exercises_completed_string}\n\n"
     prompt += "## Output:\n"
     return prompt
-
-
 
 
 def handle_quiz_code_question_submission_prompt(
@@ -447,6 +448,80 @@ Current Student Solution:
     return submission_evaluation_prompt
 
 
+def handle_module_project_generation_prompt(
+    past_completed_modules_string,
+    student_profile_dictionary
+):
+    prompt = """You are Companion, an energetic and motivating AI teacher and tutor for Python. Your role is to teach Python in a highly personalized, engaging, and structured manner, ensuring the student comprehensively understands the material and reaches their learning goals!
+
+
+### Objective:
+Your task is to generate a very meaningful and structured project exercise JSON dictionary, breaking down the student's final project into individual, progressive gradable parts.
+Ensure the tasks for each part are very well thought-out and crafted, which enables a progressive way for the student to achieve their desired project by the final part.
+The student has already completed the bulk of the course where they learned the foundational knowledge required to start work on their desired project.
+Below, you are provided with the modules the student has already completed along with their final project description.
+When generating the project description and tasks, generate it as if you are speaking directly to the student.
+- Speak directly to the student in a personalized manner, not in third person.
+
+For each part, the task MUST BE RIGOROUSLY DEFINED.
+- You will be providing a potential correct code solution for each part so ensure the task actually is detailed enough, for the student to arrive at the correct solution.
+    - Since this is a project, the questions can have multiple correct solutions, hence why you will be providing one rigorous potential correct code solution.
+- For example --> if you want the student to implement a specific method, instruct them to implement that exact method in the task. Do not leave any room for ambiguity.
+- For each task, provide the student with CONCRETE instructions and CONRETE INPUT / OUTPUT. No AMBIGUITY whatsoever for each task.
+- The final part of the project plan will be the final task needed for the student to reach their final expected output.
+
+
+## Additional Context on Student Environment:
+- The student will primarily be viewing and running their code in an online web-based IDE environment.
+    - The online IDE environment has access to the following python libraries:
+        - numpy, pandas, requests, beautifulsoup4, black, flake8
+    - The online IDE environment does not have access to input().
+        - Please do not use the input() in any of your examples or exercises as it won't be available.
+    - For each exercise and example, for the "is_runnable" key, add a True or False to indicate if this is runnable within the browser-IDE, given the above constraints.
+        - Any web server, program requiring user input, program requiring multiple files or reading files from local file system or database, or program that requires an external GUI (ie. tkinter, matplotlib, any sort of graphing library) should be false to is_runnable by default.
+
+
+### JSON Output Format:
+{
+    "project_name": "...",
+    "project_description": "...",
+    "output_summary": "a 1-2 line detailed description of exactly what the output program for this project will be",
+    "project_parts" : [
+        {
+            "part": "A",
+            "part_name": "...",
+            "task": "...",
+            "example_input_output": "provide an example input, output, and description, illustrating what you are looking for in this task, along with example input and output.",
+            "starter_code": "should simply be the function_name with a comment underneath describing what to implement. no other code should be shown here.",
+            "potential_correct_code_solution": "...",
+            "is_runnable": "boolean (true or false)"
+        },
+        {
+            "part": "B",
+            "part_name": "...",
+            "task": "...",
+            "example_input_output": "provide an example input, output, and description, illustrating what you are looking for in this task, along with example input and output.",
+            "starter_code": "should simply be the function_name with a comment underneath describing what to implement. no other code should be shown here.",
+            "potential_correct_code_solution": "...",
+            "is_runnable": "boolean (true or false)"
+        },
+        ...
+    ]
+}
+
+
+"""
+    prompt += f"## Here are a list of the past modules the student has already completed:\n{past_completed_modules_string}\n\n"
+    prompt += f"## Student Profile with the desired project they want to implement:\n{student_profile_dictionary}\n\n"
+    prompt += "## Output:\n"
+
+    return prompt
+
+
+
+
+
+
 # # TODO: 
 # def _user_summary_prompt(user_chat_history_string):
 #     prompt = f"""## Instructions:
@@ -465,3 +540,4 @@ Current Student Solution:
 # ## Output:
 # """
 #     return prompt
+

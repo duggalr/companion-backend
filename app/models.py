@@ -475,13 +475,72 @@ class CourseModuleQuizQuestionSubmission(Base):
     quiz_question_object = relationship('CourseModuleQuizQuestion')
 
 
+class CourseModuleProject(Base):
+    """
+    """
+    __tablename__ = 'course_module_project'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    name = Column(String)
+    description = Column(String)
+    output_summary = Column(String)
+    project_generation_prompt = Column(String)
+    model_response_string = Column(String)
+
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+
+    student_course_parent_object_id = Column(UUID, ForeignKey('student_course_parent.id'), nullable=True)
+    student_course_parent_object = relationship("StudentCourseParent")
 
 
-# TODO:
-    # start here now by properly creating the new DB table for the course-generation
-    # should be information-list as it's own table (see notes)
-    # also, modify prompt with new feedback before running the course-generation again
-    # proceed to finalize and execute from there
+class CourseModuleProjectPart(Base):
+    """
+    """
+    __tablename__ = 'course_module_project_part'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    part = Column(String)
+    part_name = Column(String)
+    task = Column(String)
+    example_input_output = Column(String)
+    starter_code = Column(String)
+    potential_correct_code_solution = Column(String)
+    is_runnable = Column(Boolean, default=False)
+    course_module_project_object_id = Column(UUID, ForeignKey('course_module_project.id'), nullable=True)
+    course_module_project_object = relationship("CourseModuleProject")
+
+# "part": "A",
+# "task": "...",
+# "example_input_output": "provide an example input, output, and description, illustrating what you are looking for in this task, along with example input and output.",
+# "starter_code": "should simply be the function_name with a comment underneath describing what to implement. no other code should be shown here.",
+# "potential_correct_code_solution": "...",
+# "is_runnable": "boolean (true or false)"
+
+
+class CourseModuleProjectPartSubmission(Base):
+    """
+    """
+    __tablename__ = "course_module_project_part_submission"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_code = Column(String)
+    is_correct = Column(Boolean, default=False)
+    ai_solution_feedback = Column(String)
+
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+
+    course_module_project_part_object_id = Column(UUID, ForeignKey('course_module_project_part.id'), nullable=True)
+    course_module_project_part_object = relationship("CourseModuleProjectPart")
+
+    custom_user_id = Column(UUID, ForeignKey('custom_user.id'), nullable=True)
+    custom_user = relationship("CustomUser")
+
+
+
+
+
+
 
 # class StudentCourseSubModuleSubmission(Base):
 #     Link back to the student and sub-module -- use this to track progress (total-completed-challenges/total-challenges in sub-module)

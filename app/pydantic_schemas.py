@@ -85,3 +85,12 @@ class UserQuizQuestionSubmitSchema(BaseModel):
 class UserQuizFinalResultSchema(BaseModel):
     user_id: str
     course_module_quiz_object_id: str
+
+class UserCourseModuleProjectFetchSchema(BaseModel):
+    user_id: str
+    course_module_object_id: str
+
+class UserProjectTaskSubmissionSchema(BaseModel):
+    user_id: str
+    project_task_object_id = str
+    code_solution = str
