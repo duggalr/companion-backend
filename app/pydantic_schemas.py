@@ -92,5 +92,5 @@ class UserCourseModuleProjectFetchSchema(BaseModel):
 
 class UserProjectTaskSubmissionSchema(BaseModel):
     user_id: str
-    project_task_object_id = str
-    code_solution = str
+    project_task_object_id: str
+    code_solution: str

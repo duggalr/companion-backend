@@ -489,7 +489,6 @@ Basic Networking Concepts
         project_generation_prompt = module_generation_prompt,
         model_response_string = str(ai_project_generation_response_json),
         student_course_parent_object_id = student_course_parent_object_id,
-        custom_user_id = custom_user_object_id
     )
     db.add(course_module_project_object)
     db.commit()
@@ -2240,9 +2239,7 @@ def fetch_user_course_details(
         current_cm_progress_dict = course_progress_dictionary[current_cm_object_id]
         cm_tmp_dict['cm_progress_dict'] = current_cm_progress_dict
         new_current_course_modules_list.append(cm_tmp_dict)
-    # TODO: prepare this for entire course and render to home
-    
-   
+
     rv = {}
     rv['course_name'] = student_course_parent_object.course_name
     rv['course_description'] = student_course_parent_object.course_description
@@ -2252,7 +2249,28 @@ def fetch_user_course_details(
     rv['current_course_module_list'] = new_current_course_modules_list
     rv['course_progress_dictionary'] = course_progress_dictionary    
 
-    print('RV:', rv)
+    # TODO: add course project stuff
+    course_module_project_object = db.query(CourseModuleProject).filter(
+        CourseModuleProject.student_course_parent_object_id == student_course_parent_object.id,
+    ).first()
+    print('course-module-project:', course_module_project_object)
+
+    project_dict_rv = {}
+    project_dict_rv['project_object_id'] = course_module_project_object.id
+    project_dict_rv['project_name'] = course_module_project_object.name
+    project_dict_rv['project_description'] = course_module_project_object.description
+
+    project_part_list = db.query(CourseModuleProjectPart).filter(
+        CourseModuleProjectPart.course_module_project_object_id == course_module_project_object.id
+    ).all()
+    # TODO: add part_name for each projct part in the prompt
+    current_project_parts_list = [{'part': proj_obj.part, 'part_name': proj_obj.part_name} for proj_obj in project_part_list]
+    project_dict_rv['project_parts_list'] = current_project_parts_list
+
+    # TODO: render project stuff with parts list in the home layout
+
+    rv['project_dict'] = project_dict_rv
+    print(f"RV: {rv}")
 
     return {
         'success': True,
@@ -2782,6 +2800,10 @@ def fetch_course_module_project_details(
         CourseModuleProject.id == course_module_object_id
     ).first()
 
+    parent_course_object = db.query(StudentCourseParent).filter(
+        StudentCourseParent.id == course_module_project_object.student_course_parent_object_id
+    ).first()
+
     if course_module_project_object is None:
         raise HTTPException(status_code=404, detail="Project object not found or unauthorized.")
 
@@ -2790,12 +2812,36 @@ def fetch_course_module_project_details(
     ).all()
 
     rv = {}
+    rv['parent_course_object_id'] = parent_course_object.id
+    rv['parent_course_object_name'] = parent_course_object.course_name
+
     rv['project_id'] = course_module_project_object.id
     rv['project_name'] = course_module_project_object.name
     rv['description'] = course_module_project_object.description
     rv['output_summary'] = course_module_project_object.output_summary
     project_parts_list = []
+    user_project_submission_history_rv_dict = {}
     for cm_part_object in course_module_project_part_list:
+        
+        # fetch part submission objects
+        user_project_part_submission_objects = db.query(CourseModuleProjectPartSubmission).filter(
+            CourseModuleProjectPartSubmission.course_module_project_part_object_id == cm_part_object.id,
+            CourseModuleProjectPartSubmission.custom_user_id == current_custom_user_object.id
+        ).all()
+        current_project_part_submission_list = []
+        for current_part_submission_obj in user_project_part_submission_objects:
+            print('current-date:', current_part_submission_obj.created_at)
+            
+            current_project_part_submission_list.append({
+                'key': current_part_submission_obj.id,
+                'date': current_part_submission_obj.created_at.date(),
+                'user_solution': current_part_submission_obj.user_code,
+                'solution_passed': current_part_submission_obj.is_correct,
+                'ai_solution_feedback': current_part_submission_obj.ai_solution_feedback,    
+            })
+
+        user_project_submission_history_rv_dict[cm_part_object.id] = current_project_part_submission_list
+
         project_parts_list.append({
             'id': cm_part_object.id,
             'part': cm_part_object.part,
@@ -2808,26 +2854,34 @@ def fetch_course_module_project_details(
         })
 
     rv['project_parts_list'] = project_parts_list
+    # TODO: fix submission history and go from there
 
-    # Fetch Submission History Objects
-    user_project_submission_objects = db.query(CourseModuleProjectPartSubmission).filter(
-        CourseModuleProjectPartSubmission.course_module_project_part_object_id == course_module_project_object.id,
-        CourseModuleProjectPartSubmission.custom_user_id == current_custom_user_object.id
-    )
-    user_project_submission_history_rv = []
-    for sub_obj in user_project_submission_objects:
-        user_project_submission_history_rv.append({
-            'key': sub_obj.id,
-            'created_date': sub_obj.created_at,
-            'user_solution': sub_obj.user_code,
-            'solution_passed': sub_obj.is_correct,
-            'ai_solution_feedback': sub_obj.ai_solution_feedback,
-        })
+    # # Fetch Submission History Objects
+    # user_project_submission_objects = db.query(CourseModuleProjectPartSubmission).filter(
+    #     CourseModuleProjectPartSubmission.course_module_project_part_object_id == course_module_project_object.id,
+    #     CourseModuleProjectPartSubmission.custom_user_id == current_custom_user_object.id
+    # )
+    # user_project_submission_history_rv_dict = {}
+    # for sub_obj in user_project_submission_objects:
+    #     user_project_submission_history_rv_dict[sub_obj.course_module_project_part_object_id] = {
+    #         'key': sub_obj.id,
+    #         'created_date': sub_obj.created_at,
+    #         'user_solution': sub_obj.user_code,
+    #         'solution_passed': sub_obj.is_correct,
+    #         'ai_solution_feedback': sub_obj.ai_solution_feedback,    
+    #     }
+    #     # user_project_submission_history_rv.append({
+    #     #     'key': sub_obj.id,
+    #     #     'created_date': sub_obj.created_at,
+    #     #     'user_solution': sub_obj.user_code,
+    #     #     'solution_passed': sub_obj.is_correct,
+    #     #     'ai_solution_feedback': sub_obj.ai_solution_feedback,
+    #     # })
 
     return {
         'success': True,
         'project_detail_dict': rv,
-        'user_project_submission_history_rv': user_project_submission_history_rv
+        'user_project_submission_history_rv': user_project_submission_history_rv_dict
     }
 
 
