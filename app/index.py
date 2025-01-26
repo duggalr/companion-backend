@@ -2000,7 +2000,8 @@ async def ws_learn_about_user(
                 task = generate_student_course_task.delay(
                     student_course_parent_object_id = str(student_course_parent_object.id),
                     user_syllabus_dict_string = str(user_syllabus_ai_response_json),
-                    user_student_profile_dict_string = str(user_profile_dictionary_str)
+                    user_student_profile_dict_string = str(user_profile_dictionary_str),
+                    custom_user_object_id = current_custom_user_object.id
                 )
 
                 # Update Student Course Parent Object with Task ID
