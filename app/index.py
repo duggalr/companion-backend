@@ -2133,6 +2133,7 @@ def generate_user_course_progress_dict(db, custom_user_id):
                 passed = True
             else:
                 passed = False
+
             course_sub_module_progress_dict[current_sub_module_object.id] = {
                 'completed_count': completed_info_element_exercises_count,
                 'total_count': total_info_element_exercises_count,
@@ -2145,15 +2146,45 @@ def generate_user_course_progress_dict(db, custom_user_id):
             total_course_module_exercises += course_sub_module_progress_dict[cm_id]['total_count']
             completed_course_module_exercises += course_sub_module_progress_dict[cm_id]['completed_count']
 
-        if (completed_course_module_exercises == total_course_module_exercises):
+        # TODO: get quiz progress
+        
+        current_course_module_quiz_object = db.query(CourseModuleQuiz).filter(
+            CourseModuleQuiz.student_course_module_object_id == course_mod_object.id
+        ).first()
+
+        current_quiz_question_objects = db.query(CourseModuleQuizQuestion).filter(
+            CourseModuleQuizQuestion.quiz_parent_object_id == current_course_module_quiz_object.id
+        ).all()
+
+        current_module_total_quiz_questions = len(current_quiz_question_objects)
+        total_correct_quiz_questions = 0
+        for current_quiz_quest_obj in current_quiz_question_objects:
+            current_question_correct_submissions_objects = db.query(CourseModuleQuizQuestionSubmission).filter(
+                CourseModuleQuizQuestionSubmission.quiz_question_object_id == current_quiz_quest_obj.id,
+                CourseModuleQuizQuestionSubmission.correct_submission == True,
+                CourseModuleQuizQuestionSubmission.custom_user_id == custom_user_id
+            ).all()
+            if len(current_question_correct_submissions_objects) > 0:
+                total_correct_quiz_questions += 1
+
+        current_course_module_quiz_passed = False
+        if (total_correct_quiz_questions == current_module_total_quiz_questions):
+            current_course_module_quiz_passed = True
+
+        if (completed_course_module_exercises == total_course_module_exercises) and (current_course_module_quiz_passed is True):
             course_module_passed = True
         else:
             course_module_passed = False
 
         course_module_rv_dict = {
+            # exercise progress
             'course_sub_module_progress_dict': course_sub_module_progress_dict,
             'total_course_module_exercises': total_course_module_exercises,
             'completed_course_module_exercises': completed_course_module_exercises,
+
+            # quiz progress
+            'current_course_module_quiz_passed': current_course_module_quiz_passed,
+
             'course_module_passed': course_module_passed
         }
 
@@ -2256,16 +2287,17 @@ def fetch_user_course_details(
     print('course-module-project:', course_module_project_object)
 
     project_dict_rv = {}
-    project_dict_rv['project_object_id'] = course_module_project_object.id
-    project_dict_rv['project_name'] = course_module_project_object.name
-    project_dict_rv['project_description'] = course_module_project_object.description
+    if course_module_project_object is not None:
+        project_dict_rv['project_object_id'] = course_module_project_object.id
+        project_dict_rv['project_name'] = course_module_project_object.name
+        project_dict_rv['project_description'] = course_module_project_object.description
 
-    project_part_list = db.query(CourseModuleProjectPart).filter(
-        CourseModuleProjectPart.course_module_project_object_id == course_module_project_object.id
-    ).all()
-    # TODO: add part_name for each projct part in the prompt
-    current_project_parts_list = [{'part': proj_obj.part, 'part_name': proj_obj.part_name} for proj_obj in project_part_list]
-    project_dict_rv['project_parts_list'] = current_project_parts_list
+        project_part_list = db.query(CourseModuleProjectPart).filter(
+            CourseModuleProjectPart.course_module_project_object_id == course_module_project_object.id
+        ).all()
+        # TODO: add part_name for each projct part in the prompt
+        current_project_parts_list = [{'part': proj_obj.part, 'part_name': proj_obj.part_name} for proj_obj in project_part_list]
+        project_dict_rv['project_parts_list'] = current_project_parts_list
 
     # TODO: render project stuff with parts list in the home layout
 
@@ -2426,21 +2458,28 @@ def fetch_course_module_details(
     ).all()
     for quiz_question_obj in current_course_module_quiz_question_objects:
         # TODO: ensure ast.literal_eval works for mc_list
-        quiz_questions_list_rv.append({
-            'question_object_id': quiz_question_obj.id,
-            'type': quiz_question_obj.type,
-            "question": quiz_question_obj.text,
-            "multiple_choice_list": quiz_question_obj.multiple_choice_list,
-            "starter_code": quiz_question_obj.starter_code,
-            "is_runnable": quiz_question_obj.is_runnable
+        
+        print('current-MULTIPLE-CHOICE-LIST:', quiz_question_obj.multiple_choice_list)
+        current_tmp_q_type = quiz_question_obj.type
+        if (current_tmp_q_type == 'multiple_choice'):
+            quiz_questions_list_rv.append({
+                'question_object_id': quiz_question_obj.id,
+                'type': quiz_question_obj.type,
+                "question": quiz_question_obj.text,
+                "multiple_choice_list": ast.literal_eval(quiz_question_obj.multiple_choice_list),
+                "starter_code": quiz_question_obj.starter_code,
+                "is_runnable": quiz_question_obj.is_runnable
+            })
+        else:
+            quiz_questions_list_rv.append({
+                'question_object_id': quiz_question_obj.id,
+                'type': quiz_question_obj.type,
+                "question": quiz_question_obj.text,
+                "multiple_choice_list": None,
+                "starter_code": quiz_question_obj.starter_code,
+                "is_runnable": quiz_question_obj.is_runnable
+            })
 
-            # 'type': quiz_question_obj.type,
-            # 'text': quiz_question_obj.text,
-            # 'multiple_choice_list': quiz_question_obj.multiple_choice_list,
-            # 'code_solution': quiz_question_obj.code_solution,
-            # 'starter_code': quiz_question_obj.starter_code,
-            # 'is_runnable': quiz_question_obj.is_runnable
-        })
 
     course_module_quiz_object_dict['course_module_quiz_object_id'] = course_module_quiz_object.id
     course_module_quiz_object_dict['questions_list'] = quiz_questions_list_rv
