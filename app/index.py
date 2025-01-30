@@ -2152,9 +2152,11 @@ def generate_user_course_progress_dict(db, custom_user_id):
             CourseModuleQuiz.student_course_module_object_id == course_mod_object.id
         ).first()
 
-        current_quiz_question_objects = db.query(CourseModuleQuizQuestion).filter(
-            CourseModuleQuizQuestion.quiz_parent_object_id == current_course_module_quiz_object.id
-        ).all()
+        current_quiz_question_objects = []
+        if current_course_module_quiz_object is not None:
+            current_quiz_question_objects = db.query(CourseModuleQuizQuestion).filter(
+                CourseModuleQuizQuestion.quiz_parent_object_id == current_course_module_quiz_object.id
+            ).all()
 
         current_module_total_quiz_questions = len(current_quiz_question_objects)
         total_correct_quiz_questions = 0
@@ -2449,13 +2451,15 @@ def fetch_course_module_details(
     ).first()
 
     course_module_quiz_object_dict = {}
-    course_module_quiz_object_dict['quiz_name'] = course_module_quiz_object.quiz_name
-    # course_module_quiz_object_dict['questions_list'] = ast.literal_eval(course_module_quiz_object.questions_list)
-
     quiz_questions_list_rv = []
-    current_course_module_quiz_question_objects = db.query(CourseModuleQuizQuestion).filter(
-        CourseModuleQuizQuestion.quiz_parent_object_id == course_module_quiz_object.id
-    ).all()
+    if course_module_quiz_object is not None:
+        course_module_quiz_object_dict['quiz_name'] = course_module_quiz_object.quiz_name
+    # course_module_quiz_object_dict['questions_list'] = ast.literal_eval(course_module_quiz_object.questions_list)
+    
+        current_course_module_quiz_question_objects = db.query(CourseModuleQuizQuestion).filter(
+            CourseModuleQuizQuestion.quiz_parent_object_id == course_module_quiz_object.id
+        ).all()
+
     for quiz_question_obj in current_course_module_quiz_question_objects:
         # TODO: ensure ast.literal_eval works for mc_list
         
