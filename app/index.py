@@ -146,7 +146,6 @@ def validate_authenticated_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db)
 ):
-
     token = credentials.credentials
     token_info_dict = verify_jwt(
         token = token
